@@ -11,7 +11,7 @@ https://gonnir.github.io/Avionix-Forge/
 
 1. **Design in the browser.** Drag instruments (artificial horizon, airspeed tape, compass, gauges, decorative shapes, etc.) onto a live canvas sized to match your actual display. Position, resize, recolor, and rotate each one; the canvas is a pixel-accurate preview of what the real hardware will show, running on simulated demo data so you can see it move before anything is wired up.
 
-2. **Configure your hardware once.** Pick your microcontroller (RP2040, ESP32, ESP32-S3, or STM32), your display panel, its wiring pins, and your MAVLink UART settings in a single setup dialog.
+2. **Configure your hardware once.** Pick your microcontroller (RP2040 tested so far, ESP32, ESP32-S3 coming soon), your display panel, its wiring pins, and your MAVLink UART settings in a single setup dialog.
 
 3. **Export.** One click generates a complete, self-contained `.ino` sketch — display driver initialization, MAVLink parsing, and a dedicated draw function per instrument, all in plain Arduino/C++ using standard libraries (Adafruit GFX/U8g2). Nothing to hand-edit.
 
