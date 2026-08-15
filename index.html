@@ -488,6 +488,7 @@ const state = {
 };
 
 const MAVLINK_SOURCES = [
+  {id:'CUSTOM_VALUE',label:'Custom Fixed Value',unit:'',sim:()=>0},
   {id:'ATTITUDE.roll',label:'Roll Angle',unit:'°',sim:()=>Math.sin(Date.now()/3000)*25},
   {id:'ATTITUDE.pitch',label:'Pitch Angle',unit:'°',sim:()=>Math.sin(Date.now()/4200)*15},
   {id:'ATTITUDE.yaw',label:'Yaw Angle',unit:'°',sim:()=>((Date.now()/120)%360)},
@@ -547,6 +548,8 @@ const STANDARD_INSTRUMENTS = [
   {type:'shape-rectangle',name:'Rectangle',desc:'Decorative panel shape',icon:'fa-square',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-circle',name:'Circle',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:60,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-oval',name:'Oval',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
+  {type:'shape-triangle',name:'Triangle',desc:'Decorative panel shape',icon:'fa-caret-up',category:'Decoration',defaultSize:{w:80,h:70},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
+  {type:'shape-line',name:'Line',desc:'Decorative line, any angle via endpoints',icon:'fa-slash',category:'Decoration',defaultSize:{w:100,h:40},defaults:{lineColor:'#3a4555',lineWidth:2,x1Pct:0,y1Pct:50,x2Pct:100,y2Pct:50}},
   {type:'shape-screw',name:'Screw Head',desc:'Panel rivet / screw detail',icon:'fa-compact-disc',category:'Decoration',defaultSize:{w:20,h:20},defaults:{headColor:'#8a94a3',slotColor:'#3a4555',slotStyle:'flat',rotation:0}},
   {type:'template-image',name:'Background Template',desc:'Reference image to trace/align instruments over - editor only, not included in the exported sketch',icon:'fa-image',category:'Decoration',defaultSize:{w:200,h:150},defaults:{imageData:'',locked:false,rotation:0,opacity:100}}
 ];
@@ -1315,7 +1318,8 @@ function renderProperties(){
   // no-op that would silently do nothing once compiled.
   const isTemplateImage = inst.type==='template-image';
   const rotationUnsupported = ['altimeter-tape','airspeed-tape','tape','heading-tape','vsi-tape',
-    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text'].includes(inst.type);
+    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text',
+    'shape-line' /* angle is already fully controlled by its endpoint percentages */].includes(inst.type);
   if(rotationUnsupported && c.rotation){ c.rotation=0; if(inst.element) inst.element.style.transform='rotate(0deg)'; }
 
   let html=`
@@ -1364,18 +1368,18 @@ function renderProperties(){
   if(inst.type==='static-text'){
     html+=`<div class="field"><label class="field-label">Text</label><input type="text" data-cfg="text" value="${escAttr(c.text)}" placeholder="Type anything..."></div>`;
   } else if(inst.type==='artificial-horizon'){
-    html+=mavlinkField('Roll Source','mavSource',c.mavSource);
-    html+=mavlinkField('Pitch Source','mavSource2',c.mavSource2);
+    html+=mavlinkField('Roll Source','mavSource',c.mavSource,c);
+    html+=mavlinkField('Pitch Source','mavSource2',c.mavSource2,c);
   } else if(inst.type==='turn-coordinator'){
-    html+=mavlinkField('Roll/Rate Source','mavSource',c.mavSource);
-    html+=mavlinkField('Slip Source','slipSource',c.slipSource);
+    html+=mavlinkField('Roll/Rate Source','mavSource',c.mavSource,c);
+    html+=mavlinkField('Slip Source','slipSource',c.slipSource,c);
   } else if(inst.type==='altimeter-tape'||inst.type==='airspeed-tape'||inst.type==='vsi'||inst.type==='vsi-tape'||inst.type==='tape'){
-    html+=mavlinkField('Data Source','mavSource',c.mavSource);
+    html+=mavlinkField('Data Source','mavSource',c.mavSource,c);
     html+=`<div class="field-row"><div class="field"><label class="field-label">Min</label><input type="number" data-cfg="min" value="${c.min||0}"></div><div class="field"><label class="field-label">Max</label><input type="number" data-cfg="max" value="${c.max||100}"></div></div>`;
     html+=`<div class="field"><label class="field-label">Unit</label><input type="text" data-cfg="unit" value="${c.unit||''}"></div>`;
   } else if(inst.type==='arc-gauge'||inst.type==='bar-gauge'||inst.type==='text-value'||inst.type==='dial'){
     html+=`<div class="field"><label class="field-label">Label</label><input type="text" data-cfg="label" value="${c.label||''}"></div>`;
-    html+=mavlinkField('MAVLink Source','mavSource',c.mavSource);
+    html+=mavlinkField('MAVLink Source','mavSource',c.mavSource,c);
     if(c.mavSource==='CELL_VOLTAGE'){
       html+=`<div class="field"><label class="field-label">Cell Count (divisor)</label><input type="number" data-cfg="cellCount" value="${c.cellCount||3}" min="1" max="24" step="1"></div>`;
     }
@@ -1384,7 +1388,7 @@ function renderProperties(){
     }
     html+=`<div class="field-row"><div class="field"><label class="field-label">Unit</label><input type="text" data-cfg="unit" value="${c.unit||''}"></div><div class="field"><label class="field-label">Digits</label><input type="number" data-cfg="digits" value="${c.digits||0}" min="0" max="4"></div></div>`;
   } else {
-    html+=mavlinkField('MAVLink Source','mavSource',c.mavSource);
+    html+=mavlinkField('MAVLink Source','mavSource',c.mavSource,c);
     if(c.mavSource==='CELL_VOLTAGE'){
       html+=`<div class="field"><label class="field-label">Cell Count (divisor)</label><input type="number" data-cfg="cellCount" value="${c.cellCount||3}" min="1" max="24" step="1"></div>`;
     }
@@ -1410,18 +1414,33 @@ function renderProperties(){
       </select></div>`;
   } else if(inst.type==='artificial-horizon'){
     html+=selectField('Shape','ahShape',c.ahShape||'circle',['circle','rectangle']);
+    html+=`<div class="field"><label class="field-label">Reference Symbol Style</label>
+      <select data-cfg="refSymbolStyle">
+        <option value="wings-dot" ${(c.refSymbolStyle||'wings-dot')==='wings-dot'?'selected':''}>Wings &amp; Dot (classic gyro)</option>
+        <option value="flat-bar" ${c.refSymbolStyle==='flat-bar'?'selected':''}>Flat Bar (simple, oldschool)</option>
+        <option value="cross" ${c.refSymbolStyle==='cross'?'selected':''}>Cross (vintage reticle)</option>
+        <option value="chevron" ${c.refSymbolStyle==='chevron'?'selected':''}>Chevron (modern glass cockpit)</option>
+        <option value="dot-circle" ${c.refSymbolStyle==='dot-circle'?'selected':''}>Dot &amp; Circle (modern minimal)</option>
+      </select></div>`;
     html+=colorField('Background (Sky) Color','bgColor',c.bgColor||'#3a6db5');
     html+=colorField('Ground Color','groundColor',c.groundColor||'#6b4226');
     html+=colorField('Line Color','lineColor',c.lineColor||'#ffffff');
     html+=colorField('Reference Color','refColor',c.refColor||'#ff9d3a');
     html+=colorField('Ladder Label Color','ladderLabelColor',c.ladderLabelColor||c.lineColor||'#ffffff');
+    html+=colorField('Ladder Rung Color (Pitch Up)','ladderLineColorUp',c.ladderLineColorUp||c.lineColor||'#ffffff');
+    html+=colorField('Ladder Rung Color (Pitch Down)','ladderLineColorDown',c.ladderLineColorDown||c.lineColor||'#ffffff');
+    html+=colorField('Ladder Label Color (Pitch Up)','ladderLabelColorUp',c.ladderLabelColorUp||c.ladderLabelColor||c.lineColor||'#ffffff');
+    html+=colorField('Ladder Label Color (Pitch Down)','ladderLabelColorDown',c.ladderLabelColorDown||c.ladderLabelColor||c.lineColor||'#ffffff');
     html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
-    html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
     html+=checkboxField('showPitchLadder','Show Pitch Ladder',c.showPitchLadder!==false);
     html+=checkboxField('showPitchLabels','Show Pitch Ladder Numbers',c.showPitchLabels!==false);
     html+=checkboxField('showRollTicks','Show Roll Angle Ticks',c.showRollTicks!==false);
     html+=checkboxField('showRollTriangle','Show Roll Triangle Marker',c.showRollTriangle!==false);
-    html+=`${propGroupLabel('geom','Sizing & Geometry')}<div class="field-row"><div class="field"><label class="field-label">Major Tick Length</label><input type="number" data-cfg="majorTickLen" value="${c.majorTickLen!==undefined?c.majorTickLen:8}" min="1" max="40"></div><div class="field"><label class="field-label">Minor Tick Length</label><input type="number" data-cfg="minorTickLen" value="${c.minorTickLen!==undefined?c.minorTickLen:4}" min="1" max="40"></div></div>`;
+    html+=`${propGroupLabel('geom','Sizing & Geometry')}<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Major Tick Length</label><input type="number" data-cfg="majorTickLen" value="${c.majorTickLen!==undefined?c.majorTickLen:8}" min="1" max="40"></div><div class="field"><label class="field-label">Minor Tick Length</label><input type="number" data-cfg="minorTickLen" value="${c.minorTickLen!==undefined?c.minorTickLen:4}" min="1" max="40"></div></div>`;
+    html+=`<div class="field"><label class="field-label">Pitch Ladder Range (°, up and down)</label><input type="number" data-cfg="pitchLadderRange" value="${c.pitchLadderRange>0?c.pitchLadderRange:''}" placeholder="auto (30°)" min="10" max="90" step="10"><span class="field-hint">How far the pitch ladder extends above and below level - e.g. 90 to show the full range up to straight up/down.</span></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Pitch Ladder Major Rung (px)</label><input type="number" data-cfg="ladderMajLen" value="${c.ladderMajLen>0?c.ladderMajLen:''}" placeholder="auto" min="1" max="200"></div><div class="field"><label class="field-label">Pitch Ladder Minor Rung (px)</label><input type="number" data-cfg="ladderMinLen" value="${c.ladderMinLen>0?c.ladderMinLen:''}" placeholder="auto" min="1" max="200"></div></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Roll Triangle Height (px)</label><input type="number" data-cfg="rollTriHeight" value="${c.rollTriHeight>0?c.rollTriHeight:''}" placeholder="auto" min="1" max="100"></div><div class="field"><label class="field-label">Roll Triangle Width (px)</label><input type="number" data-cfg="rollTriWidth" value="${c.rollTriWidth>0?c.rollTriWidth:''}" placeholder="auto" min="1" max="100"></div></div>`;
     html+=gaugeTextSection(c,[['ladder','Pitch Ladder Numbers']]);
   } else if(inst.type==='turn-coordinator'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
@@ -1641,6 +1660,7 @@ function renderProperties(){
       html+=checkboxField('showTrack','Show Track Arc',c.showTrack!==false);
       html+=checkboxField('showArc','Show Value Arc',c.showArc!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
+      html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
     }
     if(inst.type==='bar-gauge'){
       html+=checkboxField('showTrack','Show Track',c.showTrack!==false);
@@ -1648,6 +1668,7 @@ function renderProperties(){
       html+=checkboxField('showTicks','Show Divider Ticks',c.showTicks!==false);
       html+=checkboxField('showBorder','Show Bar Border',c.showBorder!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
+      html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
       html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Orientation</label>
         <select data-cfg="orientation">
           <option value="horizontal" ${(c.orientation||'horizontal')==='horizontal'?'selected':''}>Horizontal (fills left to right)</option>
@@ -1658,11 +1679,17 @@ function renderProperties(){
       html+=checkboxField('showBorder','Show Border',c.showBorder!==false);
       html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
     }
-  } else if(inst.type==='shape-rectangle'||inst.type==='shape-circle'||inst.type==='shape-oval'){
+  } else if(inst.type==='shape-rectangle'||inst.type==='shape-circle'||inst.type==='shape-oval'||inst.type==='shape-triangle'){
     html+=colorField('Fill Color','fillColor',c.fillColor||'#1c232e');
     html+=colorField('Outline Color','outlineColor',c.outlineColor||'#3a4555');
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Outline Width (px)</label><input type="number" data-cfg="outlineWidth" value="${c.outlineWidth!==undefined?c.outlineWidth:2}" min="0" max="20"></div>`;
     html+=`<div style="font-size:10px;color:var(--muted);margin-top:4px">Fill or outline can be set to "Transparent" from the colour picker to show only one of the two.</div>`;
+  } else if(inst.type==='shape-line'){
+    html+=colorField('Line Color','lineColor',c.lineColor||'#3a4555');
+    html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Line Width (px)</label><input type="number" data-cfg="lineWidth" value="${c.lineWidth!==undefined?c.lineWidth:2}" min="1" max="20"></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Start X (%)</label><input type="number" data-cfg="x1Pct" value="${c.x1Pct!==undefined?c.x1Pct:0}" min="0" max="100"></div><div class="field"><label class="field-label">Start Y (%)</label><input type="number" data-cfg="y1Pct" value="${c.y1Pct!==undefined?c.y1Pct:50}" min="0" max="100"></div></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">End X (%)</label><input type="number" data-cfg="x2Pct" value="${c.x2Pct!==undefined?c.x2Pct:100}" min="0" max="100"></div><div class="field"><label class="field-label">End Y (%)</label><input type="number" data-cfg="y2Pct" value="${c.y2Pct!==undefined?c.y2Pct:50}" min="0" max="100"></div></div>`;
+    html+=`<div style="font-size:10px;color:var(--muted);margin-top:4px">Position within the instrument's own box, as a percentage of its width/height - this is what gives the line its angle, rather than a separate rotation control.</div>`;
   } else if(inst.type==='shape-screw'){
     html+=colorField('Head Color','headColor',c.headColor||'#8a94a3');
     html+=colorField('Slot Color','slotColor',c.slotColor||'#3a4555');
@@ -1695,7 +1722,9 @@ function renderProperties(){
       </div>
       ${c.arcSweep === 'custom' ? `<div class="field"><label class="field-label">Custom Sweep (°)</label><input type="number" data-cfg="sweepAngle" value="${c.sweepAngle||270}" min="10" max="360"></div>` : '<div class="field"></div>'}
     </div>`;
+    html+=`<div class="field"><label class="field-label">Arc Start Position (°)</label><input type="number" data-cfg="arcStartOffset" value="${c.arcStartOffset||0}" min="-360" max="360" step="5"><span class="field-hint">Rotates where the whole arc begins, independent of its sweep width - e.g. to move the gap from the top of the gauge to somewhere else.</span></div>`;
     html+=selectField('Value Position','valuePos',c.valuePos||'top',['top','center','bottom']);
+    html+=`<div class="field"><label class="field-label">Arc Thickness (px)</label><input type="number" data-cfg="arcThickness" value="${c.arcThickness>0?c.arcThickness:''}" placeholder="auto (1px)" min="1" max="60"></div>`;
     html+=`</div>`;
     html+=gaugeTextSection(c,[['value','Value'],['label','Label'],['unit','Unit'],['scale','Min/Max Labels']]);
   }
@@ -1769,7 +1798,7 @@ function renderProperties(){
           inst.element.style.pointerEvents = v ? 'none' : '';
         }
         if(key==='tickSweep' || key==='arcSweep') renderProperties();
-        if(key==='mavSource') renderProperties(); // show/hide CELL_VOLTAGE cell count field
+        if(key==='mavSource'||key==='mavSource2') renderProperties(); // show/hide CELL_VOLTAGE cell count / Custom Value fields
       }
       generateCode();
     });
@@ -1848,9 +1877,27 @@ function renderProperties(){
   });
 }
 
-function mavlinkField(label,key,value){
+function mavlinkField(label,key,value,cfg){
   const opts=MAVLINK_SOURCES.map(m=>`<option value="${m.id}" ${m.id===value?'selected':''}>${m.label} (${m.id})</option>`).join('');
-  return `<div class="field"><label class="field-label">${label}</label><select data-cfg="${key}">${opts}</select></div>`;
+  let html=`<div class="field"><label class="field-label">${label}</label><select data-cfg="${key}">${opts}</select></div>`;
+  // Primary sources, and the AH's Pitch Source (mavSource2) specifically -
+  // both of the AH's two inputs are plain angles that genuinely benefit
+  // from an independent sign-flip/offset (e.g. a sensor mounted upside
+  // down or at an angle). Other secondary sources like Turn Coordinator's
+  // Slip Source use a different key and are intentionally excluded - a
+  // fixed custom value or unit multiplier doesn't fit an instrument that
+  // needs two live, correlated inputs at once. Field names carry the same
+  // suffix as the source key itself, so roll and pitch never share storage.
+  const suffix = key==='mavSource2' ? '2' : (key==='mavSource' ? '' : null);
+  if(suffix!==null && cfg){
+    if(value==='CUSTOM_VALUE'){
+      html+=`<div class="field"><label class="field-label">Custom Value</label><input type="number" data-cfg="customValue${suffix}" value="${cfg['customValue'+suffix]!==undefined?cfg['customValue'+suffix]:0}" step="any"><span class="field-hint">A fixed number instead of live telemetry - useful for a reference marker or testing an instrument's appearance.</span></div>`;
+    }
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Multiply By</label><input type="number" data-cfg="mavMultiply${suffix}" value="${cfg['mavMultiply'+suffix]!==undefined?cfg['mavMultiply'+suffix]:''}" placeholder="1" step="any"></div><div class="field"><label class="field-label">Divide By</label><input type="number" data-cfg="mavDivide${suffix}" value="${cfg['mavDivide'+suffix]!==undefined?cfg['mavDivide'+suffix]:''}" placeholder="1" step="any"></div></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Add</label><input type="number" data-cfg="mavAdd${suffix}" value="${cfg['mavAdd'+suffix]!==undefined?cfg['mavAdd'+suffix]:''}" placeholder="0" step="any"></div><div class="field"><label class="field-label">Subtract</label><input type="number" data-cfg="mavSubtract${suffix}" value="${cfg['mavSubtract'+suffix]!==undefined?cfg['mavSubtract'+suffix]:''}" placeholder="0" step="any"></div></div>`;
+    html+=`<span class="field-hint">Applied to the raw value in that order - e.g. multiply by 3.6 to turn m/s into km/h, or by 2.237 for mph. Also affects Min/Max range and any Label Step, so update those to match if you convert units.</span>`;
+  }
+  return html;
 }
 
 // Tracks which kind of field (color / toggle) was last emitted within the
@@ -2143,6 +2190,38 @@ const GFX_FONT = {
   '(':["...#.","..#..",".#...",".#...",".#...","..#..","...#."],
   ')':[".#...","..#..","...#.","...#.","...#.","..#..",".#..."],
   '°':[".##..","#..#.",".##..",".....",".....",".....","....."],
+  // Lowercase - previously absent, silently falling back to the uppercase
+  // glyph for every lowercase letter (a deliberate fallback for genuinely
+  // unmapped characters, but not the right behavior for ordinary lowercase
+  // text). Real hardware's default font has always rendered these properly;
+  // this brings the editor preview in line with it instead of the other
+  // way around.
+  'a':[".....",".....",".###.","....#",".####","#...#",".####"],
+  'b':["#....","#....","####.","#...#","#...#","#...#","####."],
+  'c':[".....",".....",".###.","#....","#....","#....",".###."],
+  'd':["....#","....#",".####","#...#","#...#","#...#",".####"],
+  'e':[".....",".....",".###.","#...#","#####","#....",".###."],
+  'f':["..##.",".#...","####.",".#...",".#...",".#...",".#..."],
+  'g':[".....",".####","#...#","#...#",".####","....#",".###."],
+  'h':["#....","#....","#.##.","##..#","#...#","#...#","#...#"],
+  'i':["..#..",".....",".##..","..#..","..#..","..#..",".###."],
+  'j':["...#.",".....","..##.","...#.","...#.","#..#.",".##.."],
+  'k':["#....","#....","#..#.","#.#..","##...","#.#..","#..#."],
+  'l':[".##..","..#..","..#..","..#..","..#..","..#..",".###."],
+  'm':[".....",".....","##.#.","#.#.#","#.#.#","#...#","#...#"],
+  'n':[".....",".....","#.##.","##..#","#...#","#...#","#...#"],
+  'o':[".....",".....",".###.","#...#","#...#","#...#",".###."],
+  'p':[".....","####.","#...#","#...#","####.","#....","#...."],
+  'q':[".....",".####","#...#","#...#",".####","....#","....#"],
+  'r':[".....",".....","#.##.","##..#","#....","#....","#...."],
+  's':[".....",".....",".####","#....",".###.","....#","####."],
+  't':["..#..",".###.","..#..","..#..","..#..","..#..","...##"],
+  'u':[".....",".....","#...#","#...#","#...#","#..##",".##.#"],
+  'v':[".....",".....","#...#","#...#","#...#",".#.#.","..#.."],
+  'w':[".....",".....","#...#","#...#","#.#.#","#.#.#",".#.#."],
+  'x':[".....",".....","#...#",".#.#.","..#..",".#.#.","#...#"],
+  'y':[".....","#...#","#...#","#...#",".####","....#",".###."],
+  'z':[".....",".....","#####","...#.","..#..",".#...","#####"],
 };
 const GFX_FALLBACK_GLYPH = ["#####","#...#","#...#","#...#","#...#","#...#","#####"]; // box for anything unmapped
 
@@ -2324,7 +2403,41 @@ function renderLoop(){
 function getMav(id){return state.mavlinkValues[id]||0}
 
 // Like getMav but resolves virtual sources using instrument config
-function getMavForInst(id, cfg){
+function getMavForInst(id, cfg, suffix){
+  return applyMavTransform(getRawMavForInst(id, cfg, suffix), cfg, suffix);
+}
+
+// Multiply -> divide -> add -> subtract, applied in that fixed order. This
+// covers linear unit conversions in one pass - e.g. m/s to mph is just
+// multiply by 2.237; degC to degF is multiply by 1.8 then add 32.
+// suffix lets a secondary source (e.g. the AH's pitch, mavSource2) have its
+// own independent set of these fields rather than sharing the primary
+// source's - otherwise setting a transform for roll would silently also
+// apply it to pitch.
+function applyMavTransform(value, cfg, suffix){
+  if(!cfg) return value;
+  suffix = suffix || '';
+  let v = value;
+  const mul = parseFloat(cfg['mavMultiply'+suffix]);
+  const div = parseFloat(cfg['mavDivide'+suffix]);
+  const add = parseFloat(cfg['mavAdd'+suffix]);
+  const sub = parseFloat(cfg['mavSubtract'+suffix]);
+  if(!isNaN(mul) && mul!==1) v *= mul;
+  if(!isNaN(div) && div!==1 && div!==0) v /= div;
+  if(!isNaN(add) && add!==0) v += add;
+  if(!isNaN(sub) && sub!==0) v -= sub;
+  return v;
+}
+
+function getRawMavForInst(id, cfg, suffix){
+  suffix = suffix || '';
+  if(id==='CUSTOM_VALUE'){
+    // A synthetic source - returns a fixed, user-set constant instead of
+    // live telemetry. Useful for a reference marker, a redline gauge, or
+    // just testing an instrument's appearance without needing real data.
+    const cv = parseFloat(cfg&&cfg['customValue'+suffix]);
+    return isNaN(cv) ? 0 : cv;
+  }
   if(id==='CELL_VOLTAGE'){
     const cells=Math.max(1,parseFloat(cfg&&cfg.cellCount)||3);
     return (state.mavlinkValues['SYS_STATUS.voltage']||0)/cells;
@@ -2394,9 +2507,9 @@ function drawInstrument(ctx,inst){
     if(base==='checker'||base==='checker-bw'||base==='checker-wb'||base==='dither'||base==='transparent') return fillColor(ctx,v);
     return v;
   };
-  const gm=id=>getMavForInst(id,inst.config); // resolves virtual sources like CELL_VOLTAGE
+  const gm=(id,suffix)=>getMavForInst(id,inst.config,suffix); // resolves virtual sources like CELL_VOLTAGE
   switch(inst.type){
-    case 'artificial-horizon': drawAI(ctx,w,h,gm(c.mavSource),gm(c.mavSource2),c); break;
+    case 'artificial-horizon': drawAI(ctx,w,h,gm(c.mavSource),gm(c.mavSource2,'2'),c); break;
     case 'turn-coordinator': drawTurnCoordinator(ctx,w,h,gm(c.mavSource),gm(c.slipSource),c); break;
     case 'compass': drawCompass(ctx,w,h,gm(c.mavSource),c); break;
     case 'altimeter-dial': drawAltimeterDial(ctx,w,h,gm(c.mavSource),c); break;
@@ -2421,6 +2534,8 @@ function drawInstrument(ctx,inst){
     case 'shape-rectangle': drawShapeRectangle(ctx,w,h,c); break;
     case 'shape-circle': drawShapeCircle(ctx,w,h,c); break;
     case 'shape-oval': drawShapeOval(ctx,w,h,c); break;
+    case 'shape-triangle': drawShapeTriangle(ctx,w,h,c); break;
+    case 'shape-line': drawShapeLine(ctx,w,h,c); break;
     case 'shape-screw': drawShapeScrew(ctx,w,h,c); break;
   }
 }
@@ -2447,6 +2562,37 @@ function drawShapeOval(ctx,w,h,c){
   const cx=w/2,cy=h/2,rx=w/2-ow/2,ry=h/2-ow/2;
   if(fill!=='transparent') bresenhamFillEllipse(ctx,cx,cy,Math.max(0,rx-ow/2),Math.max(0,ry-ow/2),0,fill);
   if(ow>0 && outline!=='transparent') for(let i=0;i<ow;i++) bresenhamEllipseOutline(ctx,cx,cy,rx-i,ry-i,0,outline);
+}
+function drawShapeTriangle(ctx,w,h,c){
+  const fill=c.fillColor||'transparent';
+  const outline=c.outlineColor||'#3a4555';
+  const ow=c.outlineWidth!==undefined?c.outlineWidth:2;
+  if(fill!=='transparent') bresenhamFillTriangle(ctx, w/2,ow/2, ow/2,h-ow/2, w-ow/2,h-ow/2, fill);
+  if(ow>0 && outline!=='transparent'){
+    for(let i=0;i<ow;i++){
+      const tx=w/2, ty=i, blx=i, bly=h-i, brx=w-i, bry=h-i;
+      bresenhamLine(ctx,tx,ty,blx,bly,outline);
+      bresenhamLine(ctx,tx,ty,brx,bry,outline);
+      bresenhamLine(ctx,blx,bly,brx,bry,outline);
+    }
+  }
+}
+function drawShapeLine(ctx,w,h,c){
+  const color=c.lineColor||'#3a4555';
+  if(color==='transparent') return;
+  const lw=c.lineWidth!==undefined?c.lineWidth:2;
+  const x1=w*(c.x1Pct!==undefined?c.x1Pct:0)/100, y1=h*(c.y1Pct!==undefined?c.y1Pct:50)/100;
+  const x2=w*(c.x2Pct!==undefined?c.x2Pct:100)/100, y2=h*(c.y2Pct!==undefined?c.y2Pct:50)/100;
+  const dx=x2-x1, dy=y2-y1;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  // Thickness via parallel offset lines - GFX (which this must visually
+  // match) has no native stroke-width concept for an arbitrary-angle line,
+  // same reasoning as the shape outlines' concentric-ring approach.
+  const px = len>0 ? -dy/len : 0, py = len>0 ? dx/len : 1;
+  for(let i=0;i<lw;i++){
+    const off=i-(lw-1)/2;
+    bresenhamLine(ctx, x1+px*off, y1+py*off, x2+px*off, y2+py*off, color);
+  }
 }
 function drawShapeScrew(ctx,w,h,c){
   const cx=w/2,cy=h/2,r=Math.min(w,h)/2-1;
@@ -2539,8 +2685,11 @@ function bresenhamFillTriangle(ctx,x0,y0,x1,y1,x2,y2,color){
 
 // Arc stroke via a polyline of Bresenham line segments (~3px per segment,
 // same stepping formula as the generated drawArc() helper), since GFX has
-// no native arc primitive - it approximates one the same way.
-function bresenhamArc(ctx,cx,cy,radius,startDeg,endDeg,color){
+// no native arc primitive - it approximates one the same way. Thickness
+// (default 1, matching the original single-stroke look) is drawn as
+// concentric rings centered on the requested radius, mirroring the C++
+// drawArc() implementation exactly.
+function bresenhamArc(ctx,cx,cy,radius,startDeg,endDeg,color,thickness=1){
   if(radius<=0) return;
   const D2R=Math.PI/180;
   const sweep=endDeg-startDeg;
@@ -2548,13 +2697,18 @@ function bresenhamArc(ctx,cx,cy,radius,startDeg,endDeg,color){
   if(segs<2) segs=2;
   if(segs>160) segs=160;
   const step=sweep/segs;
-  let a=startDeg*D2R;
-  let px=cx+Math.cos(a)*radius, py=cy+Math.sin(a)*radius;
-  for(let i=1;i<=segs;i++){
-    a=(startDeg+step*i)*D2R;
-    const nx=cx+Math.cos(a)*radius, ny=cy+Math.sin(a)*radius;
-    bresenhamLine(ctx,px,py,nx,ny,color);
-    px=nx; py=ny;
+  const rStart=radius-Math.floor(thickness/2);
+  for(let t=0;t<thickness;t++){
+    const rr=rStart+t;
+    if(rr<=0) continue;
+    let a=startDeg*D2R;
+    let px=cx+Math.cos(a)*rr, py=cy+Math.sin(a)*rr;
+    for(let i=1;i<=segs;i++){
+      a=(startDeg+step*i)*D2R;
+      const nx=cx+Math.cos(a)*rr, ny=cy+Math.sin(a)*rr;
+      bresenhamLine(ctx,px,py,nx,ny,color);
+      px=nx; py=ny;
+    }
   }
 }
 
@@ -2616,6 +2770,30 @@ function bresenhamEllipseOutline(ctx,cx,cy,rx,ry,rotDeg,color){
     px=x; py=y;
   }
 }
+
+// Fixed AH center reference symbol styles. Coordinates are ratios of r,
+// in the same local (pre-rotation) frame already used for this marker -
+// lines: [x1,y1,x2,y2] pairs; dot: filled center dot radius in PIXELS
+// (matches the original hardcoded 2px dot exactly, not scaled with r, so
+// the default style has zero visual change - 0 means no dot); circle:
+// outline circle radius as a ratio of r (0 = none).
+const REF_SYMBOL_STYLES = {
+  'wings-dot': { // Classic mechanical gyro AH - the long-standing default.
+    lines:[[-0.42,0,-0.12,0],[0.12,0,0.42,0],[-0.12,0,-0.12,0.1],[0.12,0,0.12,0.1]], dot:2, circle:0
+  },
+  'flat-bar': { // Older/simpler style - a plain split bar, no drop tabs.
+    lines:[[-0.38,0,-0.08,0],[0.08,0,0.38,0]], dot:2.5, circle:0
+  },
+  'cross': { // Vintage reticle-style cross, seen on some older gyros.
+    lines:[[-0.4,0,0.4,0],[0,-0.15,0,0.15]], dot:2, circle:0
+  },
+  'chevron': { // Modern glass-cockpit gull-wing/chevron silhouette.
+    lines:[[-0.35,0.1,-0.08,-0.02],[0.08,-0.02,0.35,0.1]], dot:1.5, circle:0
+  },
+  'dot-circle': { // Modern minimalist - open circle with short wing ticks.
+    lines:[[-0.35,0,-0.15,0],[0.15,0,0.35,0]], dot:1.5, circle:0.1
+  }
+};
 
 function drawAI(ctx,w,h,roll,pitch,c){
   const cx=w/2,cy=h/2;
@@ -2681,14 +2859,20 @@ function drawAI(ctx,w,h,roll,pitch,c){
 
   // Pitch ladder - same forward-transform used on the Arduino side.
   if(c.showPitchLadder!==false){
-    const ladderLabelColor=c.ladderLabelColor||lineColor;
+    const ladderLabelColorUp=c.ladderLabelColorUp||c.ladderLabelColor||lineColor;
+    const ladderLabelColorDown=c.ladderLabelColorDown||c.ladderLabelColor||lineColor;
+    const ladderLineColorUp=c.ladderLineColorUp||lineColor;
+    const ladderLineColorDown=c.ladderLineColorDown||lineColor;
     const showPitchLabels=c.showPitchLabels!==false;
     ctx.font=`${gSize(c,'ladder',Math.max(7,r*0.12))}px JetBrains Mono`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    for(let p=-30;p<=30;p+=10){
+    const pitchRange = c.pitchLadderRange>0 ? c.pitchLadderRange : 30;
+    for(let p=-pitchRange;p<=pitchRange;p+=10){
       if(p===0) continue;
+      const rungColor = p>0 ? ladderLineColorUp : ladderLineColorDown;
+      const labelColor2 = p>0 ? ladderLabelColorUp : ladderLabelColorDown;
       const ly=-p*pxPerDeg+pitchPx;
-      const len=Math.abs(p)===20?r*0.45:r*0.28;
+      const len=p%20===0?(c.ladderMajLen>0?c.ladderMajLen:r*0.45):(c.ladderMinLen>0?c.ladderMinLen:r*0.28);
       const lx0=-len, lx1=-len*0.3, lx2=len*0.3, lx3=len;
       const ax=cx+lx0*crA+ly*srA, ay=cy-lx0*srA+ly*crA;
       const bx=cx+lx1*crA+ly*srA, by=cy-lx1*srA+ly*crA;
@@ -2696,15 +2880,15 @@ function drawAI(ctx,w,h,roll,pitch,c){
       const ex=cx+lx3*crA+ly*srA, ey=cy-lx3*srA+ly*crA;
       const inCircle=(ax-cx)*(ax-cx)+(ay-cy)*(ay-cy)<=r*r;
       if(isRect||inCircle){
-        bresenhamLine(ctx,ax,ay,bx,by,lineColor);
-        bresenhamLine(ctx,dx3,dy3,ex,ey,lineColor);
+        bresenhamLine(ctx,ax,ay,bx,by,rungColor);
+        bresenhamLine(ctx,dx3,dy3,ex,ey,rungColor);
       }
       if(showPitchLabels && (isRect||inCircle)){
         const gap=Math.max(5,r*0.09);
         const odx=gDX(c,'ladder'), ody=gDY(c,'ladder');
         const lax=cx+(-len-gap)*crA+ly*srA, lay=cy-(-len-gap)*srA+ly*crA;
         const rax=cx+(len+gap)*crA+ly*srA,  ray=cy-(len+gap)*srA+ly*crA;
-        ctx.fillStyle=ladderLabelColor;
+        ctx.fillStyle=labelColor2;
         ctx.fillText(Math.abs(p), lax-odx, lay+ody);
         ctx.fillText(Math.abs(p), rax+odx, ray+ody);
       }
@@ -2726,7 +2910,7 @@ function drawAI(ctx,w,h,roll,pitch,c){
 
   // Roll triangle marker - rotates with roll around the fixed bezel.
   if(c.showRollTriangle!==false){
-    const triH=Math.max(4,r*0.18), triW=Math.max(3,r*0.1);
+    const triH=c.rollTriHeight>0?c.rollTriHeight:Math.max(4,r*0.18), triW=c.rollTriWidth>0?c.rollTriWidth:Math.max(3,r*0.1);
     const tlx=0, tly=-(r-1), blx=-triW, bly=-(r-1-triH), brx=triW, bry=-(r-1-triH);
     const ttx=cx+tlx*crA+tly*srA, tty=cy-tlx*srA+tly*crA;
     const tbx=cx+blx*crA+bly*srA, tby=cy-blx*srA+bly*crA;
@@ -2734,12 +2918,22 @@ function drawAI(ctx,w,h,roll,pitch,c){
     bresenhamFillTriangle(ctx,ttx,tty,tbx,tby,tcx,tcy,refColor);
   }
 
-  // Center reference (aircraft symbol) - fixed, never rotates.
-  bresenhamLine(ctx,cx-r*0.42,cy,cx-r*0.12,cy,refColor);
-  bresenhamLine(ctx,cx+r*0.12,cy,cx+r*0.42,cy,refColor);
-  bresenhamLine(ctx,cx-r*0.12,cy,cx-r*0.12,cy+r*0.1,refColor);
-  bresenhamLine(ctx,cx+r*0.12,cy,cx+r*0.12,cy+r*0.1,refColor);
-  bresenhamFillCircle(ctx,cx,cy,2,refColor);
+  // Center reference (aircraft symbol) - fixed relative to the instrument
+  // body (never rotates with live roll), but does rotate with the
+  // instrument's own static rotation setting, same as the rest of the
+  // fixed overlay (roll ticks, roll triangle) - otherwise it would stay
+  // screen-up while everything else rotates around it.
+  {
+    const style = REF_SYMBOL_STYLES[c.refSymbolStyle] || REF_SYMBOL_STYLES['wings-dot'];
+    const refRad = (c.rotation||0) * Math.PI / 180, cRr = Math.cos(refRad), sRr = Math.sin(refRad);
+    const tf = (lx,ly) => [cx+lx*r*cRr+ly*r*sRr, cy-lx*r*sRr+ly*r*cRr];
+    for(const [x1,y1,x2,y2] of style.lines){
+      const [ax,ay] = tf(x1,y1), [bx,by] = tf(x2,y2);
+      bresenhamLine(ctx,ax,ay,bx,by,refColor);
+    }
+    if(style.circle>0) bresenhamCircle(ctx,cx,cy,style.circle*r,refColor);
+    if(style.dot>0) bresenhamFillCircle(ctx,cx,cy,style.dot,refColor);
+  }
 
   // Border - concentric 1px rings for width>1, matching how GFX (which has
   // no stroke-width concept) actually achieves a "thick" border.
@@ -3443,7 +3637,7 @@ function arcUnitBBox(startDeg,sweep){
 
 function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   const sweep = c.arcSweep === 'custom' ? (c.sweepAngle || 270) : (parseInt(c.arcSweep) || 270);
-  const arcStartDeg = 90 + (360 - sweep) / 2;
+  const arcStartDeg = 90 + (360 - sweep) / 2 + (parseFloat(c.arcStartOffset)||0);
   const arcStartRad = arcStartDeg * Math.PI / 180;
   const arcEndRad = (arcStartDeg + sweep) * Math.PI / 180;
 
@@ -3472,20 +3666,30 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
 
   ctx.fillStyle=c.bgColor||'#040810'; ctx.fillRect(0,0,w,h);
   if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
-    bresenhamArc(ctx,cx,cy,r,arcStartDeg,arcStartDeg+sweep,c.trackColor);
+    bresenhamArc(ctx,cx,cy,r,arcStartDeg,arcStartDeg+sweep,c.trackColor,c.arcThickness>0?Math.round(c.arcThickness):1);
   }
   if(c.showArc!==false && color!=='transparent'){
     const v=Math.max(min,Math.min(max,value));
     const pct=(v-min)/(max-min);
-    bresenhamArc(ctx,cx,cy,r,arcStartDeg,arcStartDeg+pct*sweep,color);
+    // Mirrored: the value arc fills from the far end (arcStart+sweep)
+    // backward, instead of growing from arcStart forward - the visible
+    // track/endpoints don't move, only which end the value "grows from".
+    const a0 = c.mirrored ? arcStartDeg+sweep-pct*sweep : arcStartDeg;
+    const a1 = c.mirrored ? arcStartDeg+sweep : arcStartDeg+pct*sweep;
+    bresenhamArc(ctx,cx,cy,r,a0,a1,color,c.arcThickness>0?Math.round(c.arcThickness):1);
   }
   if(showScale){
     const scaleGap=r*0.16;
     ctx.fillStyle=c.tickColor||'#7a8898';
     ctx.font=`${gSize(c,'scale',Math.max(7,r*0.18))}px JetBrains Mono`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    gText(ctx,c,'scale',min.toString(), cx+Math.cos(arcStartRad)*(r+scaleGap), cy+Math.sin(arcStartRad)*(r+scaleGap));
-    gText(ctx,c,'scale',max.toString(), cx+Math.cos(arcEndRad)*(r+scaleGap),   cy+Math.sin(arcEndRad)*(r+scaleGap));
+    // Swapped when mirrored, so "Min" still sits at the end the arc fills
+    // from and "Max" at the end it fills toward - matching the reversed
+    // fill direction rather than contradicting it.
+    const minRad = c.mirrored ? arcEndRad : arcStartRad;
+    const maxRad = c.mirrored ? arcStartRad : arcEndRad;
+    gText(ctx,c,'scale',min.toString(), cx+Math.cos(minRad)*(r+scaleGap), cy+Math.sin(minRad)*(r+scaleGap));
+    gText(ctx,c,'scale',max.toString(), cx+Math.cos(maxRad)*(r+scaleGap), cy+Math.sin(maxRad)*(r+scaleGap));
   }
   if(c.showValue!==false && color!=='transparent'){
     const vSize=gSize(c,'value',Math.max(10,r*0.42));
@@ -3555,7 +3759,11 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     }
     if(c.showBar!==false && color!=='transparent'){
       const pct=(v-min)/(max-min);
-      ctx.fillStyle=color; ctx.fillRect(padX,barY,(w-padX*2)*pct,barH);
+      const area=w-padX*2, bw=area*pct;
+      // Mirrored: touches the right edge and grows leftward instead of
+      // touching the left edge and growing rightward.
+      const bx=c.mirrored ? (w-padX-bw) : padX;
+      ctx.fillStyle=color; ctx.fillRect(bx,barY,bw,barH);
     }
     ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
     if(c.showTicks!==false){
@@ -3591,7 +3799,10 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   if(c.showBar!==false && color!=='transparent'){
     const pct=(v-min)/(max-min);
     const fillH=barH2*pct;
-    ctx.fillStyle=color; ctx.fillRect(barX,barBottom-fillH,barW,fillH);
+    // Mirrored: touches the top edge and grows downward instead of
+    // touching the bottom edge and growing upward.
+    const fy=c.mirrored ? barTop : barBottom-fillH;
+    ctx.fillStyle=color; ctx.fillRect(barX,fy,barW,fillH);
   }
   ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
   if(c.showTicks!==false){
@@ -3916,6 +4127,23 @@ function escCString(s){
   // GFX.print("...") call and corrupt (or fail to compile) the generated
   // sketch.
   return String(s==null?'':s).replace(/\\/g,'\\\\').replace(/"/g,'\\"').replace(/[\r\n]/g,' ');
+}
+// Wraps a C++ value-fetching expression with multiply/divide/add/subtract,
+// applied in that fixed order, matching applyMavTransform() in the JS
+// preview exactly. All computed at generation time and embedded as plain
+// compile-time constants - no runtime cost beyond the arithmetic itself.
+function applyMavTransformCpp(expr, c, suffix){
+  suffix = suffix || '';
+  let e = expr;
+  const mul = parseFloat(c['mavMultiply'+suffix]);
+  const div = parseFloat(c['mavDivide'+suffix]);
+  const add = parseFloat(c['mavAdd'+suffix]);
+  const sub = parseFloat(c['mavSubtract'+suffix]);
+  if(!isNaN(mul) && mul!==1) e = `(${e} * ${mul.toFixed(6)}f)`;
+  if(!isNaN(div) && div!==1 && div!==0) e = `(${e} / ${div.toFixed(6)}f)`;
+  if(!isNaN(add) && add!==0) e = `(${e} + ${add.toFixed(6)}f)`;
+  if(!isNaN(sub) && sub!==0) e = `(${e} - ${sub.toFixed(6)}f)`;
+  return e;
 }
 function hexTo565Const(hex){
   if (!hex || hex === 'transparent') return 'C_BG';
@@ -4342,6 +4570,13 @@ struct GFXShim {
   void drawFastHLine(int x,int y,int w,int c){ _u8g2.setDrawColor(c?1:0); if(w>0) _u8g2.drawBox(x,y,w,1); }
   void drawFastVLine(int x,int y,int h,int c){ _u8g2.setDrawColor(c?1:0); if(h>0) _u8g2.drawBox(x,y,1,h); }
   void drawPixel(int x,int y,int c)         { _u8g2.setDrawColor(c?1:0); _u8g2.drawPixel(x,y); }
+  // U8g2 buffers everything in RAM already (no per-pixel SPI transaction to
+  // batch), so these are no-ops / a simple delegate - present only so code
+  // written against the real Adafruit_GFX startWrite/writePixel/endWrite
+  // batching pattern compiles the same way on both display paths.
+  void startWrite()                         {}
+  void endWrite()                           {}
+  void writePixel(int x,int y,int c)        { drawPixel(x,y,c); }
   void fillTriangle(int x0,int y0,int x1,int y1,int x2,int y2,int c){
     _u8g2.setDrawColor(c?1:0);
     // U8g2 has no filled triangle — approximate with drawTriangle outline
@@ -4380,7 +4615,7 @@ void rotPoint(int cx, int cy, float dx, float dy, float rot, int &rx, int &ry) {
 // window per segment instead of per pixel, and two trig calls per vertex
 // instead of two per pixel. This is the single biggest drawing win on RP2040,
 // which has no FPU.
-void drawArc(int cx, int cy, int radius, float startDeg, float endDeg, uint16_t color) {
+void drawArc(int cx, int cy, int radius, float startDeg, float endDeg, uint16_t color, int thickness=1) {
   if (radius <= 0) return;
   const float D2R = 0.017453292f;
   float sweep = endDeg - startDeg;
@@ -4388,13 +4623,22 @@ void drawArc(int cx, int cy, int radius, float startDeg, float endDeg, uint16_t 
   if (segs < 2)   segs = 2;
   if (segs > 160) segs = 160;
   float step = sweep / segs;
-  float a = startDeg * D2R;
-  int px = cx + cosf(a) * radius, py = cy + sinf(a) * radius;
-  for (int i = 1; i <= segs; i++) {
-    a = (startDeg + step * i) * D2R;
-    int nx = cx + cosf(a) * radius, ny = cy + sinf(a) * radius;
-    GFX.drawLine(px, py, nx, ny, color);
-    px = nx; py = ny;
+  // Thickness drawn as concentric rings centered on the requested radius,
+  // rather than just at it - same angular stepping reused for every ring
+  // rather than recomputed per ring, since the segment count only needs
+  // to be "dense enough", not recalculated for a 1-2px radius change.
+  int rStart = radius - thickness/2;
+  for (int t = 0; t < thickness; t++) {
+    int rr = rStart + t;
+    if (rr <= 0) continue;
+    float a = startDeg * D2R;
+    int px = cx + cosf(a) * rr, py = cy + sinf(a) * rr;
+    for (int i = 1; i <= segs; i++) {
+      a = (startDeg + step * i) * D2R;
+      int nx = cx + cosf(a) * rr, ny = cy + sinf(a) * rr;
+      GFX.drawLine(px, py, nx, ny, color);
+      px = nx; py = ny;
+    }
   }
 }
 
@@ -4404,6 +4648,19 @@ void rotLine(int cx, int cy, float x1, float y1, float x2, float y2, float rot, 
   rotPoint(cx, cy, x1-cx, y1-cy, rot, rx1, ry1);
   rotPoint(cx, cy, x2-cx, y2-cy, rot, rx2, ry2);
   GFX.drawLine(rx1, ry1, rx2, ry2, color);
+}
+
+// Variable-width line at any angle between two arbitrary points - GFX has
+// no native stroke-width concept, so thickness is approximated with
+// multiple 1px lines offset along the perpendicular direction.
+void thickLine(float x1, float y1, float x2, float y2, int lw, uint16_t color) {
+  float dx = x2-x1, dy = y2-y1;
+  float len = sqrtf(dx*dx+dy*dy);
+  float px = (len>0) ? -dy/len : 0, py = (len>0) ? dx/len : 1;
+  for (int i=0;i<lw;i++) {
+    float off = i - (lw-1)/2.0f;
+    GFX.drawLine((int)(x1+px*off), (int)(y1+py*off), (int)(x2+px*off), (int)(y2+py*off), color);
+  }
 }
 
 // Rotated rectangle: GFX has no native concept of this, so the 4 corners
@@ -4424,6 +4681,24 @@ void drawRotatedRectOutline(int cx, int cy, float w, float h, float rotDeg, uint
   int rx[4], ry[4];
   rotatedRectCorners(cx, cy, w, h, rotDeg, rx, ry);
   for (int i = 0; i < 4; i++) GFX.drawLine(rx[i], ry[i], rx[(i+1)%4], ry[(i+1)%4], color);
+}
+
+// Rotated triangle (upward-pointing before rotation): same approach as the
+// rotated rectangle above - corners computed once, then filled/outlined.
+void rotatedTriangleCorners(int cx, int cy, float w, float h, float rotDeg, int rx[3], int ry[3]) {
+  float hw = w/2, hh = h/2;
+  float lx[3] = {0, -hw, hw}, ly[3] = {-hh, hh, hh};
+  for (int i = 0; i < 3; i++) rotPoint(cx, cy, lx[i], ly[i], rotDeg, rx[i], ry[i]);
+}
+void fillRotatedTriangle(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
+  int rx[3], ry[3];
+  rotatedTriangleCorners(cx, cy, w, h, rotDeg, rx, ry);
+  GFX.fillTriangle(rx[0],ry[0], rx[1],ry[1], rx[2],ry[2], color);
+}
+void drawRotatedTriangleOutline(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
+  int rx[3], ry[3];
+  rotatedTriangleCorners(cx, cy, w, h, rotDeg, rx, ry);
+  for (int i = 0; i < 3; i++) GFX.drawLine(rx[i], ry[i], rx[(i+1)%3], ry[(i+1)%3], color);
 }
 
 // Rotated ellipse fill: for each row, solves where that row crosses the
@@ -4526,20 +4801,94 @@ int gfxCenterOffset(int sz) { return _gfxCompact ? (gfxCharH(sz)/2) : -(gfxCharH
 // solid fill. Only the "on" pixels are drawn - the rest are left untouched,
 // so whatever was already there (canvas background, another instrument)
 // shows through the gaps exactly like the editor's transparent squares do.
+// startWrite()/endWrite() wrap the whole fill in a single SPI transaction
+// instead of drawPixel()'s one-transaction-per-pixel default - for a real
+// SPI display this is the difference between one bus setup and potentially
+// thousands of them for a single dithered shape; on the mono/U8g2 path
+// these are harmless no-ops (see GFXShim), since U8g2 already buffers
+// everything in RAM with no per-pixel SPI cost to batch in the first place.
 void ditherFillRect(int x, int y, int w, int h, uint16_t color) {
+  GFX.startWrite();
   for (int py = y; py < y + h; py++)
     for (int px = x; px < x + w; px++)
-      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+  GFX.endWrite();
 }
 void ditherFillCircle(int cx, int cy, int r, uint16_t color) {
+  GFX.startWrite();
   for (int py = cy - r; py <= cy + r; py++) {
     int dy = py - cy;
     for (int px = cx - r; px <= cx + r; px++) {
       int dx = px - cx;
       if (dx*dx + dy*dy > r*r) continue;
-      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
     }
   }
+  GFX.endWrite();
+}
+// Same 50% checkerboard technique, extended to rotated shapes: each
+// candidate pixel in the bounding box is transformed into the shape's own
+// local (unrotated) frame - the exact inverse of rotPoint's transform, so
+// this lines up pixel-for-pixel with the solid-fill versions of the same
+// shapes - then tested against that shape, then checkerboarded.
+void ditherFillRotatedRect(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
+  int rx[4], ry[4];
+  rotatedRectCorners(cx, cy, w, h, rotDeg, rx, ry);
+  int minX=rx[0],maxX=rx[0],minY=ry[0],maxY=ry[0];
+  for (int i=1;i<4;i++){ minX=min(minX,rx[i]); maxX=max(maxX,rx[i]); minY=min(minY,ry[i]); maxY=max(maxY,ry[i]); }
+  float rad = rotDeg * PI / 180.0f, c = cosf(rad), s = sinf(rad);
+  float hw = w/2, hh = h/2;
+  GFX.startWrite();
+  for (int py = minY; py <= maxY; py++) {
+    for (int px = minX; px <= maxX; px++) {
+      float dx = px - cx, dy = py - cy;
+      float lx =  dx*c + dy*s;
+      float ly = -dx*s + dy*c;
+      if (lx < -hw || lx > hw || ly < -hh || ly > hh) continue;
+      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+    }
+  }
+  GFX.endWrite();
+}
+bool _pointInTriangle(float px, float py, float x0,float y0,float x1,float y1,float x2,float y2) {
+  float d1 = (px-x1)*(y0-y1) - (x0-x1)*(py-y1);
+  float d2 = (px-x2)*(y1-y2) - (x1-x2)*(py-y2);
+  float d3 = (px-x0)*(y2-y0) - (x2-x0)*(py-y0);
+  bool hasNeg = (d1<0)||(d2<0)||(d3<0);
+  bool hasPos = (d1>0)||(d2>0)||(d3>0);
+  return !(hasNeg && hasPos);
+}
+void ditherFillRotatedTriangle(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
+  int rx[3], ry[3];
+  rotatedTriangleCorners(cx, cy, w, h, rotDeg, rx, ry);
+  int minX=min(rx[0],min(rx[1],rx[2])), maxX=max(rx[0],max(rx[1],rx[2]));
+  int minY=min(ry[0],min(ry[1],ry[2])), maxY=max(ry[0],max(ry[1],ry[2]));
+  GFX.startWrite();
+  for (int py = minY; py <= maxY; py++) {
+    for (int px = minX; px <= maxX; px++) {
+      if (!_pointInTriangle(px, py, rx[0],ry[0], rx[1],ry[1], rx[2],ry[2])) continue;
+      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+    }
+  }
+  GFX.endWrite();
+}
+void ditherFillRotatedEllipse(int cx, int cy, float radX, float radY, float rotDeg, uint16_t color) {
+  float rad = rotDeg * PI / 180.0f, c = cosf(rad), s = sinf(rad);
+  float bw = sqrtf((radX*c)*(radX*c) + (radY*s)*(radY*s));
+  float bh = sqrtf((radX*s)*(radX*s) + (radY*c)*(radY*c));
+  int minX = cx - (int)ceilf(bw), maxX = cx + (int)ceilf(bw);
+  int minY = cy - (int)ceilf(bh), maxY = cy + (int)ceilf(bh);
+  GFX.startWrite();
+  for (int py = minY; py <= maxY; py++) {
+    for (int px = minX; px <= maxX; px++) {
+      float dx = px - cx, dy = py - cy;
+      float lx =  dx*c + dy*s;
+      float ly = -dx*s + dy*c;
+      if ((lx*lx)/(radX*radX) + (ly*ly)/(radY*radY) > 1.0f) continue;
+      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+    }
+  }
+  GFX.endWrite();
 }
 
 // ------------------------------------------------------------
@@ -4942,12 +5291,19 @@ function generateInstrumentCode(inst, i) {
   const L = [];   // accumulator of code lines (already indented as needed)
 
   // Helper: emit the C++ expression to fetch a MAVLink value, handling virtual sources
-  const mavFetch = (src) => {
-    if(src==='CELL_VOLTAGE'){
+  const mavFetch = (src, suffix) => {
+    suffix = suffix || '';
+    let expr;
+    if(src==='CUSTOM_VALUE'){
+      const cv = parseFloat(c['customValue'+suffix]);
+      expr = `${(isNaN(cv)?0:cv).toFixed(6)}f`;
+    } else if(src==='CELL_VOLTAGE'){
       const cells=Math.max(1,parseFloat(c.cellCount)||3);
-      return `(mav.voltage / ${cells.toFixed(1)}f)`;
+      expr = `(mav.voltage / ${cells.toFixed(1)}f)`;
+    } else {
+      expr = `getMavlinkValue("${src}")`;
     }
-    return `getMavlinkValue("${src}")`;
+    return applyMavTransformCpp(expr, c, suffix);
   };
 
   L.push(`// ---- ${inst.type} #${inst.id}: ${label} ----`);
@@ -4956,7 +5312,7 @@ function generateInstrumentCode(inst, i) {
   L.push(`  int cx = x + w/2, cy = y + h/2;`);
   L.push(`  int r  = min(w, h)/2 - 2;`);
   const ROTATION_UNSUPPORTED_TYPES = ['altimeter-tape','airspeed-tape','tape','heading-tape','vsi-tape',
-    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text'];
+    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text','shape-line'];
   const effectiveRot = ROTATION_UNSUPPORTED_TYPES.includes(inst.type) ? 0 : (c.rotation || 0);
   L.push(`  float rot = ${effectiveRot};`);
 
@@ -4993,6 +5349,10 @@ function generateInstrumentCode(inst, i) {
   }
   L.push(`  uint16_t lineColor  = ${hexTo565Const(c.lineColor||'#ffffff')};`);
   L.push(`  uint16_t ladderColor= ${hexTo565Const(c.ladderLabelColor||c.lineColor||'#ffffff')};`);
+  L.push(`  uint16_t ladderColorUp   = ${hexTo565Const(c.ladderLabelColorUp||c.ladderLabelColor||c.lineColor||'#ffffff')};`);
+  L.push(`  uint16_t ladderColorDown = ${hexTo565Const(c.ladderLabelColorDown||c.ladderLabelColor||c.lineColor||'#ffffff')};`);
+  L.push(`  uint16_t ladderLineColorUp   = ${hexTo565Const(c.ladderLineColorUp||c.lineColor||'#ffffff')};`);
+  L.push(`  uint16_t ladderLineColorDown = ${hexTo565Const(c.ladderLineColorDown||c.lineColor||'#ffffff')};`);
   L.push(`  uint16_t refColor   = ${hexTo565Const(c.refColor||'#ff9d3a')};`);
   if(inst.type==='turn-coordinator'){
     L.push(`  uint16_t markColor  = ${hexTo565Const(c.markColor||'#ffffff')};`);
@@ -5033,7 +5393,7 @@ function generateInstrumentCode(inst, i) {
   //    that border right after it was drawn - it would flash into view on
   //    the very first frame, then be gone for good, since _staticDone
   //    prevents it from ever being redrawn.
-  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-screw'];
+  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line'];
   const isCircularShape = inst.type==='dial'
     || ((inst.type==='indicator'||inst.type==='home-arrow') && c.shape!=='rectangle');
   if(!OWN_BACKGROUND_TYPES.includes(inst.type)){
@@ -5061,7 +5421,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // --- Artificial Horizon (attitude indicator) ---`);
     L.push(`  // roll/pitch are already in DEGREES (converted from MAVLink radians on decode).`);
     L.push(`  float roll  = ${mavFetch(c.mavSource)};`);
-    L.push(`  float pitch = getMavlinkValue("${c.mavSource2}");`);
+    L.push(`  float pitch = ${mavFetch(c.mavSource2,'2')};`);
     L.push(`  bool isRect = ${c.ahShape==='rectangle'?'true':'false'};`);
     L.push(`  // Background fill, shaped to match: a rect fill here (like every other`);
     L.push(`  // instrument used to get from the shared preamble) would show a solid`);
@@ -5135,10 +5495,13 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // exactly like the sky/ground fill above, so it stays aligned with the horizon.`);
     L.push(`  if (${b(c.showPitchLadder)}) {`);
     L.push(`    int ladderSz = gfxSizeF(${sizeExpr(c,'ladder','r*0.22f')}); GFX.setTextSize(ladderSz);`);
-    L.push(`    for (int pp = -30; pp <= 30; pp += 10) {`);
+    const ladderDX = Math.round(gDX(c,'ladder')), ladderDY = Math.round(gDY(c,'ladder'));
+    L.push(`    for (int pp = -${c.pitchLadderRange>0?Math.round(c.pitchLadderRange):30}; pp <= ${c.pitchLadderRange>0?Math.round(c.pitchLadderRange):30}; pp += 10) {`);
     L.push(`      if (pp == 0) continue;`);
     L.push(`      float ly = -pp * pxPerDeg + pitchPx;   // pre-rotation local y (post-translate)`);
-    L.push(`      float len = (abs(pp) == 20) ? r*0.45f : r*0.28f;`);
+    L.push(`      uint16_t rungColor = (pp > 0) ? ladderLineColorUp : ladderLineColorDown;`);
+    L.push(`      uint16_t lblColor  = (pp > 0) ? ladderColorUp : ladderColorDown;`);
+    L.push(`      float len = (pp % 20 == 0) ? (${c.ladderMajLen>0?`${Number(c.ladderMajLen).toFixed(2)}f`:'r*0.45f'}) : (${c.ladderMinLen>0?`${Number(c.ladderMinLen).toFixed(2)}f`:'r*0.28f'});`);
     L.push(`      float lx0=-len, lx1=-len*0.3f, lx2=len*0.3f, lx3=len;`);
     L.push(`      // Forward transform for rotate(-roll): dx=lx*cr+ly*sr, dy=-lx*sr+ly*cr`);
     L.push(`      int ax=cx+(int)(lx0*crA+ly*srA), ay=cy+(int)(-lx0*srA+ly*crA);`);
@@ -5146,8 +5509,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`      int dx3=cx+(int)(lx2*crA+ly*srA), dy3=cy+(int)(-lx2*srA+ly*crA);`);
     L.push(`      int ex=cx+(int)(lx3*crA+ly*srA), ey=cy+(int)(-lx3*srA+ly*crA);`);
     L.push(`      bool inCircle = (ax-cx)*(ax-cx)+(ay-cy)*(ay-cy) <= r*r;`);
-    L.push(`      if (isRect || inCircle) { if (ahDrawLine) { GFX.drawLine(ax,ay,bx,by,lineColor); GFX.drawLine(dx3,dy3,ex,ey,lineColor); } }`);
-    L.push(`      if (${b(c.showPitchLabels)} && ladderColor != C_BG) {`);
+    L.push(`      if ((isRect || inCircle) && rungColor != C_BG) { GFX.drawLine(ax,ay,bx,by,rungColor); GFX.drawLine(dx3,dy3,ex,ey,rungColor); }`);
+    L.push(`      if (${b(c.showPitchLabels)} && lblColor != C_BG) {`);
     L.push(`        float gap = max(5.0f, r*0.09f);`);
     L.push(`        int lax=cx+(int)((-len-gap)*crA+ly*srA), lay=cy+(int)(-(-len-gap)*srA+ly*crA);`);
     L.push(`        int rax=cx+(int)((len+gap)*crA+ly*srA),  ray=cy+(int)(-(len+gap)*srA+ly*crA);`);
@@ -5172,9 +5535,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`          leftOk  = (distL <= safeR);`);
     L.push(`          rightOk = (distR <= safeR);`);
     L.push(`        }`);
-    L.push(`        GFX.setTextColor(ladderColor);`);
-    L.push(`        if (leftOk)  { GFX.setCursor(lax-ladderOffX, lay-ladderOffY); GFX.print(abs(pp)); }`);
-    L.push(`        if (rightOk) { GFX.setCursor(rax-ladderOffX, ray-ladderOffY); GFX.print(abs(pp)); }`);
+    L.push(`        GFX.setTextColor(lblColor);`);
+    L.push(`        if (leftOk)  { GFX.setCursor(lax-ladderOffX+(${ladderDX}), lay-ladderOffY+(${ladderDY})); GFX.print(abs(pp)); }`);
+    L.push(`        if (rightOk) { GFX.setCursor(rax-ladderOffX+(${ladderDX}), ray-ladderOffY+(${ladderDY})); GFX.print(abs(pp)); }`);
     L.push(`      }`);
     L.push(`    }`);
     L.push(`  }`);
@@ -5199,7 +5562,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  }`);
     L.push(`  // Roll triangle marker - rotates WITH roll around the fixed bezel`);
     L.push(`  if (${b(c.showRollTriangle)} && refColor != C_BG) {`);
-    L.push(`    float triH = max(4.0f, r*0.18f), triW = max(3.0f, r*0.1f);`);
+    L.push(`    float triH = ${c.rollTriHeight>0?`${Number(c.rollTriHeight).toFixed(2)}f`:'max(4.0f, r*0.18f)'}, triW = ${c.rollTriWidth>0?`${Number(c.rollTriWidth).toFixed(2)}f`:'max(3.0f, r*0.1f)'};`);
     L.push(`    float tlx=0, tly=-(r-1), blx=-triW, bly=-(r-1-triH), brx=triW, bry=-(r-1-triH);`);
     L.push(`    int ttx=cx+(int)(tlx*crA+tly*srA), tty=cy+(int)(-tlx*srA+tly*crA);`);
     L.push(`    int tbx=cx+(int)(blx*crA+bly*srA), tby=cy+(int)(-blx*srA+bly*crA);`);
@@ -5212,16 +5575,15 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // otherwise it stays screen-up while the horizon/ticks rotate around it.`);
     L.push(`  if (refColor != C_BG) {`);
     L.push(`  float refRad = rot * PI / 180.0f, crR = cosf(refRad), srR = sinf(refRad);`);
-    L.push(`    float rp[4][2] = {{-r*0.42f,0},{-r*0.12f,0},{r*0.12f,0},{r*0.42f,0}};`);
-    L.push(`    float rx[4], ry[4];`);
-    L.push(`    for (int i=0;i<4;i++) { rx[i]=cx+rp[i][0]*crR+rp[i][1]*srR; ry[i]=cy-rp[i][0]*srR+rp[i][1]*crR; }`);
-    L.push(`    GFX.drawLine(rx[0],ry[0], rx[1],ry[1], refColor);`);
-    L.push(`    GFX.drawLine(rx[2],ry[2], rx[3],ry[3], refColor);`);
-    L.push(`    float tabX=-r*0.12f, tabY=r*0.1f;`);
-    L.push(`    GFX.drawLine(rx[1],ry[1], cx+tabX*crR+tabY*srR, cy-tabX*srR+tabY*crR, refColor);`);
-    L.push(`    tabX=r*0.12f;`);
-    L.push(`    GFX.drawLine(rx[2],ry[2], cx+tabX*crR+tabY*srR, cy-tabX*srR+tabY*crR, refColor);`);
-    L.push(`    GFX.fillCircle(cx, cy, 2, refColor);`);
+    {
+      const refStyle = REF_SYMBOL_STYLES[c.refSymbolStyle] || REF_SYMBOL_STYLES['wings-dot'];
+      refStyle.lines.forEach(([x1,y1,x2,y2])=>{
+        L.push(`    { float lx1=${x1.toFixed(4)}f*r, ly1=${y1.toFixed(4)}f*r, lx2=${x2.toFixed(4)}f*r, ly2=${y2.toFixed(4)}f*r;`);
+        L.push(`      GFX.drawLine(cx+lx1*crR+ly1*srR, cy-lx1*srR+ly1*crR, cx+lx2*crR+ly2*srR, cy-lx2*srR+ly2*crR, refColor); }`);
+      });
+      if(refStyle.circle>0) L.push(`    GFX.drawCircle(cx, cy, ${refStyle.circle.toFixed(4)}f*r, refColor);`);
+      if(refStyle.dot>0) L.push(`    GFX.fillCircle(cx, cy, ${refStyle.dot.toFixed(4)}f, refColor);`);
+    }
     L.push(`  }`);
     L.push(`  // Border drawn LAST so the circular clip fill never paints over it`);
     L.push(`  if (borderColor != C_BG) {`);
@@ -5399,7 +5761,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`  }`);
     L.push(`  uint16_t minorTickColor = ${hexTo565Const(c.minorTickColor||'#5a6878')};`);
     L.push(`  for (int i = 0; i < 50; i++) { uint16_t tc = (i % 5 == 0) ? tickColor : minorTickColor; if (tc != C_BG) GFX.drawLine(_tx1[i], _ty1[i], _tx2[i], _ty2[i], tc); }`);
-    L.push(`  if (showLabels && labelColor != C_BG) { int tickSz=gfxSizeF(${sizeExpr(c,'scale','r*0.16f')}); GFX.setTextSize(tickSz); int tOffX=gfxCharW(tickSz)/2, tOffY=-gfxCenterOffset(tickSz); for (int i = 0; i < 10; i++) { GFX.setCursor(_lx[i] - tOffX, _ly[i] - tOffY); GFX.setTextColor(labelColor); GFX.print(i); } }`);
+    { const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
+    L.push(`  if (showLabels && labelColor != C_BG) { int tickSz=gfxSizeF(${sizeExpr(c,'scale','r*0.16f')}); GFX.setTextSize(tickSz); int tOffX=gfxCharW(tickSz)/2, tOffY=-gfxCenterOffset(tickSz); for (int i = 0; i < 10; i++) { GFX.setCursor(_lx[i] - tOffX + (${scaleDX}), _ly[i] - tOffY + (${scaleDY})); GFX.setTextColor(labelColor); GFX.print(i); } }`); }
     L.push(`  float alt100 = ((int)altitude) % 1000;`);
     L.push(`  float ang100 = (-90 + (alt100 / 1000.0) * 360 + rot) * PI / 180;`);
     L.push(`  if (hand100 != C_BG) { float h100Len = ${c.hand100Len!==undefined?c.hand100Len:'r-10.0f'}, h100Back = ${c.hand100Back!==undefined?c.hand100Back:'r*0.12f'};`);
@@ -5409,7 +5772,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`  if (hand1000 != C_BG) { float h1000Len = ${c.hand1000Len!==undefined?c.hand1000Len:'r-22.0f'}, h1000Back = ${c.hand1000Back!==undefined?c.hand1000Back:'r*0.15f'};`);
     L.push(`    GFX.drawLine(cx-cosf(ang1000)*h1000Back, cy-sinf(ang1000)*h1000Back, cx+cosf(ang1000)*h1000Len, cy+sinf(ang1000)*h1000Len, hand1000); }`);
     L.push(`  if (showHub) { if (hubColor != C_BG) GFX.fillCircle(cx, cy, 5, hubColor); if (hand1000 != C_BG) GFX.drawCircle(cx, cy, 5, hand1000); }`);
-    L.push(`  if (showDigital && digColor != C_BG) { int dSz=gfxSizeF(${sizeExpr(c,'digital','r*0.14f')}); int dCharW=gfxCharW(dSz), dCharH=gfxCharH(dSz); int dCurX=cx - 4.5f*dCharW, dCurY=cy + r*0.5; if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(dCurX - 3, dCurY - 2, 9*dCharW + 6, dCharH + 4, valueBoxColor); GFX.setCursor(dCurX, dCurY); GFX.setTextColor(digColor); GFX.setTextSize(dSz); GFX.print((int)altitude); GFX.print(" ft"); }`);
+    { const digDX = Math.round(gDX(c,'digital')), digDY = Math.round(gDY(c,'digital'));
+    L.push(`  if (showDigital && digColor != C_BG) { int dSz=gfxSizeF(${sizeExpr(c,'digital','r*0.14f')}); int dCharW=gfxCharW(dSz), dCharH=gfxCharH(dSz); int dCurX=cx - 4.5f*dCharW + (${digDX}), dCurY=cy + r*0.5 + (${digDY}); if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(dCurX - 3, dCurY - 2, 9*dCharW + 6, dCharH + 4, valueBoxColor); GFX.setCursor(dCurX, dCurY); GFX.setTextColor(digColor); GFX.setTextSize(dSz); GFX.print((int)altitude); GFX.print(" ft"); }`); }
   }
   else if (inst.type === 'altimeter-tape' || inst.type === 'airspeed-tape' || inst.type === 'tape' || inst.type === 'groundspeed-tape' || inst.type === 'vsi-tape') {
     const tickIn = c.tickInset!==undefined ? c.tickInset : 0.6;
@@ -5429,6 +5793,9 @@ function generateInstrumentCode(inst, i) {
     const ptrBaseFrac = (mirrored ? 0.05 : 0.95).toFixed(4);
     const tickInEff = (mirrored ? (1-tickIn) : tickIn).toFixed(4);
     const subInEff = (mirrored ? (1-subInVal) : subInVal).toFixed(4);
+    const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
+    const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
+    const unitDX  = Math.round(gDX(c,'unit')),  unitDY  = Math.round(gDY(c,'unit'));
     L.push(`  // --- Vertical Tape ---`);
     if (inst.type==='groundspeed-tape') {
       L.push(`  float value = ${mavFetch(c.mavSource)} * 3.6f;  // m/s -> km/h`);
@@ -5468,8 +5835,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`      char tickBuf[8]; itoa((int)v, tickBuf, 10);`);
     L.push(`      int tickW = gfxCharW(tSz) * (int)strlen(tickBuf);`);
     L.push(mirrored
-      ? `      GFX.setCursor(x + w*${tickInEff}f + w*0.05f, py + gfxCenterOffset(tSz)); GFX.setTextColor(txtColor); GFX.print(tickBuf);`
-      : `      GFX.setCursor(x + w*${tickInEff}f - w*0.05f - tickW, py + gfxCenterOffset(tSz)); GFX.setTextColor(txtColor); GFX.print(tickBuf);`);
+      ? `      GFX.setCursor(x + w*${tickInEff}f + w*0.05f + (${scaleDX}), py + gfxCenterOffset(tSz) + (${scaleDY})); GFX.setTextColor(txtColor); GFX.print(tickBuf);`
+      : `      GFX.setCursor(x + w*${tickInEff}f - w*0.05f - tickW + (${scaleDX}), py + gfxCenterOffset(tSz) + (${scaleDY})); GFX.setTextColor(txtColor); GFX.print(tickBuf);`);
     L.push(`    }`);
     L.push(`  }`);
     L.push(`  if (showPtr && ptrColor != C_BG) {`);
@@ -5489,11 +5856,11 @@ function generateInstrumentCode(inst, i) {
     L.push(mirrored
       ? `    float boxX = x + w*0.95f - boxW;`
       : `    float boxX = x + w*0.05f;`);
-    L.push(`    if (boxBg != C_BG) GFX.fillRect(boxX, midY - bh/2, boxW, bh, boxBg);`);
+    L.push(`    if (boxBg != C_BG) GFX.fillRect(boxX + (${valueDX}), midY - bh/2 + (${valueDY}), boxW, bh, boxBg);`);
     L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
-    L.push(`    GFX.setCursor(boxX + charW/2, midY - charH/2); GFX.print(vbuf);`);
+    L.push(`    GFX.setCursor(boxX + charW/2 + (${valueDX}), midY - charH/2 + (${valueDY})); GFX.print(vbuf);`);
     L.push(`  }`);
-    L.push(`  if (showUnit && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','w*0.12f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(x + w/2 - 2*gfxCharW(uSz), y + h - max(6,(int)(h*0.04)) + gfxCenterOffset(uSz)); GFX.print("${inst.type==='groundspeed-tape'?'km/h':(c.unit||'')}"); }`);
+    L.push(`  if (showUnit && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','w*0.12f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(x + w/2 - 2*gfxCharW(uSz) + (${unitDX}), y + h - max(6,(int)(h*0.04)) + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${inst.type==='groundspeed-tape'?'km/h':(c.unit||'')}"); }`);
   }
   else if (inst.type === 'vsi') {
     const vSweep = c.sweepAngle!==undefined?c.sweepAngle:180;
@@ -5526,6 +5893,7 @@ function generateInstrumentCode(inst, i) {
     L.push(circularBgFill(c));
     L.push(`  if (borderColor != C_BG) for (int bi=0;bi<${vbw};bi++) GFX.drawCircle(cx, cy, r-4-bi, borderColor);`);
     L.push(`  int vsiTickSz=gfxSizeF(${sizeExpr(c,'scale','r*0.14f')}); if (showLabels) GFX.setTextSize(vsiTickSz);`);
+    { const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
     L.push(`  for (int i = -totalSteps; i <= totalSteps; i++) {`);
     L.push(`    float v = i * fineStep;`);
     L.push(`    bool isMajor = (i % subDiv) == 0;`);
@@ -5535,9 +5903,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`    if (tc != C_BG) GFX.drawLine(cx + cosf(ang)*(r-4), cy + sinf(ang)*(r-4), cx + cosf(ang)*(r-4-tLen), cy + sinf(ang)*(r-4-tLen), tc);`);
     L.push(`    if (isMajor && showLabels && labelColor != C_BG && fabsf(v) > 0.01f) {`);
     L.push(`      int tx = cx + cosf(ang) * (r - 16 - labelInset); int ty = cy + sinf(ang) * (r - 16 - labelInset);`);
-    L.push(`      GFX.setCursor(tx - gfxCharW(vsiTickSz)/2, ty + gfxCenterOffset(vsiTickSz)); GFX.setTextColor(labelColor); GFX.print((int)v);`);
+    L.push(`      GFX.setCursor(tx - gfxCharW(vsiTickSz)/2 + (${scaleDX}), ty + gfxCenterOffset(vsiTickSz) + (${scaleDY})); GFX.setTextColor(labelColor); GFX.print((int)v);`);
     L.push(`    }`);
-    L.push(`  }`);
+    L.push(`  }`); }
     L.push(`  float vClamped = constrain(value, -range, range);`);
     L.push(`  float ang = startRad + (vClamped/range) * (sweepRad/2.0f);`);
     L.push(`  float needleLen = ${c.needleLength!==undefined?`((${Number(c.needleLength).toFixed(2)}f/100.0f)*(r-4))`:'(r-8)'};`);
@@ -5555,6 +5923,8 @@ function generateInstrumentCode(inst, i) {
     const hMinLenExpr = c.minorTickLen!==undefined ? `${Number(c.minorTickLen).toFixed(2)}f` : `h*${(0.6-hSubTop).toFixed(2)}f`;
     const hMajYOff = Number(c.majorTickYOffset)||0;
     const hMinYOff = Number(c.minorTickYOffset)||0;
+    const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
+    const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
     L.push(`  // --- Heading Tape ---`);
     L.push(`  float heading = ${mavFetch(c.mavSource)};`);
     L.push(`  bool showVal = ${b(c.showValue)};`);
@@ -5583,7 +5953,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    if (isMajor && norm % ${c.labelStep>0?Math.round(c.labelStep):30} == 0 && showLabels) {`);
     L.push(`      uint16_t lc = norm == 0 ? northColor : txtColor;`);
     L.push(`      if (lc != C_BG) {`);
-    L.push(`      int hLblSz=gfxSizeF(${sizeExpr(c,'scale','h*0.28f')}); GFX.setCursor(px - gfxCharW(hLblSz)/2, y + h*0.65f); GFX.setTextColor(lc); GFX.setTextSize(hLblSz);`);
+    L.push(`      int hLblSz=gfxSizeF(${sizeExpr(c,'scale','h*0.28f')}); GFX.setCursor(px - gfxCharW(hLblSz)/2 + (${scaleDX}), y + h*0.65f + (${scaleDY})); GFX.setTextColor(lc); GFX.setTextSize(hLblSz);`);
     L.push(`      if (norm == 0) GFX.print("N"); else if (norm == 90) GFX.print("E");`);
     L.push(`      else if (norm == 180) GFX.print("S"); else if (norm == 270) GFX.print("W");`);
     L.push(`      else { if(norm<100) GFX.print("0"); GFX.print(norm); }`);
@@ -5602,9 +5972,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`    int vSz = gfxSizeF(${sizeExpr(c,'value','h*0.3f')});`);
     L.push(`    int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz);`);
     L.push(`    float bw = max(28.0f, (float)(3*vCharW+8)), bh = max((float)(vCharH+4), h*0.33f);`);
-    L.push(`    if (boxBg != C_BG) GFX.fillRect(midX - bw/2, y + h - bh - 1, bw, bh, boxBg);`);
+    L.push(`    if (boxBg != C_BG) GFX.fillRect(midX - bw/2 + (${valueDX}), y + h - bh - 1 + (${valueDY}), bw, bh, boxBg);`);
     L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
-    L.push(`    GFX.setCursor(midX - 3*vCharW/2, y + h - bh/2 - 1 - vCharH/2);`);
+    L.push(`    GFX.setCursor(midX - 3*vCharW/2 + (${valueDX}), y + h - bh/2 - 1 - vCharH/2 + (${valueDY}));`);
     L.push(`    int hdg = (int)heading % 360;`);
     L.push(`    if (hdg < 10) GFX.print("00"); else if (hdg < 100) GFX.print("0"); GFX.print(hdg);`);
     L.push(`  }`);
@@ -5621,59 +5991,102 @@ function generateInstrumentCode(inst, i) {
     L.push(`  const char* modeName = (modeIdx>=0 && modeIdx<24) ? FLIGHT_MODES[modeIdx] : "UNKNOWN";`);
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
-    L.push(`  if (${b(c.showText)} && txtColor != C_BG) { int mSz=gfxSizeF(${sizeExpr(c,'mode','h*0.4f')}); GFX.setCursor(x + 4, y + h/2 + gfxCenterOffset(mSz)); GFX.setTextColor(txtColor); GFX.setTextSize(mSz); GFX.print(modeName); }`);
+    { const modeDX = Math.round(gDX(c,'mode')), modeDY = Math.round(gDY(c,'mode'));
+    L.push(`  if (${b(c.showText)} && txtColor != C_BG) { int mSz=gfxSizeF(${sizeExpr(c,'mode','h*0.4f')}); GFX.setCursor(x + 4 + (${modeDX}), y + h/2 + gfxCenterOffset(mSz) + (${modeDY})); GFX.setTextColor(txtColor); GFX.setTextSize(mSz); GFX.print(modeName); }`); }
   }
   else if (inst.type === 'arc-gauge') {
+    const sweep = c.arcSweep === 'custom' ? (c.sweepAngle || 270) : (parseInt(c.arcSweep) || 270);
+    const arcStartDeg = 90 + (360 - sweep) / 2 + (parseFloat(c.arcStartOffset)||0);
+    const showScale = c.showLabels!==false;
+    const showName  = c.showLabel!==false && !!c.label;
+    // Geometry fully determined at design time (instrument size, sweep,
+    // and whether the label/scale are shown) - not runtime telemetry - so
+    // it's computed once here exactly like the editor preview does, via
+    // the same arcUnitBBox fit-and-center algorithm, and emitted as plain
+    // numbers rather than recomputed on the device every frame. This was
+    // previously a crude fixed formula (gy = h/2+h*0.1, gr = h*0.55-4) that
+    // didn't account for the arc's actual bounding box for a given sweep,
+    // or reserve room for the label - causing a real position mismatch
+    // between the editor and the generated sketch, and the bottom label
+    // landing in the wrong place relative to a differently-sized arc.
+    const gapFrac = showScale ? 0.22 : 0.05;
+    const pad = 2;
+    const bottomReserve = showName ? Math.max(9, Math.min(inst.w,inst.h)*0.16) : 0;
+    const availW = Math.max(10, inst.w - pad*2);
+    const availH = Math.max(10, inst.h - pad*2 - bottomReserve);
+    const bb = arcUnitBBox(arcStartDeg, sweep);
+    const ex0=bb.x0-gapFrac, ex1=bb.x1+gapFrac, ey0=bb.y0-gapFrac, ey1=bb.y1+gapFrac;
+    const gr = Math.max(6, Math.min(availW/(ex1-ex0), availH/(ey1-ey0)));
+    const gcxLocal = pad + availW/2 - ((ex0+ex1)/2)*gr;
+    const gcyLocal = pad + availH/2 - ((ey0+ey1)/2)*gr;
+    // Reused directly from the editor preview's own offset resolver, so
+    // these can never drift from what the editor shows - previously these
+    // offsets were computed correctly for the preview but never applied at
+    // all in the generated code, for any of these four elements.
+    const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
+    const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
+    const unitDX  = Math.round(gDX(c,'unit')),  unitDY  = Math.round(gDY(c,'unit'));
+    const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
+
     L.push(`  // --- Arc Gauge ---`);
     L.push(`  float value = ${mavFetch(c.mavSource)};`);
     L.push(`  float minV = ${c.min||0}, maxV = ${c.max||100};`);
     L.push(`  int digits = ${c.digits||0};`);
-    L.push(`  int gy = y + h/2 + h*0.1; int gr = min(w/2, h*0.55) - 4;`);
-    L.push(`  float sweep = ${c.arcSweep === 'custom' ? (c.sweepAngle || 270) : (parseInt(c.arcSweep) || 270)};`);
-    L.push(`  float arcStart = 90 + (360 - sweep) / 2;`);
+    L.push(`  int gcx = x + ${Math.round(gcxLocal)}; int gy = y + ${Math.round(gcyLocal)}; int gr = ${Math.round(gr)};`);
+    L.push(`  float sweep = ${sweep.toFixed(2)}f;`);
+    L.push(`  float arcStart = ${arcStartDeg.toFixed(4)}f;`);
     L.push(`  float arcEnd = arcStart + sweep;`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  // Track (background arc) - always redrawn, not just when a distinct`);
-    L.push(`  // track colour is configured. The value arc can shrink as well as`);
-    L.push(`  // grow, so this is what resets its sweep region each frame; skipping`);
-    L.push(`  // it whenever trackColor happens to default to transparent left a`);
-    L.push(`  // stale, longer arc segment visible from a previous, higher reading.`);
-    L.push(`  drawArc(cx, gy, gr, arcStart + rot, arcEnd + rot, trackColor);`);
+    L.push(`  if (${b(c.showTrack)}) drawArc(gcx, gy, gr, arcStart + rot, arcEnd + rot, trackColor, ${c.arcThickness>0?Math.round(c.arcThickness):1});`);
     L.push(`  // Value arc`);
-    L.push(`  if (color != C_BG) {`);
+    L.push(`  if (${b(c.showArc)} && color != C_BG) {`);
     L.push(`    float v = constrain(value, minV, maxV); float pct = (v - minV) / (maxV - minV);`);
-    L.push(`    int endAngle = arcStart + pct * sweep;`);
-    L.push(`    drawArc(cx, gy, gr, arcStart + rot, endAngle + rot, color);`);
+    L.push(`    // Mirrored: fills from the far end (arcEnd) backward instead of`);
+    L.push(`    // growing from arcStart forward - the visible track/endpoints`);
+    L.push(`    // don't move, only which end the value "grows from".`);
+    L.push(`    float a0 = ${c.mirrored?'arcStart + sweep - pct * sweep':'arcStart'};`);
+    L.push(`    float a1 = ${c.mirrored?'arcEnd':'arcStart + pct * sweep'};`);
+    L.push(`    drawArc(gcx, gy, gr, a0 + rot, a1 + rot, color, ${c.arcThickness>0?Math.round(c.arcThickness):1});`);
     L.push(`  }`);
-    L.push(`  // Min / Max labels at arc ends`);
-    L.push(`  if (${b(c.showLabels)} && tickColor != C_BG) {`);
-    L.push(`    int mmSz=gfxSizeF(${sizeExpr(c,'scale','gr*0.18f')}); GFX.setTextColor(tickColor); GFX.setTextSize(mmSz);`);
+    L.push(`  // Min / Max labels at arc ends - swapped when mirrored so "Min" still`);
+    L.push(`  // sits at the end the arc fills from, matching the reversed direction`);
+    L.push(`  // above rather than contradicting it.`);
+    L.push(`  if (${b(showScale)} && tickColor != C_BG) {`);
+    L.push(`    int mmSz=gfxSizeF(${sizeExpr(c,'scale','max(7.0f,gr*0.18f)')}); GFX.setTextColor(tickColor); GFX.setTextSize(mmSz);`);
     L.push(`    int mmOffX=gfxCharW(mmSz), mmOffY=-gfxCenterOffset(mmSz);`);
-    L.push(`    float minAng = (arcStart + rot) * PI / 180; float maxAng = (arcEnd + rot) * PI / 180;`);
-    L.push(`    GFX.setCursor(cx + cosf(minAng) * (gr + 12) - mmOffX, gy + sinf(minAng) * (gr + 12) - mmOffY); GFX.print((int)minV);`);
-    L.push(`    GFX.setCursor(cx + cosf(maxAng) * (gr + 12) - mmOffX, gy + sinf(maxAng) * (gr + 12) - mmOffY); GFX.print((int)maxV);`);
+    L.push(`    float minAng = (${c.mirrored?'arcEnd':'arcStart'} + rot) * PI / 180; float maxAng = (${c.mirrored?'arcStart':'arcEnd'} + rot) * PI / 180;`);
+    L.push(`    GFX.setCursor(gcx + cosf(minAng) * (gr + 12) - mmOffX + (${scaleDX}), gy + sinf(minAng) * (gr + 12) - mmOffY + (${scaleDY})); GFX.print((int)minV);`);
+    L.push(`    GFX.setCursor(gcx + cosf(maxAng) * (gr + 12) - mmOffX + (${scaleDX}), gy + sinf(maxAng) * (gr + 12) - mmOffY + (${scaleDY})); GFX.print((int)maxV);`);
     L.push(`  }`);
     L.push(`  // Digital value - sized proportionally to the gauge radius, like the editor`);
     L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
-    L.push(`    int vSize = gfxSizeF(${sizeExpr(c,'value','gr*0.42f')});`);
+    L.push(`    int vSize = gfxSizeF(${sizeExpr(c,'value','max(10.0f,gr*0.42f)')});`);
     let vyExpr = `gy - gr * 0.15`;
     if (c.valuePos === 'top') vyExpr = `gy - gr * 0.4`;
     else if (c.valuePos === 'center') vyExpr = `gy`;
     else if (c.valuePos === 'bottom') vyExpr = `gy + gr * 0.4`;
     L.push(`    int vy = ${vyExpr};`);
+    L.push(`    // Box sized to the actual printed text (built into a buffer and`);
+    L.push(`    // measured), not guessed from decimal places alone - guessing only`);
+    L.push(`    // from "digits" ignored how many digits the integer part could have,`);
+    L.push(`    // so any reading wider than ~2 characters smeared past the box.`);
+    L.push(`    char vbuf[16]; dtostrf(constrain(value,minV,maxV), 1, digits, vbuf);`);
     L.push(`    int vCharW=gfxCharW(vSize), vCharH=gfxCharH(vSize);`);
-    L.push(`    int vCurX = cx - vCharW*(digits+1)/2, vCurY = vy - vCharH/2;`);
+    L.push(`    int vw = vCharW * (int)strlen(vbuf);`);
+    L.push(`    int vCurX = gcx - vw/2 + (${valueDX}), vCurY = vy - vCharH/2 + (${valueDY});`);
     L.push(`    // The box is what actually erases the previous frame's digits - this`);
     L.push(`    // widget has no background fill of its own to fall back on if bgColor`);
     L.push(`    // is left transparent (a common choice for a custom gauge like this),`);
     L.push(`    // so without it a shorter new reading would leave old digits peeking`);
     L.push(`    // out from behind, exactly like an un-erased sprite needle would.`);
-    L.push(`    if (${b(c.showValueBox)}) GFX.fillRect(vCurX - 2, vCurY - 2, vCharW*(digits+1) + 4, vCharH + 4, valueBoxColor);`);
+    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, vCurY - 2, vw + 4, vCharH + 4, valueBoxColor);`);
     L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSize);`);
-    L.push(`    GFX.setCursor(vCurX, vCurY); GFX.print(constrain(value,minV,maxV), digits);`);
+    L.push(`    GFX.setCursor(vCurX, vCurY); GFX.print(vbuf);`);
     L.push(`  }`);
+    L.push(`  // Unit`);
+    L.push(`  if (${b(c.showUnit)} && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','max(7.0f,gr*0.16f)')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(gcx - (int)strlen("${c.unit||''}")*gfxCharW(uSz)/2 + (${unitDX}), gy + gr*0.2f + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}"); }`);
     L.push(`  // Label`);
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSize=gfxSizeF(${sizeExpr(c,'label','gr*0.2f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSize); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSize)/2, y + h - gfxCharH(lSize)); GFX.print("${c.label||''}"); }`);
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSize=gfxSizeF(${sizeExpr(c,'label','max(8.0f,gr*0.2f)')}); int lCharH=gfxCharH(lSize); int lMargin=max(2,(int)(lCharH*0.25f)); GFX.setTextColor(labelColor); GFX.setTextSize(lSize); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSize)/2 + (${labelDX}), y + h - lCharH - lMargin + (${labelDY})); GFX.print("${c.label||''}"); }`);
   }
   else if (inst.type === 'bar-gauge') {
     L.push(`  // --- Bar Gauge ---`);
@@ -5683,15 +6096,19 @@ function generateInstrumentCode(inst, i) {
     L.push(bgFillLine(c,'rect'));
     L.push(`  float v = constrain(value, minV, maxV);`);
     if(c.orientation!=='vertical'){
+      const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
+      const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
       L.push(`  int padX = 6; int barY = y + h*0.45; int barH = h*0.25;`);
-      L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + padX, y + 4); GFX.print("${c.label||''}"); }`);
+      L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + padX + (${labelDX}), y + 4 + (${labelDY})); GFX.print("${c.label||''}"); }`);
       L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
-      L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.25f')}); int vCurX = x + w - gfxCharW(vSz)*(digits+3);`);
-      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, y + 4 - 2, gfxCharW(vSz)*(digits+3) + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
-      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, y + 4); GFX.print(v, digits); GFX.print(" ${c.unit||''}");`);
+      L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.25f')}); int vCurX = x + w - gfxCharW(vSz)*(digits+3) + (${valueDX});`);
+      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, y + 4 - 2 + (${valueDY}), gfxCharW(vSz)*(digits+3) + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
+      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, y + 4 + (${valueDY})); GFX.print(v, digits); GFX.print(" ${c.unit||''}");`);
       L.push(`  }`);
       L.push(`  if (${b(c.showTrack)} && trackColor != C_BG) GFX.fillRect(x + padX, barY, w - padX*2, barH, trackColor);`);
-      L.push(`  if (${b(c.showBar)} && color != C_BG) GFX.fillRect(x + padX, barY, (w - padX*2) * ((v - minV)/(maxV-minV)), barH, color);`);
+      L.push(`  // Mirrored: touches the right edge and grows leftward instead of`);
+      L.push(`  // touching the left edge and growing rightward.`);
+      L.push(`  if (${b(c.showBar)} && color != C_BG) { float bw = (w - padX*2) * ((v - minV)/(maxV-minV)); float bx = ${c.mirrored?'x + w - padX - bw':'x + padX'}; GFX.fillRect(bx, barY, bw, barH, color); }`);
       L.push(`  if (${b(c.showTicks)} && borderColor != C_BG) { for (int i=1;i<10;i++) { int tx = x + padX + (int)((w-padX*2)*(i/10.0f)); GFX.drawLine(tx, barY, tx, barY+barH, borderColor); } }`);
       L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(x + padX, barY, w - padX*2, barH, borderColor);`);
     } else {
@@ -5700,7 +6117,9 @@ function generateInstrumentCode(inst, i) {
       L.push(`  // rotating the text itself isn't practical, so the layout adapts`);
       L.push(`  // around keeping it horizontal instead.`);
       L.push(`  int topY = y + 4, botY = y + h - 4;`);
-      L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2, topY); GFX.print("${c.label||''}"); topY += gfxCharH(lSz) + 3; }`);
+      const labelDX2 = Math.round(gDX(c,'label')), labelDY2 = Math.round(gDY(c,'label'));
+      const valueDX2 = Math.round(gDX(c,'value')), valueDY2 = Math.round(gDY(c,'value'));
+      L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX2}), topY + (${labelDY2})); GFX.print("${c.label||''}"); topY += gfxCharH(lSz) + 3; }`);
       L.push(`  int valH = 0;`);
       L.push(`  int vSz=gfxSizeF(${sizeExpr(c,'value','w*0.2f')});`);
       L.push(`  if (${b(c.showValue)} && color != C_BG) valH = gfxCharH(vSz) + 4;`);
@@ -5708,20 +6127,23 @@ function generateInstrumentCode(inst, i) {
       L.push(`  int barTop = topY, barBottom = botY - valH;`);
       L.push(`  int barH2 = max(1, barBottom - barTop);`);
       L.push(`  if (${b(c.showTrack)} && trackColor != C_BG) GFX.fillRect(barX, barTop, barW, barH2, trackColor);`);
-      L.push(`  if (${b(c.showBar)} && color != C_BG) { float pct=(v-minV)/(maxV-minV); int fillH=(int)(barH2*pct); GFX.fillRect(barX, barBottom-fillH, barW, fillH, color); }`);
+      L.push(`  // Mirrored: touches the top edge and grows downward instead of`);
+      L.push(`  // touching the bottom edge and growing upward.`);
+      L.push(`  if (${b(c.showBar)} && color != C_BG) { float pct=(v-minV)/(maxV-minV); int fillH=(int)(barH2*pct); int fy = ${c.mirrored?'barTop':'barBottom-fillH'}; GFX.fillRect(barX, fy, barW, fillH, color); }`);
       L.push(`  if (${b(c.showTicks)} && borderColor != C_BG) { for (int i=1;i<10;i++) { int ty = barTop + (int)(barH2*(i/10.0f)); GFX.drawLine(barX, ty, barX+barW, ty, borderColor); } }`);
       L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(barX, barTop, barW, barH2, borderColor);`);
       L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
       L.push(`    char vbuf[16]; dtostrf(v, 1, digits, vbuf);`);
       L.push(`    int vw = gfxCharW(vSz)*((int)strlen(vbuf)+${(c.unit||'').length+1});`);
-      L.push(`    int vCurX = x + w/2 - vw/2;`);
-      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, botY - gfxCharH(vSz) - 2, vw + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
-      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, botY - gfxCharH(vSz)); GFX.print(vbuf); GFX.print(" ${c.unit||''}");`);
+      L.push(`    int vCurX = x + w/2 - vw/2 + (${valueDX2});`);
+      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, botY - gfxCharH(vSz) - 2 + (${valueDY2}), vw + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
+      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, botY - gfxCharH(vSz) + (${valueDY2})); GFX.print(vbuf); GFX.print(" ${c.unit||''}");`);
       L.push(`  }`);
     }
   }
   else if (inst.type === 'static-text') {
     const escText = escCString(c.text||'');
+    const textDX = Math.round(gDX(c,'text')), textDY = Math.round(gDY(c,'text'));
     L.push(`  // --- Static Text ---`);
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
@@ -5729,7 +6151,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    int tSz=gfxSizeF(${sizeExpr(c,'text','h*0.5f')});`);
     L.push(`    int tw = gfxCharW(tSz) * (int)strlen("${escText}");`);
     L.push(`    int tx = ${c.align==='left'?'x + 4':c.align==='right'?'x + w - 4 - tw':'x + w/2 - tw/2'};`);
-    L.push(`    GFX.setCursor(tx, y + h/2 + gfxCenterOffset(tSz)); GFX.setTextColor(txtColor); GFX.setTextSize(tSz); GFX.print("${escText}");`);
+    L.push(`    GFX.setCursor(tx + (${textDX}), y + h/2 + gfxCenterOffset(tSz) + (${textDY})); GFX.setTextColor(txtColor); GFX.setTextSize(tSz); GFX.print("${escText}");`);
     L.push(`  }`);
   }
   else if (inst.type === 'text-value') {
@@ -5742,18 +6164,21 @@ function generateInstrumentCode(inst, i) {
     L.push(`  int digits = ${c.digits||0};`);
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + 4, y + 3); GFX.print("${c.label||''}"); }`);
+    { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + 4 + (${labelDX}), y + 3 + (${labelDY})); GFX.print("${c.label||''}"); }`); }
+    { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
     L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
     L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.5f')});`);
     L.push(`    char vbuf[16]; dtostrf(value, 1, digits, vbuf);`);
     L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz);`);
-    L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(vSz)*(int)strlen(vbuf), y + h - gfxCharH(vSz) - 2); GFX.print(vbuf);`);
-    L.push(`  }`);
+    L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(vSz)*(int)strlen(vbuf) + (${valueDX}), y + h - gfxCharH(vSz) - 2 + (${valueDY})); GFX.print(vbuf);`);
+    L.push(`  }`); }
+    { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
     L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) {`);
     L.push(`    int uSz=gfxSizeF(${sizeExpr(c,'unit','h*0.22f')});`);
     L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(uSz);`);
-    L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(uSz)*(int)strlen("${c.unit||''}"), y + 3); GFX.print("${c.unit||''}");`);
-    L.push(`  }`);
+    L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(uSz)*(int)strlen("${c.unit||''}") + (${unitDX}), y + 3 + (${unitDY})); GFX.print("${c.unit||''}");`);
+    L.push(`  }`); }
   }
   else if (inst.type === 'dial') {
     L.push(`  // --- Dial ---`);
@@ -5784,6 +6209,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  uint16_t minorTickColor = ${hexTo565Const(c.minorTickColor||'#5a6878')};`);
     L.push(`  // Ticks + labels`);
     L.push(`  if (showTicks) {`);
+    { const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
     L.push(`    // Clamped to a minimum of 1, matching the editor preview - without`);
     L.push(`    // this, a Major Tick smaller than Minor Tick computes`);
     L.push(`    // ticksPerMajor=0 via integer truncation, and "i % ticksPerMajor"`);
@@ -5802,9 +6228,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`        float vLabel = minV + (i * range / numMinor); int labelR = innerR - labelInset;`);
     L.push(`        int tx = cx + cosf(angle) * labelR; int ty = cy + sinf(angle) * labelR;`);
     L.push(`        int scSz=gfxSizeF(${sizeExpr(c,'scale','r*0.12f')});`);
-    L.push(`        GFX.setCursor(tx - gfxCharW(scSz)/2, ty + gfxCenterOffset(scSz)); GFX.setTextColor(labelColor); GFX.setTextSize(scSz); GFX.print((int)vLabel);`);
+    L.push(`        GFX.setCursor(tx - gfxCharW(scSz)/2 + (${scaleDX}), ty + gfxCenterOffset(scSz) + (${scaleDY})); GFX.setTextColor(labelColor); GFX.setTextSize(scSz); GFX.print((int)vLabel);`);
     L.push(`      }`);
-    L.push(`    }`);
+    L.push(`    }`); }
     L.push(`  }`);
     L.push(`  // Needle + hub`);
     L.push(`  if (color != C_BG) {`);
@@ -5814,19 +6240,22 @@ function generateInstrumentCode(inst, i) {
     L.push(`    if (showHub) { if (hubColor != C_BG) GFX.fillCircle(cx, cy, 4, hubColor); GFX.drawCircle(cx, cy, 4, color); }`);
     L.push(`  }`);
     L.push(`  // Digital value + label + unit`);
+    { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
     L.push(`  if (showValue && color != C_BG) {`);
     L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','r*0.2f')}); int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz);`);
-    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(cx - vCharW*(digits+3)/2 - 2, cy + r*0.35 - vCharH/2 - 1, vCharW*(digits+3) + 4, vCharH + 2, valueBoxColor);`);
-    L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*(digits+3)/2, cy + r*0.35 - vCharH/2); GFX.print(constrain(value,minV,maxV), digits);`);
-    L.push(`  }`);
+    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(cx - vCharW*(digits+3)/2 - 2 + (${valueDX}), cy + r*0.35 - vCharH/2 - 1 + (${valueDY}), vCharW*(digits+3) + 4, vCharH + 2, valueBoxColor);`);
+    L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*(digits+3)/2 + (${valueDX}), cy + r*0.35 - vCharH/2 + (${valueDY})); GFX.print(constrain(value,minV,maxV), digits);`);
+    L.push(`  }`); }
+    { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
     L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) {`);
     L.push(`    int lSz=gfxSizeF(${sizeExpr(c,'label','r*0.13f')});`);
-    L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2, cy - r*0.4 + gfxCenterOffset(lSz)); GFX.print("${c.label||''}");`);
-    L.push(`  }`);
+    L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX}), cy - r*0.4 + gfxCenterOffset(lSz) + (${labelDY})); GFX.print("${c.label||''}");`);
+    L.push(`  }`); }
+    { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
     L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) {`);
     L.push(`    int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.11f')});`);
-    L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(uSz); GFX.setCursor(cx - (int)strlen("${c.unit||''}")*gfxCharW(uSz)/2, cy + r*0.6 + gfxCenterOffset(uSz)); GFX.print("${c.unit||''}");`);
-    L.push(`  }`);
+    L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(uSz); GFX.setCursor(cx - (int)strlen("${c.unit||''}")*gfxCharW(uSz)/2 + (${unitDX}), cy + r*0.6 + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}");`);
+    L.push(`  }`); }
     L.push(`  if (borderColor != C_BG) GFX.drawCircle(cx, cy, r, borderColor);`);
   }
   else if (inst.type === 'indicator') {
@@ -5941,6 +6370,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    float pct = constrain(gs_kmh, 0.0f, maxSpd) / maxSpd;`);
     L.push(`    drawArc(cx, cy, r-4, startDeg + rot, startDeg + pct * sweep + rot, arcColor);`);
     L.push(`  }`);
+    { const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
     L.push(`  for (int v = 0; v <= (int)maxSpd; v += ${minStep}) {`);
     L.push(`    float pct = v / maxSpd;`);
     L.push(`    float ang = (startDeg + pct * sweep + rot) * PI / 180;`);
@@ -5949,18 +6379,23 @@ function generateInstrumentCode(inst, i) {
     L.push(`    if (tickColor != C_BG) GFX.drawLine(cx + cosf(ang)*(r-4), cy + sinf(ang)*(r-4), cx + cosf(ang)*inner, cy + sinf(ang)*inner, tickColor);`);
     L.push(`    if (maj && ${b(c.showLabels)} && labelColor != C_BG) {`);
     L.push(`      int tx = cx + cosf(ang)*(r - r/3 - 6); int ty = cy + sinf(ang)*(r - r/3 - 6);`);
-    L.push(`      int tSz=gfxSizeF(${sizeExpr(c,'scale','r*0.15f')}); GFX.setCursor(tx - gfxCharW(tSz)/2, ty + gfxCenterOffset(tSz)); GFX.setTextColor(labelColor); GFX.setTextSize(tSz); GFX.print(v);`);
+    L.push(`      int tSz=gfxSizeF(${sizeExpr(c,'scale','r*0.15f')}); GFX.setCursor(tx - gfxCharW(tSz)/2 + (${scaleDX}), ty + gfxCenterOffset(tSz) + (${scaleDY})); GFX.setTextColor(labelColor); GFX.setTextSize(tSz); GFX.print(v);`);
     L.push(`    }`);
-    L.push(`  }`);
+    L.push(`  }`); }
     L.push(`  float needleAng = (startDeg + (constrain(gs_kmh,0.0f,maxSpd)/maxSpd)*sweep + rot) * PI / 180;`);
     L.push(`  if (ptrColor != C_BG) GFX.drawLine(cx - cosf(needleAng)*r*0.15, cy - sinf(needleAng)*r*0.15,`);
     L.push(`               cx + cosf(needleAng)*(r*0.8), cy + sinf(needleAng)*(r*0.8), ptrColor);`);
     L.push(`  if (${b(c.showHub)}) { if (hubColor != C_BG) GFX.fillCircle(cx, cy, max(4,r/12), hubColor); if (ptrColor != C_BG) GFX.drawCircle(cx, cy, max(4,r/12), ptrColor); }`);
-    L.push(`  if (${b(c.showValue)} && ptrColor != C_BG) { int vSz=gfxSizeF(${sizeExpr(c,'value','r*0.38f')}); int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz); if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(cx - vCharW*3/2 - 2, cy + r*0.25 - vCharH/2 - 1, vCharW*4 + 4, vCharH + 2, valueBoxColor); GFX.setTextColor(ptrColor); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*3/2, cy + r*0.25 - vCharH/2); GFX.print((int)gs_kmh); }`);
-    L.push(`  if (${b(c.showUnit)} && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.14f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(cx - 2*gfxCharW(uSz), cy + r*0.52 + gfxCenterOffset(uSz)); GFX.print("km/h"); }`);
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int gSz=gfxSizeF(${sizeExpr(c,'label','r*0.15f')}); GFX.setTextColor(labelColor); GFX.setTextSize(gSz); GFX.setCursor(cx - (int)strlen("${c.label||'GND SPD'}")*gfxCharW(gSz)/2, cy - r*0.52 + gfxCenterOffset(gSz)); GFX.print("${c.label||'GND SPD'}"); }`);
+    { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
+    L.push(`  if (${b(c.showValue)} && ptrColor != C_BG) { int vSz=gfxSizeF(${sizeExpr(c,'value','r*0.38f')}); int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz); if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(cx - vCharW*3/2 - 2 + (${valueDX}), cy + r*0.25 - vCharH/2 - 1 + (${valueDY}), vCharW*4 + 4, vCharH + 2, valueBoxColor); GFX.setTextColor(ptrColor); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*3/2 + (${valueDX}), cy + r*0.25 - vCharH/2 + (${valueDY})); GFX.print((int)gs_kmh); }`); }
+    { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
+    L.push(`  if (${b(c.showUnit)} && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.14f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(cx - 2*gfxCharW(uSz) + (${unitDX}), cy + r*0.52 + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("km/h"); }`); }
+    { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int gSz=gfxSizeF(${sizeExpr(c,'label','r*0.15f')}); GFX.setTextColor(labelColor); GFX.setTextSize(gSz); GFX.setCursor(cx - (int)strlen("${c.label||'GND SPD'}")*gfxCharW(gSz)/2 + (${labelDX}), cy - r*0.52 + gfxCenterOffset(gSz) + (${labelDY})); GFX.print("${c.label||'GND SPD'}"); }`); }
   }
-  else if (inst.type === 'shape-rectangle' || inst.type === 'shape-circle' || inst.type === 'shape-oval') {
+  else if (inst.type === 'shape-rectangle' || inst.type === 'shape-circle' || inst.type === 'shape-oval' || inst.type === 'shape-triangle') {
+    const fillParsed = parseColorValue(c.fillColor||'#1c232e');
+    const fillIsDither = fillParsed.base === 'dither';
     const fillC = hexTo565Const(c.fillColor||'#1c232e');
     const outlineC = hexTo565Const(c.outlineColor||'#3a4555');
     const ow = c.outlineWidth!==undefined?c.outlineWidth:2;
@@ -5972,17 +6407,38 @@ function generateInstrumentCode(inst, i) {
     L.push(`  uint16_t fillColor = ${fillC};`);
     L.push(`  uint16_t outlineColor = ${outlineC};`);
     if(inst.type==='shape-rectangle'){
-      L.push(`  if (fillColor != C_BG) fillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      else L.push(`  if (fillColor != C_BG) fillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
       L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) drawRotatedRectOutline(cx, cy, w - i*2, h - i*2, rot, outlineColor);`);
     } else if(inst.type==='shape-circle'){
       L.push(`  float scR = min(w,h)/2.0f - ${ow}/2.0f;`);
-      L.push(`  if (fillColor != C_BG) GFX.fillCircle(cx, cy, max(0.0f, scR - ${ow}/2.0f), fillColor);`);
+      // Circles are rotation-invariant, so the plain (non-rotated)
+      // ditherFillCircle already lines up correctly regardless of rot.
+      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillCircle(cx, cy, (int)max(0.0f, scR - ${ow}/2.0f), fillColor);`);
+      else L.push(`  if (fillColor != C_BG) GFX.fillCircle(cx, cy, max(0.0f, scR - ${ow}/2.0f), fillColor);`);
       L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) GFX.drawCircle(cx, cy, scR - i, outlineColor);`);
+    } else if(inst.type==='shape-triangle'){
+      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillRotatedTriangle(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      else L.push(`  if (fillColor != C_BG) fillRotatedTriangle(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) drawRotatedTriangleOutline(cx, cy, w - i*2, h - i*2, rot, outlineColor);`);
     } else {
       L.push(`  float ovRx = w/2.0f - ${ow}/2.0f, ovRy = h/2.0f - ${ow}/2.0f;`);
-      L.push(`  if (fillColor != C_BG) fillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
+      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
+      else L.push(`  if (fillColor != C_BG) fillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
       L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) drawRotatedEllipseOutline(cx, cy, ovRx-i, ovRy-i, rot, outlineColor);`);
     }
+  }
+  else if (inst.type === 'shape-line') {
+    const lineC = hexTo565Const(c.lineColor||'#3a4555');
+    const lw = c.lineWidth!==undefined?c.lineWidth:2;
+    const x1p=(c.x1Pct!==undefined?c.x1Pct:0)/100, y1p=(c.y1Pct!==undefined?c.y1Pct:50)/100;
+    const x2p=(c.x2Pct!==undefined?c.x2Pct:100)/100, y2p=(c.y2Pct!==undefined?c.y2Pct:50)/100;
+    L.push(`  // --- Decorative line ---`);
+    L.push(`  // Redrawn every frame like the other decorative shapes - see the`);
+    L.push(`  // note on shape-rectangle/circle/oval for why drawing it only once`);
+    L.push(`  // would eventually make it disappear.`);
+    L.push(`  uint16_t lnColor = ${lineC};`);
+    L.push(`  if (lnColor != C_BG) thickLine(x + w*${x1p.toFixed(4)}f, y + h*${y1p.toFixed(4)}f, x + w*${x2p.toFixed(4)}f, y + h*${y2p.toFixed(4)}f, ${lw}, lnColor);`);
   }
   else if (inst.type === 'shape-screw') {
     const headC = hexTo565Const(c.headColor||'#8a94a3');
