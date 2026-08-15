@@ -44,6 +44,8 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .btn-ghost{background:transparent;border-color:transparent}
 .btn-ghost:hover{background:var(--panel-2)}
 .btn-icon{padding:7px 9px}
+.btn-icon.active{background:var(--accent);border-color:var(--accent);color:#1a1004}
+.btn-icon.active:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .spacer{flex:1}
 
 .layout{flex:1;display:grid;grid-template-columns:248px 1fr 460px;min-height:0}
@@ -69,8 +71,9 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 
 .editor{background:var(--bg-2);position:relative;overflow:hidden;display:flex;flex-direction:column}
 .editor-toolbar{height:42px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.6);display:flex;align-items:center;padding:0 16px;gap:12px}
-.editor-viewport{flex:1;overflow:auto;padding:40px;display:flex;align-items:center;justify-content:center;position:relative;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:24px 24px}
-#screen{position:relative;background:#040810;border:1px solid var(--border-bright);box-shadow:0 0 0 8px #1a212c,0 0 0 9px #2a3340,0 25px 70px rgba(0,0,0,.7);flex-shrink:0;transform-origin:center center}
+.editor-viewport{flex:1;overflow:auto;padding:40px;display:flex;position:relative;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:24px 24px;cursor:grab}
+.editor-viewport.panning{cursor:grabbing}
+#screen{position:relative;background:#040810;border:1px solid var(--border-bright);box-shadow:0 0 0 8px #1a212c,0 0 0 9px #2a3340,0 25px 70px rgba(0,0,0,.7);flex-shrink:0;transform-origin:center center;margin:auto}
 #orientationBadge{position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:var(--panel-3);border:1px solid var(--border-bright);color:var(--accent-2);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;pointer-events:none;letter-spacing:.6px;z-index:1001;white-space:nowrap}
 
 .instrument{position:absolute;user-select:none;transform-origin:center center}
@@ -80,6 +83,12 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .instrument.selected::before{content:'';position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:var(--accent);border:1px solid #1a1004;cursor:nwse-resize;border-radius:2px;z-index:10}
 .instrument-label{position:absolute;top:-24px;left:0;background:var(--accent);color:#1a1004;font-size:10px;font-weight:700;padding:3px 7px;border-radius:3px;white-space:nowrap;pointer-events:none;font-family:'JetBrains Mono',monospace;display:none;letter-spacing:.5px}
 .instrument.selected .instrument-label{display:block}
+/* Hides the dashed outline, glow, and floating name label so the true
+   rendered edges of a selected instrument aren't visually obscured -
+   corner resize handles (::before/::after above) stay visible and
+   functional either way, since those are needed to keep editing. */
+.hide-selection-box .instrument.selected{outline:none;box-shadow:none}
+.hide-selection-box .instrument.selected .instrument-label{display:none}
 
 .right-panel{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
 .properties{border-bottom:1px solid var(--border);display:flex;flex-direction:column;max-height:58%;min-height:0}
@@ -180,7 +189,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--border-bright)}
 
-.live-indicator{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:1.2px;font-weight:600;font-family:'JetBrains Mono',monospace;background:none;border:1px solid var(--border);border-radius:20px;padding:6px 14px;cursor:pointer;transition:border-color .15s,color .15s}
+.live-indicator{display:inline-flex;align-items:center;gap:5px;font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1px;font-weight:600;font-family:'JetBrains Mono',monospace;background:none;border:1px solid var(--border);border-radius:20px;padding:5px 10px;cursor:pointer;transition:border-color .15s,color .15s}
 .live-indicator:hover{border-color:var(--border-bright)}
 .live-indicator::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
 .live-indicator.paused{color:var(--muted)}
@@ -271,9 +280,11 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
     <button class="btn btn-ghost btn-icon" id="zoomIn" title="Zoom in"><i class="fa fa-search-plus"></i></button>
     <button class="btn btn-ghost btn-icon" id="zoom100" title="Actual size (100%)">1:1</button>
     <button class="btn btn-ghost btn-icon" id="zoomFit" title="Fit to view"><i class="fa fa-expand"></i></button>
+    <button class="btn btn-ghost btn-icon" id="overhangToggle" title="Show/hide instrument parts that hang off the edge of the screen"><i class="fa fa-eye"></i></button>
+    <button class="btn btn-ghost btn-icon" id="selectionBoxToggle" title="Show/hide the selection outline and name label on the selected instrument"><i class="fa fa-vector-square"></i></button>
   </div>
   <div class="spacer"></div>
-  <button class="live-indicator" id="telemetryToggleBtn" title="Start/stop the simulated instrument animation in this editor">Simulated Telemetry</button>
+  <button class="live-indicator" id="telemetryToggleBtn" title="Start/stop the simulated instrument animation in this editor">Telemetry On</button>
   <div class="header-divider"></div>
   <div class="header-group">
     <button class="btn" id="loadBtn"><i class="fa fa-folder-open"></i> Load</button>
@@ -479,6 +490,8 @@ const state = {
   customTemplates:[],
   mavlinkValues:{},
   telemetryRunning:true,
+  showOverhangs:true,
+  showSelectionBox:true,
   currentCustomType:'arc-gauge',
   currentCustomColor:'#ff9d3a',
   currentCustomBgColor:'#040810',
@@ -6517,16 +6530,74 @@ function setupEventListeners(){
   document.getElementById('editorViewport').addEventListener('mousedown',e=>{
     if(e.target.id==='editorViewport') selectInstrument(null);
   });
+  // Drag-to-pan: only starts from a background click (viewport, screen, or
+  // its badges), never from an instrument - and only once the mouse has
+  // actually moved a few pixels, so a plain click still just deselects
+  // (above) instead of every click flagging itself as a tiny pan.
+  (function(){
+    const vp=document.getElementById('editorViewport');
+    let panning=false, startX=0, startY=0, startScrollL=0, startScrollT=0, moved=false;
+    const PAN_THRESHOLD=4;
+    vp.addEventListener('mousedown',e=>{
+      const bg=e.target.id==='editorViewport'||e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge';
+      if(!bg) return;
+      panning=true; moved=false;
+      startX=e.clientX; startY=e.clientY;
+      startScrollL=vp.scrollLeft; startScrollT=vp.scrollTop;
+    });
+    window.addEventListener('mousemove',e=>{
+      if(!panning) return;
+      const dx=e.clientX-startX, dy=e.clientY-startY;
+      if(!moved && (Math.abs(dx)>PAN_THRESHOLD||Math.abs(dy)>PAN_THRESHOLD)){
+        moved=true;
+        vp.classList.add('panning');
+      }
+      if(moved){
+        vp.scrollLeft=startScrollL-dx;
+        vp.scrollTop=startScrollT-dy;
+      }
+    });
+    window.addEventListener('mouseup',()=>{
+      panning=false; moved=false;
+      vp.classList.remove('panning');
+    });
+  })();
   document.getElementById('paletteSearch').addEventListener('input',renderPalette);
   document.getElementById('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(3,state.zoom*1.2);applyZoom()});
   document.getElementById('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(0.2,state.zoom/1.2);applyZoom()});
   document.getElementById('zoom100').addEventListener('click',()=>{state.zoom=1;applyZoom()});
   document.getElementById('zoomFit').addEventListener('click',fitToView);
+  document.getElementById('overhangToggle').addEventListener('click',()=>{
+    state.showOverhangs=!state.showOverhangs;
+    const btn=document.getElementById('overhangToggle');
+    const screen=document.getElementById('screen');
+    if(state.showOverhangs){
+      screen.style.overflow='';
+      btn.classList.remove('active');
+      btn.querySelector('i').className='fa fa-eye';
+      btn.title='Show/hide instrument parts that hang off the edge of the screen';
+    } else {
+      screen.style.overflow='hidden';
+      btn.classList.add('active');
+      btn.querySelector('i').className='fa fa-eye-slash';
+      btn.title='Overhangs hidden - click to show instrument parts that hang off the edge of the screen';
+    }
+  });
+  document.getElementById('selectionBoxToggle').addEventListener('click',()=>{
+    state.showSelectionBox=!state.showSelectionBox;
+    const btn=document.getElementById('selectionBoxToggle');
+    const screen=document.getElementById('screen');
+    screen.classList.toggle('hide-selection-box',!state.showSelectionBox);
+    btn.classList.toggle('active',!state.showSelectionBox);
+    btn.title=state.showSelectionBox
+      ? 'Show/hide the selection outline and name label on the selected instrument'
+      : 'Selection outline hidden - click to show it again (resize handles stay usable either way)';
+  });
   document.getElementById('telemetryToggleBtn').addEventListener('click',()=>{
     state.telemetryRunning=!state.telemetryRunning;
     const btn=document.getElementById('telemetryToggleBtn');
     if(state.telemetryRunning){
-      btn.textContent='Simulated Telemetry';
+      btn.textContent='Telemetry On';
       btn.classList.remove('paused');
       renderLoop(); // was stopped scheduling itself while paused - kick it back off
     } else {
