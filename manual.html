@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AvionixForge — User Manual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+:root{
+  --bg:#0a0d12; --bg-2:#0f1419; --panel:#131820; --panel-2:#1c232e; --panel-3:#232b38;
+  --border:#2a3340; --border-bright:#3a4555;
+  --text:#e8eef5; --text-bright:#ffffff; --muted:#7a8898;
+  --accent:#ff9d3a; --accent-hover:#ffb060; --accent-2:#4dd2c9;
+  --green:#5fe88a; --red:#ff5c5c; --blue:#5fa8ff; --violet:#c08cff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;line-height:1.65}
+a{color:var(--accent-2)}
+code,.mono{font-family:'JetBrains Mono',monospace}
+h1,h2,h3,.disp{font-family:'Orbitron',sans-serif;color:var(--text-bright);letter-spacing:.3px}
+
+/* ---------- layout ---------- */
+.shell{display:grid;grid-template-columns:270px 1fr;min-height:100vh}
+nav.side{position:sticky;top:0;height:100vh;overflow-y:auto;background:var(--panel);border-right:1px solid var(--border);padding:26px 18px}
+nav.side .logo{display:flex;align-items:center;gap:10px;margin-bottom:26px;padding-bottom:18px;border-bottom:1px solid var(--border)}
+nav.side .logo i{color:var(--accent);font-size:20px}
+nav.side .logo span{font-family:'Orbitron',sans-serif;font-weight:800;font-size:15px;letter-spacing:1px;color:var(--text-bright)}
+nav.side .grp{margin-bottom:20px}
+nav.side .grp-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);font-weight:700;margin-bottom:8px;padding-left:10px}
+nav.side a.nav-link{display:block;padding:7px 10px;border-radius:6px;color:var(--text);text-decoration:none;font-size:13px;margin-bottom:2px;transition:background .12s,color .12s}
+nav.side a.nav-link:hover{background:var(--panel-2);color:var(--accent-hover)}
+nav.side a.nav-link.sub{padding-left:20px;font-size:12px;color:var(--muted)}
+
+main{padding:0}
+.hero{padding:70px 60px 50px;border-bottom:1px solid var(--border);background:
+  radial-gradient(600px 300px at 85% -10%, rgba(255,157,58,.10), transparent),
+  radial-gradient(500px 260px at 10% 110%, rgba(77,210,201,.08), transparent);}
+.hero .eyebrow{font-family:'JetBrains Mono',monospace;color:var(--accent-2);font-size:12px;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+.hero .eyebrow::before{content:'';width:22px;height:1px;background:var(--accent-2)}
+.hero h1{font-size:40px;line-height:1.15;margin-bottom:16px}
+.hero h1 .accent{color:var(--accent)}
+.hero p.lead{color:var(--muted);font-size:16px;max-width:640px}
+.hero .ledrow{display:flex;gap:22px;margin-top:26px;flex-wrap:wrap}
+.ledchip{display:flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted);background:var(--panel);border:1px solid var(--border);padding:8px 14px;border-radius:20px}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot.red{background:var(--red);box-shadow:0 0 8px var(--red)}
+.dot.green{background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+section{padding:50px 60px;border-bottom:1px solid var(--border)}
+section:last-child{border-bottom:none}
+section h2{font-size:24px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+section h2 .num{font-family:'JetBrains Mono',monospace;color:var(--accent);font-size:15px;font-weight:700}
+section > p.intro{color:var(--muted);max-width:720px;margin-bottom:30px}
+h3{font-size:16px;color:var(--accent-2);margin:28px 0 12px;font-family:'Space Grotesk',sans-serif;font-weight:700}
+p{margin-bottom:14px;max-width:760px}
+ul,ol{margin:0 0 16px 22px;max-width:740px}
+li{margin-bottom:6px}
+strong{color:var(--text-bright)}
+
+/* ---------- tables ---------- */
+table{width:100%;max-width:820px;border-collapse:collapse;margin:16px 0 26px;font-size:13.5px;background:var(--panel);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+th{background:var(--panel-2);text-align:left;padding:10px 14px;font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--accent-2);border-bottom:1px solid var(--border)}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:last-child td{border-bottom:none}
+td.mono,th.mono{font-family:'JetBrains Mono',monospace}
+
+/* ---------- callout boxes ---------- */
+.callout{max-width:760px;border-radius:8px;padding:16px 18px;margin:18px 0;border-left:3px solid var(--accent);background:var(--panel)}
+.callout.warn{border-left-color:var(--red)}
+.callout.tip{border-left-color:var(--green)}
+.callout .ctitle{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:6px}
+.callout.default .ctitle{color:var(--accent)}
+.callout.warn .ctitle{color:var(--red)}
+.callout.tip .ctitle{color:var(--green)}
+
+pre{background:var(--bg-2);border:1px solid var(--border);border-radius:8px;padding:16px 18px;overflow-x:auto;max-width:800px;margin:16px 0 26px}
+pre code{font-family:'JetBrains Mono',monospace;font-size:12.5px;color:#c9e8e4;line-height:1.6}
+
+/* ---------- mockup "screenshot" frame ---------- */
+.shot{max-width:920px;margin:24px 0 8px;border-radius:10px;overflow:hidden;border:1px solid var(--border-bright);box-shadow:0 20px 50px rgba(0,0,0,.4)}
+.shot .titlebar{background:var(--panel-2);padding:8px 14px;display:flex;align-items:center;gap:7px;border-bottom:1px solid var(--border)}
+.shot .titlebar .tb-dot{width:9px;height:9px;border-radius:50%}
+.shot-caption{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);margin:10px 0 26px;max-width:800px}
+.shot-caption b{color:var(--accent-2)}
+
+.callouts{list-style:none;margin:14px 0 26px;max-width:800px;padding:0}
+.callouts li{display:flex;gap:12px;margin-bottom:10px;font-size:13.5px;align-items:flex-start}
+.callouts .badge{flex:0 0 auto;width:22px;height:22px;border-radius:50%;background:var(--accent);color:#1a0f00;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;margin-top:1px}
+
+/* ---------- mini UI reconstruction pieces (mimic real app CSS) ---------- */
+.mockapp{background:var(--bg);padding:0}
+.mock-header{height:50px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.9);display:flex;align-items:center;padding:0 16px;gap:14px;font-size:11px;flex-wrap:wrap}
+.mock-logo{font-family:'Orbitron',sans-serif;font-weight:800;font-size:12px;color:var(--text-bright);display:flex;align-items:center;gap:6px}
+.mock-div{width:1px;height:18px;background:var(--border)}
+.mock-grp{display:flex;align-items:center;gap:6px}
+.mock-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px}
+.mock-btn{background:var(--panel-2);border:1px solid var(--border);border-radius:5px;padding:5px 10px;font-size:10.5px;color:var(--text);font-family:'JetBrains Mono',monospace;display:flex;align-items:center;gap:5px}
+.mock-btn.primary{background:var(--accent);color:#1a0f00;border-color:var(--accent);font-weight:700}
+.mock-input{background:var(--panel-3);border:1px solid var(--border);border-radius:4px;padding:4px 8px;font-size:10.5px;color:var(--text);width:44px;font-family:'JetBrains Mono',monospace}
+.mock-spacer{flex:1}
+.mock-led{display:flex;align-items:center;gap:6px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted)}
+.mock-live-btn{display:inline-flex;align-items:center;gap:6px;font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1px;font-weight:600;font-family:'JetBrains Mono',monospace;background:none;border:1px solid var(--border);border-radius:20px;padding:5px 12px;cursor:pointer}
+.mock-live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
+.mock-live-btn.paused{color:var(--muted)}
+.mock-live-btn.paused .mock-live-dot{background:var(--muted);box-shadow:none;animation:none}
+
+.mock-body{display:grid;grid-template-columns:130px 1fr 210px;min-height:340px}
+.mock-palette{background:var(--panel);border-right:1px solid var(--border);padding:12px}
+.mock-pal-title{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:1px;margin-bottom:10px;font-weight:700}
+.mock-pal-item{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:5px;font-size:10.5px;margin-bottom:4px;color:var(--text);background:var(--panel-2);border:1px solid var(--border)}
+.mock-pal-item i{color:var(--accent-2);font-size:11px;width:14px;text-align:center}
+.mock-pal-item.sel{border-color:var(--accent);background:rgba(255,157,58,.1)}
+
+.mock-canvas{background:
+  linear-gradient(var(--panel-3) 1px, transparent 1px) 0 0/20px 20px,
+  linear-gradient(90deg, var(--panel-3) 1px, transparent 1px) 0 0/20px 20px,
+  var(--bg-2);position:relative;display:flex;align-items:center;justify-content:center}
+.mock-instrument{position:relative;filter:drop-shadow(0 0 0 rgba(255,157,58,0))}
+.mock-instrument.selected-ring{box-shadow:0 0 0 3px var(--accent)}
+.mock-instrument::after{content:'';position:absolute;left:50%;top:50%;width:60px;height:2px;background:var(--accent-hover);transform:translate(-50%,-50%)}
+.mock-handle{position:absolute;width:8px;height:8px;background:var(--accent);border-radius:2px}
+
+.mock-props{background:var(--panel);border-left:1px solid var(--border);padding:14px;overflow-y:auto}
+.mock-prop-section{margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.mock-prop-title{font-size:9.5px;text-transform:uppercase;letter-spacing:1px;color:var(--accent);font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:5px}
+.mock-group-label{font-size:8.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:700;margin:10px 0 6px;padding-top:8px;border-top:1px dashed var(--border)}
+.mock-group-label:first-of-type{border-top:none;padding-top:0;margin-top:0}
+.mock-field{margin-bottom:9px}
+.mock-field label{display:block;font-size:9px;color:var(--muted);margin-bottom:4px;font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.5px}
+.mock-swatches{display:flex;gap:4px;flex-wrap:wrap}
+.sw{width:16px;height:16px;border-radius:4px;border:1.5px solid transparent}
+.mock-check{display:flex;align-items:center;gap:7px;font-size:10.5px;margin-bottom:6px}
+.mock-check input{width:12px;height:12px}
+.mock-row2{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.mock-num{background:var(--panel-3);border:1px solid var(--border);border-radius:4px;padding:5px 7px;font-size:10px;color:var(--text);width:100%;font-family:'JetBrains Mono',monospace}
+
+/* modal mockup */
+.mock-modal-wrap{background:rgba(0,0,0,.6);padding:24px;display:flex;justify-content:center}
+.mock-modal{background:var(--panel);border:1px solid var(--border-bright);border-radius:10px;width:100%;max-width:520px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.mock-modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.mock-modal-head span{font-family:'Orbitron',sans-serif;font-size:13px;color:var(--text-bright);display:flex;align-items:center;gap:8px}
+.mock-modal-body{padding:20px}
+.mock-sect-title{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--accent-2);font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.mock-subhead{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.1px;color:var(--muted);margin:12px 0 8px}
+.mock-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px}
+.mock-modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--border)}
+
+.toc-mini{position:sticky;top:20px}
+
+footer{padding:40px 60px;color:var(--muted);font-size:12px;font-family:'JetBrains Mono',monospace}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr}
+  nav.side{position:relative;height:auto}
+  section,.hero{padding-left:24px;padding-right:24px}
+  .mock-body{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div class="shell">
+
+<nav class="side">
+  <div class="logo"><svg viewBox="0 0 1254 1254" width="22" height="22" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AvionixForge logo">
+    <defs>
+      <linearGradient id="logoBgSide" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#171717"/>
+        <stop offset="1" stop-color="#0d0d0d"/>
+      </linearGradient>
+    </defs>
+    <rect x="37" y="37" width="1180" height="1180" rx="275" fill="url(#logoBgSide)" stroke="#ff9d3a" stroke-width="24"/>
+    <path d="M 626.0,252.0 L 274.0,892.0 L 377.0,892.0 L 408.0,834.0 L 366.0,791.0 L 363.0,778.0 L 371.0,768.0 L 462.0,766.0 L 568.0,715.0 L 647.0,668.0 L 722.0,616.0 L 798.0,554.0 L 851.0,501.0 L 739.0,575.0 L 654.0,624.0 L 551.0,674.0 L 486.0,698.0 L 626.0,442.0 L 696.0,568.0 L 775.0,523.0 Z M 805.0,581.0 L 734.0,640.0 L 799.0,760.0 L 868.0,763.0 L 879.0,772.0 L 880.0,785.0 L 865.0,814.0 L 852.0,829.0 L 841.0,834.0 L 873.0,892.0 L 975.0,892.0 Z M 1006.0,373.0 L 999.0,372.0 L 981.0,379.0 L 939.0,412.0 L 859.0,392.0 L 853.0,400.0 L 909.0,437.0 L 873.0,469.0 L 850.0,465.0 L 843.0,471.0 L 871.0,494.0 L 923.0,453.0 L 948.0,515.0 L 955.0,507.0 L 953.0,430.0 L 996.0,393.0 Z" fill="#fff"/>
+    <path d="M 734.0,640.0 L 799.0,760.0 L 868.0,763.0 L 877.0,769.0 L 881.0,779.0 L 914.0,779.0 L 806.0,581.0 Z M 1006.0,373.0 L 999.0,372.0 L 981.0,379.0 L 939.0,412.0 L 870.0,393.0 L 859.0,392.0 L 852.0,398.0 L 853.0,400.0 L 905.0,432.0 L 909.0,437.0 L 873.0,469.0 L 850.0,465.0 L 843.0,471.0 L 860.0,483.0 L 868.0,494.0 L 871.0,494.0 L 885.0,481.0 L 923.0,453.0 L 946.0,515.0 L 948.0,515.0 L 955.0,507.0 L 953.0,430.0 L 996.0,393.0 L 1003.0,383.0 Z M 701.0,388.0 L 702.0,565.0 L 775.0,523.0 Z M 851.0,501.0 L 788.0,544.0 L 701.0,597.0 L 701.0,631.0 L 790.0,561.0 L 827.0,527.0 Z" fill="#fff"/>
+    <path d="M 392.0,788.0 L 442.0,837.0 L 459.0,845.0 L 501.0,851.0 L 514.0,855.0 L 523.0,860.0 L 536.0,876.0 L 539.0,895.0 L 537.0,905.0 L 529.0,920.0 L 510.0,935.0 L 493.0,939.0 L 484.0,938.0 L 476.0,941.0 L 474.0,945.0 L 474.0,980.0 L 476.0,983.0 L 537.0,984.0 L 549.0,967.0 L 569.0,956.0 L 595.0,950.0 L 628.0,949.0 L 655.0,953.0 L 673.0,960.0 L 688.0,972.0 L 695.0,984.0 L 760.0,984.0 L 763.0,980.0 L 762.0,942.0 L 758.0,939.0 L 726.0,936.0 L 708.0,926.0 L 700.0,918.0 L 692.0,904.0 L 690.0,896.0 L 692.0,872.0 L 700.0,858.0 L 710.0,848.0 L 733.0,834.0 L 765.0,824.0 L 831.0,816.0 L 838.0,813.0 L 846.0,805.0 L 858.0,784.0 L 520.0,777.0 L 516.0,780.0 L 515.0,789.0 L 506.0,795.0 Z" fill="#ff9d3a"/>
+  </svg><span>AVIONIXFORGE</span></div>
+
+  <div class="grp">
+    <div class="grp-label">Getting Started</div>
+    <a class="nav-link" href="#quickstart">Quick Start</a>
+    <a class="nav-link" href="#interface">Interface Overview</a>
+  </div>
+
+  <div class="grp">
+    <div class="grp-label">Editor Reference</div>
+    <a class="nav-link" href="#topbar">Top Bar</a>
+    <a class="nav-link" href="#palette">Palette &amp; Canvas</a>
+    <a class="nav-link" href="#properties">Properties Panel</a>
+    <a class="nav-link" href="#hwsetup">Hardware Setup</a>
+  </div>
+
+  <div class="grp">
+    <div class="grp-label">MAVLink Setup</div>
+    <a class="nav-link sub" href="#wiring">Wiring</a>
+    <a class="nav-link sub" href="#baud">Baud Rate</a>
+    <a class="nav-link sub" href="#protocol">Protocol</a>
+    <a class="nav-link sub" href="#streamrates">Stream Rates</a>
+    <a class="nav-link sub" href="#inav">iNav Compatibility</a>
+  </div>
+
+  <div class="grp">
+    <div class="grp-label">Performance</div>
+    <a class="nav-link" href="#colordepth">Color Depth</a>
+    <a class="nav-link" href="#framerate">Frame Rate</a>
+  </div>
+
+  <div class="grp">
+    <div class="grp-label">Troubleshooting</div>
+    <a class="nav-link sub" href="#ledstates">LED States</a>
+    <a class="nav-link sub" href="#diagnostic">Diagnostic Sketch</a>
+    <a class="nav-link sub" href="#decisiontree">Decision Tree</a>
+  </div>
+
+  <div class="grp">
+    <div class="grp-label">New Features</div>
+    <a class="nav-link sub" href="#telemetrycontrol">Telemetry Control</a>
+    <a class="nav-link sub" href="#rotation">Instrument Rotation</a>
+    <a class="nav-link sub" href="#transparency">Transparent Colors</a>
+    <a class="nav-link sub" href="#template">Background Templates</a>
+    <a class="nav-link sub" href="#newinstruments">New Instruments &amp; Options</a>
+    <a class="nav-link sub" href="#blackbox">Blackbox Playback &amp; Video</a>
+  </div>
+
+  <div class="grp">
+    <div class="grp-label">Reference</div>
+    <a class="nav-link" href="#limitations">Known Limitations</a>
+    <a class="nav-link" href="#quickref">Quick-Reference Table</a>
+  </div>
+</nav>
+
+<main>
+
+  <div class="hero">
+    <div class="eyebrow">User Manual</div>
+    <h1>Everything the editor does,<br>and how to <span class="accent">actually get MAVLink connected.</span></h1>
+    <p class="lead">A complete walkthrough of every panel in the editor, plus the full field-tested MAVLink setup and troubleshooting guide — wiring, baud rate gotchas, stream rates, and the diagnostic steps that actually isolate a problem.</p>
+    <div class="ledrow">
+      <div class="ledchip"><span class="dot red"></span> Red — no MAVLink data received</div>
+      <div class="ledchip"><span class="dot green"></span> Green — receiving valid telemetry</div>
+    </div>
+  </div>
+
+  <!-- ============================================================ -->
+  <section id="quickstart">
+    <h2><span class="num">01</span> Quick Start</h2>
+    <ol>
+      <li>Pick your board and display in <strong>Hardware Setup</strong> (top bar).</li>
+      <li>Drag instruments from the left palette onto the canvas, and give each one a <strong>MAVLink Source</strong> in the Properties panel.</li>
+      <li>Wire your flight controller's telemetry port to your board — see <a href="#wiring">MAVLink Setup</a>.</li>
+      <li>Click <strong>Export .ino</strong>, open it in Arduino IDE, install the required libraries, compile, and flash.</li>
+      <li>Watch the status LED. If it stays red, jump to <a href="#decisiontree">Troubleshooting</a>.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="interface">
+    <h2><span class="num">02</span> Interface Overview</h2>
+    <p class="intro">The editor is a three-panel layout: instrument palette on the left, live canvas in the middle, properties on the right — with a control bar running across the top.</p>
+
+    <div class="shot">
+      <div class="titlebar"><span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span></div>
+      <div class="mockapp">
+        <div class="mock-header">
+          <div class="mock-logo"><svg viewBox="0 0 1254 1254" width="14" height="14" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AvionixForge logo">
+            <defs>
+              <linearGradient id="logoBgMock" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0" stop-color="#171717"/>
+                <stop offset="1" stop-color="#0d0d0d"/>
+              </linearGradient>
+            </defs>
+            <rect x="37" y="37" width="1180" height="1180" rx="275" fill="url(#logoBgMock)" stroke="#ff9d3a" stroke-width="24"/>
+            <path d="M 626.0,252.0 L 274.0,892.0 L 377.0,892.0 L 408.0,834.0 L 366.0,791.0 L 363.0,778.0 L 371.0,768.0 L 462.0,766.0 L 568.0,715.0 L 647.0,668.0 L 722.0,616.0 L 798.0,554.0 L 851.0,501.0 L 739.0,575.0 L 654.0,624.0 L 551.0,674.0 L 486.0,698.0 L 626.0,442.0 L 696.0,568.0 L 775.0,523.0 Z M 805.0,581.0 L 734.0,640.0 L 799.0,760.0 L 868.0,763.0 L 879.0,772.0 L 880.0,785.0 L 865.0,814.0 L 852.0,829.0 L 841.0,834.0 L 873.0,892.0 L 975.0,892.0 Z M 1006.0,373.0 L 999.0,372.0 L 981.0,379.0 L 939.0,412.0 L 859.0,392.0 L 853.0,400.0 L 909.0,437.0 L 873.0,469.0 L 850.0,465.0 L 843.0,471.0 L 871.0,494.0 L 923.0,453.0 L 948.0,515.0 L 955.0,507.0 L 953.0,430.0 L 996.0,393.0 Z" fill="#fff"/>
+            <path d="M 734.0,640.0 L 799.0,760.0 L 868.0,763.0 L 877.0,769.0 L 881.0,779.0 L 914.0,779.0 L 806.0,581.0 Z M 1006.0,373.0 L 999.0,372.0 L 981.0,379.0 L 939.0,412.0 L 870.0,393.0 L 859.0,392.0 L 852.0,398.0 L 853.0,400.0 L 905.0,432.0 L 909.0,437.0 L 873.0,469.0 L 850.0,465.0 L 843.0,471.0 L 860.0,483.0 L 868.0,494.0 L 871.0,494.0 L 885.0,481.0 L 923.0,453.0 L 946.0,515.0 L 948.0,515.0 L 955.0,507.0 L 953.0,430.0 L 996.0,393.0 L 1003.0,383.0 Z M 701.0,388.0 L 702.0,565.0 L 775.0,523.0 Z M 851.0,501.0 L 788.0,544.0 L 701.0,597.0 L 701.0,631.0 L 790.0,561.0 L 827.0,527.0 Z" fill="#fff"/>
+            <path d="M 392.0,788.0 L 442.0,837.0 L 459.0,845.0 L 501.0,851.0 L 514.0,855.0 L 523.0,860.0 L 536.0,876.0 L 539.0,895.0 L 537.0,905.0 L 529.0,920.0 L 510.0,935.0 L 493.0,939.0 L 484.0,938.0 L 476.0,941.0 L 474.0,945.0 L 474.0,980.0 L 476.0,983.0 L 537.0,984.0 L 549.0,967.0 L 569.0,956.0 L 595.0,950.0 L 628.0,949.0 L 655.0,953.0 L 673.0,960.0 L 688.0,972.0 L 695.0,984.0 L 760.0,984.0 L 763.0,980.0 L 762.0,942.0 L 758.0,939.0 L 726.0,936.0 L 708.0,926.0 L 700.0,918.0 L 692.0,904.0 L 690.0,896.0 L 692.0,872.0 L 700.0,858.0 L 710.0,848.0 L 733.0,834.0 L 765.0,824.0 L 831.0,816.0 L 838.0,813.0 L 846.0,805.0 L 858.0,784.0 L 520.0,777.0 L 516.0,780.0 L 515.0,789.0 L 506.0,795.0 Z" fill="#ff9d3a"/>
+          </svg>AVIONIXFORGE</div>
+          <div class="mock-div"></div>
+          <div class="mock-grp"><span class="mock-lbl">Display</span><div class="mock-input">128×64</div></div>
+          <div class="mock-div"></div>
+          <div class="mock-grp"><span class="mock-lbl">Orientation</span><div class="mock-btn">0°</div></div>
+          <div class="mock-div"></div>
+          <div class="mock-grp"><div class="mock-btn">− 100% +</div></div>
+          <div class="mock-spacer"></div>
+          <button class="mock-live-btn"><span class="mock-live-dot"></span>Simulated Telemetry</button>
+          <div class="mock-btn"><i class="fa-solid fa-microchip"></i> Setup</div>
+          <div class="mock-btn primary"><i class="fa-solid fa-download"></i> Export .ino</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-palette">
+            <div class="mock-pal-title">Instruments</div>
+            <div class="mock-pal-item sel"><i class="fa-solid fa-compass"></i>Artificial Horizon</div>
+            <div class="mock-pal-item"><i class="fa-solid fa-gauge"></i>Airspeed Tape</div>
+            <div class="mock-pal-item"><i class="fa-solid fa-mountain"></i>Altimeter</div>
+            <div class="mock-pal-item"><i class="fa-solid fa-location-arrow"></i>Home Arrow</div>
+            <div class="mock-pal-item"><i class="fa-solid fa-plane"></i>Mode Indicator</div>
+          </div>
+          <div class="mock-canvas">
+            <div class="mock-instrument" style="width:150px;height:150px;position:relative;outline:2px dashed var(--accent);outline-offset:4px;border-radius:50%">
+              <svg viewBox="0 0 150 150" width="150" height="150">
+                <defs>
+                  <clipPath id="ahClip"><circle cx="75" cy="75" r="68"/></clipPath>
+                </defs>
+                <!-- sky (background fill) -->
+                <circle cx="75" cy="75" r="68" fill="#3a6db5"/>
+                <!-- ground + horizon line, rotated by roll and offset by pitch, exactly like the real instrument -->
+                <g clip-path="url(#ahClip)">
+                  <g transform="translate(75,75) rotate(15)">
+                    <rect x="-200" y="-14" width="400" height="400" fill="#6b4226"/>
+                    <line x1="-200" y1="-14" x2="200" y2="-14" stroke="#ffffff" stroke-width="2"/>
+                    <!-- pitch ladder rungs: wing-shaped pairs at +/-10 (short) and +/-20 (long) -->
+                    <g stroke="#ffffff" stroke-width="1.4" font-family="JetBrains Mono, monospace" font-size="7" fill="#ffffff">
+                      <line x1="-31" y1="-70" x2="-9" y2="-70"/><line x1="9" y1="-70" x2="31" y2="-70"/>
+                      <text x="-38" y="-67" text-anchor="middle">20</text><text x="38" y="-67" text-anchor="middle">20</text>
+                      <line x1="-19" y1="-42" x2="-6" y2="-42"/><line x1="6" y1="-42" x2="19" y2="-42"/>
+                      <text x="-26" y="-39" text-anchor="middle">10</text><text x="26" y="-39" text-anchor="middle">10</text>
+                      <line x1="-19" y1="14" x2="-6" y2="14"/><line x1="6" y1="14" x2="19" y2="14"/>
+                      <text x="-26" y="17" text-anchor="middle">10</text><text x="26" y="17" text-anchor="middle">10</text>
+                      <line x1="-31" y1="42" x2="-9" y2="42"/><line x1="9" y1="42" x2="31" y2="42"/>
+                      <text x="-38" y="45" text-anchor="middle">20</text><text x="38" y="45" text-anchor="middle">20</text>
+                    </g>
+                  </g>
+                </g>
+                <!-- roll ticks: fixed bezel scale, does not rotate -->
+                <g stroke="#ffffff" stroke-width="1.4">
+                  <line x1="75" y1="9" x2="75" y2="17"/>
+                  <line x1="41.5" y1="17.5" x2="45.7" y2="24.4"/>
+                  <line x1="21" y1="41" x2="28.5" y2="45"/>
+                  <line x1="108.5" y1="17.5" x2="104.3" y2="24.4"/>
+                  <line x1="129" y1="41" x2="121.5" y2="45"/>
+                </g>
+                <!-- roll triangle marker: rotates with roll around the fixed bezel -->
+                <g transform="translate(75,75) rotate(15)">
+                  <polygon points="0,-67 -6,-54 6,-54" fill="#ff9d3a"/>
+                </g>
+                <!-- fixed center reference (aircraft symbol) - never rotates -->
+                <g stroke="#ff9d3a" stroke-width="2.2">
+                  <line x1="46" y1="75" x2="66" y2="75"/>
+                  <line x1="84" y1="75" x2="104" y2="75"/>
+                  <line x1="66" y1="75" x2="66" y2="82"/>
+                  <line x1="84" y1="75" x2="84" y2="82"/>
+                </g>
+                <circle cx="75" cy="75" r="2" fill="#ff9d3a"/>
+                <!-- border -->
+                <circle cx="75" cy="75" r="68" fill="none" stroke="#3a4555" stroke-width="2"/>
+              </svg>
+              <div class="mock-handle" style="top:-4px;left:-4px"></div>
+              <div class="mock-handle" style="top:-4px;right:-4px"></div>
+              <div class="mock-handle" style="bottom:-4px;left:-4px"></div>
+              <div class="mock-handle" style="bottom:-4px;right:-4px"></div>
+            </div>
+          </div>
+          <div class="mock-props">
+            <div class="mock-prop-section">
+              <div class="mock-prop-title"><i class="fa-solid fa-arrows-up-down-left-right"></i> Position &amp; Size</div>
+              <div class="mock-row2"><input class="mock-num" value="X: 40" readonly><input class="mock-num" value="Y: 20" readonly></div>
+            </div>
+            <div class="mock-prop-section">
+              <div class="mock-prop-title"><i class="fa-solid fa-palette"></i> Appearance &amp; Colors</div>
+              <div class="mock-group-label">Colors</div>
+              <div class="mock-swatches">
+                <div class="sw" style="background:#3a6db5;border-color:var(--accent)"></div>
+                <div class="sw" style="background:#6b4226"></div>
+                <div class="sw" style="background:#ffffff"></div>
+                <div class="sw" style="background:#ff5c5c"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot-caption">Live reconstruction of the editor layout — not an actual screenshot, but built from the tool's own component styles for accuracy.</div>
+
+    <ul class="callouts">
+      <li><span class="badge">1</span><div><strong>Top bar</strong> — display resolution, orientation, zoom, connection status, and the Setup / Export actions. Wraps to a second row automatically on narrow windows.</div></li>
+      <li><span class="badge">2</span><div><strong>Left palette</strong> — every available instrument type. Drag one onto the canvas to add it.</div></li>
+      <li><span class="badge">3</span><div><strong>Canvas</strong> — live, to-scale preview of your actual screen. Click an instrument to select it, drag to reposition, corner handles to resize.</div></li>
+      <li><span class="badge">4</span><div><strong>Properties panel</strong> — everything about the selected instrument: position, data source, colors, toggles, sizing, and text.</div></li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="topbar">
+    <h2><span class="num">03</span> Top Bar</h2>
+    <p class="intro">Every global setting lives here — nothing screen- or instrument-specific.</p>
+    <table>
+      <tr><th>Control</th><th>What it does</th></tr>
+      <tr><td class="mono">Display</td><td>Sets the canvas resolution to match your physical screen's native pixel dimensions.</td></tr>
+      <tr><td class="mono">Orientation</td><td>Rotates the canvas 0°/90°/180°/270°. Applies at the driver level in generated code, not just visually — U8g2 mono panels and hardware-SPI color panels are both handled correctly.</td></tr>
+      <tr><td class="mono">Zoom</td><td>Editor-only magnification of the canvas. Has no effect on the generated code.</td></tr>
+      <tr><td class="mono">Telemetry Control</td><td>Click to toggle between <strong>Simulated Telemetry</strong> (animating) and <strong>Telemetry Off</strong> (paused) — starts/stops the editor's own demo animation. Unrelated to the physical LED on real hardware. See <a href="#telemetrycontrol">New Features</a>.</td></tr>
+      <tr><td class="mono">Setup</td><td>Opens Hardware Setup — board type, display type, pins, MAVLink UART, color depth. See <a href="#hwsetup">Section 6</a>.</td></tr>
+      <tr><td class="mono">Export .ino</td><td>Generates the complete Arduino sketch from your current canvas and hardware configuration.</td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="palette">
+    <h2><span class="num">04</span> Palette &amp; Canvas</h2>
+    <p class="intro">Every instrument on the canvas is a live, interactive object.</p>
+    <ul>
+      <li><strong>Add:</strong> drag an instrument from the left palette onto the canvas.</li>
+      <li><strong>Select:</strong> click an instrument. Its properties appear on the right.</li>
+      <li><strong>Move:</strong> drag the instrument body.</li>
+      <li><strong>Resize:</strong> drag a corner handle.</li>
+      <li><strong>Delete:</strong> select it, press Delete/Backspace.</li>
+      <li><strong>Deselect:</strong> press Escape, or click empty canvas.</li>
+    </ul>
+    <div class="callout tip">
+      <div class="ctitle">Tip</div>
+      The canvas is rendered to-scale and in the correct color mode (mono panels render as true black/white, not just grayscale) — what you see is what your physical screen will show.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="properties">
+    <h2><span class="num">05</span> Properties Panel</h2>
+    <p class="intro">Every instrument type follows the exact same section order, so once you've configured one, the rest work the same way.</p>
+
+    <div class="shot" style="max-width:340px">
+      <div class="titlebar"><span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span></div>
+      <div class="mock-props" style="max-height:none">
+        <div class="mock-prop-section">
+          <div class="mock-prop-title"><i class="fa-solid fa-database"></i> Data Source</div>
+          <div class="mock-field"><label>MAVLink Source</label><div class="mock-num">ATTITUDE.roll</div></div>
+        </div>
+        <div class="mock-prop-section">
+          <div class="mock-prop-title"><i class="fa-solid fa-palette"></i> Appearance &amp; Colors</div>
+          <div class="mock-group-label">Colors</div>
+          <div class="mock-field"><label>Sky Color</label>
+            <div class="mock-swatches">
+              <div class="sw" style="background:#3a6db5;border-color:var(--accent)"></div>
+              <div class="sw" style="background:#5fa8ff"></div>
+              <div class="sw" style="background:#4dd2c9"></div>
+            </div>
+          </div>
+          <div class="mock-group-label">Display Options</div>
+          <div class="mock-check"><input type="checkbox" checked><span>Show Pitch Ladder</span></div>
+          <div class="mock-check"><input type="checkbox" checked><span>Show Roll Ticks</span></div>
+          <div class="mock-group-label">Sizing &amp; Geometry</div>
+          <div class="mock-row2"><div class="mock-field"><label>Major Tick</label><div class="mock-num">8</div></div><div class="mock-field"><label>Minor Tick</label><div class="mock-num">4</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="shot-caption">The Appearance section always groups in the same order — <b>Colors</b> → <b>Display Options</b> → <b>Sizing &amp; Geometry</b> — regardless of instrument type.</div>
+
+    <h3>Section order, every instrument</h3>
+    <table>
+      <tr><th>Order</th><th>Section</th><th>Contains</th></tr>
+      <tr><td class="mono">1</td><td>Position &amp; Size</td><td>X, Y, width, height, rotation</td></tr>
+      <tr><td class="mono">2</td><td>Data Source</td><td>MAVLink Source dropdown, min/max range where applicable</td></tr>
+      <tr><td class="mono">3</td><td>Appearance &amp; Colors</td><td>Colors → Display Options → Sizing &amp; Geometry, auto-grouped</td></tr>
+      <tr><td class="mono">4</td><td>Text &amp; Labels</td><td>Font size (Auto or fixed), X/Y offset</td></tr>
+    </table>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="hwsetup">
+    <h2><span class="num">06</span> Hardware Setup</h2>
+    <p class="intro">Board type, display type, pins, and MAVLink UART — one modal for everything that only needs setting once per build. Closes only via Apply, Cancel, or the × — never by an accidental outside click.</p>
+
+    <div class="shot" style="max-width:600px">
+      <div class="titlebar"><span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span></div>
+      <div class="mock-modal-wrap">
+        <div class="mock-modal">
+          <div class="mock-modal-head"><span><i class="fa-solid fa-microchip"></i> Hardware Setup</span><i class="fa-solid fa-xmark" style="color:var(--muted)"></i></div>
+          <div class="mock-modal-body">
+            <div class="mock-sect-title"><i class="fa-solid fa-display"></i> Screen — SPI Pins</div>
+            <div class="mock-subhead">Pins</div>
+            <div class="mock-row3">
+              <div class="mock-field"><label>CS</label><div class="mock-num">5</div></div>
+              <div class="mock-field"><label>DC</label><div class="mock-num">4</div></div>
+              <div class="mock-field"><label>RST</label><div class="mock-num">6</div></div>
+            </div>
+            <div class="mock-row3">
+              <div class="mock-field"><label>SCK (Clock/SCL)</label><div class="mock-num">2</div></div>
+              <div class="mock-field"><label>MOSI (Data/SDA)</label><div class="mock-num">3</div></div>
+              <div class="mock-field"><label>BL</label><div class="mock-num">7</div></div>
+            </div>
+            <div class="mock-subhead">Bus &amp; Rendering</div>
+            <div class="mock-row2">
+              <div class="mock-field"><label>SPI Clock</label><div class="mock-num">62.5 MHz</div></div>
+              <div class="mock-field"><label>Color Depth</label><div class="mock-num">16-bit RGB565</div></div>
+            </div>
+          </div>
+          <div class="mock-modal-foot"><div class="mock-btn">Cancel</div><div class="mock-btn primary">Apply</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="shot-caption">Pins and bus/rendering settings are grouped separately — no scrolling sideways, regardless of window size.</div>
+
+    <h3>What's in here</h3>
+    <ul>
+      <li><strong>Board</strong> — RP2040, ESP32, ESP32-S3, or STM32 (Generic).</li>
+      <li><strong>Telemetry Protocol</strong> — MAVLink (default) or CRSF; see <a href="#crsf">CRSF</a>.</li>
+      <li><strong>Screen pins</strong> — CS/DC/RST/SCK/MOSI/BL for SPI, or SDA/SCL for I2C.</li>
+      <li><strong>MAVLink UART</strong> — which serial port, RX/TX pins, and baud rate (hidden for CRSF, which is fixed at 420000).</li>
+      <li><strong>Bus &amp; rendering</strong> — SPI clock speed, color depth, framebuffer mode.</li>
+      <li><strong>RGB status LED</strong> — pin and on/off.</li>
+      <li><strong>Demo mode</strong> — on by default; synthesizes plausible values whenever no real telemetry has arrived recently, so instruments never sit dead at zero.</li>
+    </ul>
+
+    <div class="callout">
+      <div class="ctitle">Note</div>
+      Selecting the 320×480 ST7796S display uses a different underlying library (Arduino_GFX_Library, not Adafruit's) — install "GFX Library for Arduino" via Library Manager before compiling. See the callout in <a href="#newinstruments">New Instruments &amp; Options</a> for double-buffering details on this panel specifically.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="wiring">
+    <h2><span class="num">07</span> MAVLink Setup</h2>
+    <p class="intro">This is the section most worth reading carefully — nearly every real-world connection problem traces back to one of the items below.</p>
+
+    <h3>Wiring</h3>
+    <ul>
+      <li>FC <strong>TX</strong> → board <strong>RX</strong>, FC <strong>RX</strong> → board <strong>TX</strong> — crossed, not straight-through. Wiring TX-to-TX produces the exact same "nothing received" symptom as everything else being wrong.</li>
+      <li>Connect a <strong>common ground</strong> between the FC and your board if they aren't already sharing one through a common power rail.</li>
+      <li>Double-check the RX/TX pin numbers in Hardware Setup correspond to a valid UART pin pair for the UART peripheral you selected.</li>
+    </ul>
+
+    <h3 id="baud">Baud rate — the most common single point of failure</h3>
+    <p>The baud rate in Hardware Setup must <strong>exactly</strong> match the flight controller's configured telemetry baud rate.</p>
+
+    <div class="callout warn">
+      <div class="ctitle">ArduPilot-specific gotcha</div>
+      <code>SERIALx_BAUD</code> is a <strong>code</strong>, not the literal value. To get 57600 baud, the parameter must be <code>57</code>, not <code>57600</code>. Typing the full number directly is one of the most common ArduPilot configuration mistakes.
+    </div>
+
+    <table>
+      <tr><th>Code</th><th>Actual baud</th></tr>
+      <tr><td class="mono">9</td><td class="mono">9600</td></tr>
+      <tr><td class="mono">19</td><td class="mono">19200</td></tr>
+      <tr><td class="mono">38</td><td class="mono">38400</td></tr>
+      <tr><td class="mono">57</td><td class="mono">57600</td></tr>
+      <tr><td class="mono">111</td><td class="mono">111100</td></tr>
+      <tr><td class="mono">115</td><td class="mono">115200</td></tr>
+      <tr><td class="mono">460</td><td class="mono">460800</td></tr>
+      <tr><td class="mono">921</td><td class="mono">921600</td></tr>
+    </table>
+
+    <div class="callout tip">
+      <div class="ctitle">Always do this after changing baud or protocol</div>
+      Fully power-cycle the FC. A parameter "write" alone doesn't guarantee the running firmware has picked up the change.
+    </div>
+
+    <h3 id="protocol">Protocol selection</h3>
+    <p>Set <code>SERIALx_PROTOCOL</code> to <code>1</code> (MAVLink1) or <code>2</code> (MAVLink2) on whichever port you've wired to. Any other value means that port sends no MAVLink data at all, regardless of correct wiring or baud.</p>
+
+    <h3 id="crsf">CRSF — an alternative to MAVLink entirely</h3>
+    <p><strong>Telemetry Protocol</strong> in Hardware Setup offers a second option besides MAVLink: <strong>CRSF</strong> (Crossfire/ExpressLRS) — not a MAVLink variant, but a completely different protocol read directly from an ExpressLRS/Crossfire <strong>receiver</strong>, the same telemetry stream an EdgeTX radio displays. Selecting it changes what you wire to: the receiver's telemetry pin, not the flight controller's MAVLink port. Baud is fixed at 420000 (the field disappears — nothing to set). Both protocols feed the exact same internal data, so every instrument works identically regardless of which is selected — except RC channel sources, which need MAVLink specifically, since CRSF's telemetry stream doesn't carry RC input data (it flows radio→FC, the opposite direction).</p>
+
+    <h3 id="streamrates">Stream rates — controls how often data updates, not whether it arrives</h3>
+    <p>Easy to overlook because it has nothing to do with wiring, baud, or the generated code — it's purely an FC-side setting. A low value produces a symptom that looks exactly like a rendering problem: <strong>gauges appear to update in slow motion even though the display itself is redrawing at full frame rate.</strong></p>
+
+    <table>
+      <tr><th>Parameter</th><th>Covers</th><th>Recommended</th></tr>
+      <tr><td class="mono">SR1_EXTRA1</td><td>Attitude / AHRS</td><td>10 Hz+</td></tr>
+      <tr><td class="mono">SR1_EXTRA2</td><td>VFR_HUD (airspeed, altitude, climb, heading)</td><td>10 Hz+</td></tr>
+      <tr><td class="mono">SR1_POSITION</td><td>GPS-derived position</td><td>5–10 Hz</td></tr>
+      <tr><td class="mono">SR1_EXTENDED_STATUS</td><td>Battery, GPS_RAW_INT</td><td>2–5 Hz</td></tr>
+      <tr><td class="mono">SR1_RC_CHANNELS</td><td>RSSI, stick inputs</td><td>2–5 Hz</td></tr>
+    </table>
+
+    <div class="callout warn">
+      <div class="ctitle">Recognize this symptom</div>
+      Smooth in demo mode, choppy the instant real telemetry connects → check stream rates before suspecting the board, wiring, or generated code. A perfectly fast rendering pipeline fed by 1Hz source data will always look like it updates once a second, because it does.
+    </div>
+
+    <h3>Recommended baseline configuration</h3>
+    <table>
+      <tr><th>Setting</th><th>Recommended</th></tr>
+      <tr><td>SERIALx_PROTOCOL</td><td class="mono">2 (MAVLink2)</td></tr>
+      <tr><td>SERIALx_BAUD</td><td class="mono">57 (57600) for reliability, 115 (115200) for short/clean wiring</td></tr>
+      <tr><td>Stream rates</td><td>10Hz for EXTRA1/EXTRA2, 5Hz for the rest</td></tr>
+      <tr><td>Board</td><td>RP2040, if you have a choice</td></tr>
+      <tr><td>Color depth</td><td>16-bit unless RAM-constrained</td></tr>
+    </table>
+    <p>Going above 115200 baud rarely helps and can hurt — it increases how much data a single CPU core has to parse and decode per second, competing with display-push work for CPU time.</p>
+
+    <h3 id="inav">iNav compatibility</h3>
+    <p>iNav's MAVLink telemetry is transmit-only, which is exactly what this tool needs. iNav deliberately maps its own flight modes onto the <strong>same</strong> <code>HEARTBEAT.custom_mode</code> numbering ArduPilot uses (<code>APM_PLANE_MODE</code> for fixed-wing, <code>APM_COPTER_MODE</code> for multirotor) — so the Flight Mode instrument works correctly with iNav out of the box. One difference: iNav's RSSI uses the same 0–254 raw scale as ArduPilot, not 0–100%.</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="colordepth">
+    <h2><span class="num">08</span> Color Depth &amp; Performance</h2>
+
+    <table>
+      <tr><th>Depth</th><th>Push speed</th><th>When to use</th></tr>
+      <tr><td>16-bit RGB565</td><td>Fastest — single bulk SPI transfer</td><td>Default; use unless RAM-constrained</td></tr>
+      <tr><td>8-bit RGB332</td><td>Slower — expanded to RGB565 in batches of 16 rows before push</td><td>Only when 16-bit doesn't leave room for double-buffering</td></tr>
+      <tr><td>1-bit (mono)</td><td>Native, no conversion</td><td>Automatic for monochrome panels</td></tr>
+    </table>
+
+    <h3>Double buffering ("ping-pong")</h3>
+    <p>On RP2040, if two full framebuffers fit in RAM, the tool automatically double-buffers: core0 draws the next frame while core1 pushes the previous one, so a frame costs <code>max(render, transfer)</code> instead of <code>render + transfer</code>. RP2040-only — other boards fall back to a single-buffer synchronous push.</p>
+
+    <h3 id="framerate">Expected frame rates</h3>
+    <p>Targets ~30fps for color panels, ~10fps for mono panels. If actual frame rate is well below this:</p>
+    <ol>
+      <li>Check whether it's a <strong>data</strong> problem, not rendering — see <a href="#streamrates">Stream Rates</a>. This is the most common cause.</li>
+      <li>If genuinely a rendering bottleneck, time <code>drawAll()</code> and the push block separately — see the <a href="#diagnostic">diagnostic approach</a> below.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="ledstates">
+    <h2><span class="num">09</span> Troubleshooting</h2>
+
+    <h3>Status LED meanings</h3>
+    <table>
+      <tr><th>LED state</th><th>Meaning</th></tr>
+      <tr><td><span class="dot red" style="display:inline-block;margin-right:8px"></span>Steady red</td><td>No valid MAVLink message received in the last 3 seconds</td></tr>
+      <tr><td><span class="dot green" style="display:inline-block;margin-right:8px"></span>Green</td><td>Currently receiving valid MAVLink data</td></tr>
+      <tr><td>Flickers red/green</td><td>Marginal connection — check baud rate and stream rates first</td></tr>
+    </table>
+
+    <h3 id="diagnostic">The standalone diagnostic sketch</h3>
+    <p>Before assuming a bug in the generated code, isolate the connection with a minimal sketch that dumps raw bytes — no display code involved at all:</p>
+    <pre><code>#define MAVLINK_SERIAL   Serial1
+#define MAVLINK_BAUD     57600   // match your FC's SERIALx_BAUD
+#define MAVLINK_RX_PIN   1
+#define MAVLINK_TX_PIN   0
+
+void setup() {
+  Serial.begin(115200);
+  delay(2000);
+  MAVLINK_SERIAL.setRX(MAVLINK_RX_PIN);
+  MAVLINK_SERIAL.setTX(MAVLINK_TX_PIN);
+  MAVLINK_SERIAL.begin(MAVLINK_BAUD);
+}
+
+void loop() {
+  while (MAVLINK_SERIAL.available()) {
+    uint8_t b = MAVLINK_SERIAL.read();
+    if (b &lt; 0x10) Serial.print('0');
+    Serial.print(b, HEX); Serial.print(' ');
+    if (b == 0xFE) Serial.print("&lt;-MAVLink1 ");
+    if (b == 0xFD) Serial.print("&lt;-MAVLink2 ");
+  }
+}</code></pre>
+
+    <table>
+      <tr><th>What you see</th><th>What it means</th></tr>
+      <tr><td>Always 0 bytes</td><td>Nothing reaching the RX pin — wiring, baud, or FC-side protocol/port config</td></tr>
+      <tr><td>Garbled bytes, no clean markers</td><td>Bytes arriving, but baud mismatch — check the ArduPilot code gotcha</td></tr>
+      <tr><td>Clean, regular 0xFE/0xFD packets</td><td>Raw connection works — a further problem is in the full sketch, not the wire</td></tr>
+    </table>
+
+    <h3 id="decisiontree">Decision tree for "stuck in demo mode"</h3>
+    <ol>
+      <li>Run the diagnostic sketch with your <strong>exact current wiring</strong>. Clean data → physical link is fine, skip to step 3.</li>
+      <li>Garbage or nothing → recheck wiring polarity, the baud code gotcha, <code>SERIALx_PROTOCOL</code>, and power-cycle the FC after any parameter change.</li>
+      <li>Diagnostic clean but full sketch still red → confirm you're testing a <strong>freshly regenerated and reflashed</strong> build, not a stale export.</li>
+      <li>Works on one panel type but not another on the same board → suspect clock/timing ordering issues specific to hardware-SPI color panels, which mono/I2C panels don't share.</li>
+    </ol>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="telemetrycontrol">
+    <h2><span class="num">10</span> Telemetry Control</h2>
+    <p class="intro">The top bar's telemetry indicator is now a real button, not a static label — it starts and stops the editor's own animated preview.</p>
+
+    <div class="shot" style="max-width:420px">
+      <div class="titlebar"><span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span></div>
+      <div class="mockapp" style="padding:24px;display:flex;gap:16px;justify-content:center">
+        <button class="mock-live-btn"><span class="mock-live-dot"></span>Simulated Telemetry</button>
+        <button class="mock-live-btn paused"><span class="mock-live-dot"></span>Telemetry Off</button>
+      </div>
+    </div>
+    <div class="shot-caption">Click to toggle between the two states shown above.</div>
+
+    <p>Useful for holding instruments still while fine-tuning a layout, or comparing two states side by side. This only affects the editor's simulated demo data — it has nothing to do with real hardware MAVLink connectivity, which is a separate, board-side concern (see <a href="#wiring">MAVLink Setup</a>).</p>
+
+    <div class="callout tip">
+      <div class="ctitle">Editing still works while paused</div>
+      Properties, resizing, and adding instruments all work normally while paused — the canvas repaints using whatever values were last live, it just doesn't advance them further until you resume.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="rotation">
+    <h2><span class="num">11</span> Instrument Rotation</h2>
+    <p class="intro">Rotation is a plain <strong>0° / 90° / 180° / 270°</strong> selector, not a free-form angle — and for good reason.</p>
+
+    <p>This is a hardware constraint, not an editor limitation: Adafruit GFX and U8g2 have no built-in support for rotating arbitrary drawn content at non-90°-multiple angles without a full software rasterizer, so anything finer wouldn't actually work once compiled — even if a live preview could show it happily.</p>
+
+    <p>Support varies by instrument. Rather than leave in a control that would silently do nothing on real hardware, it's simply <strong>hidden</strong> for types where rotation genuinely has no effect:</p>
+
+    <table>
+      <tr><th>Category</th><th>Instruments</th><th>Rotation</th></tr>
+      <tr><td>Circular/dial gauges</td><td>Artificial Horizon, Turn Coordinator, Compass, Altimeter Dial, VSI, Arc Gauge, generic Dial, Groundspeed Dial, Home Arrow</td><td>Fully supported</td></tr>
+      <tr><td>Shape primitives</td><td>Rectangle, Circle, Oval, Screw Head</td><td>Fully supported — genuine rotated-polygon math</td></tr>
+      <tr><td>Indicator lamp</td><td>Indicator</td><td>Control hidden — a filled lamp has no directional content to rotate</td></tr>
+      <tr><td>Linear/rectangular</td><td>Tape family, Mode Indicator, Bar Gauge, Text Value, Home Distance, Static Text</td><td>Control hidden — needs a render-to-buffer-then-blit system, not a simple angle offset</td></tr>
+    </table>
+
+    <div class="callout">
+      <div class="ctitle">One exception</div>
+      The <a href="#template">Background Template</a> image gets a full unrestricted 0–359° rotation — it's editor-only and never has to be drawn by real hardware, so the usual constraint doesn't apply.
+    </div>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="transparency">
+    <h2><span class="num">12</span> Transparent Colors</h2>
+    <p class="intro">Setting any color field to <strong>transparent</strong> now genuinely skips that draw call — across every instrument, every color-configurable part.</p>
+
+    <p>This was audited comprehensively across borders, ticks, needles, hubs, labels, and fills. Previously, "transparent" silently resolved to the instrument's own background color instead of skipping the draw entirely — harmless-looking on a simple solid background, but capable of visibly painting over content underneath on overlapping or layered instrument designs.</p>
+
+    <div class="mock-swatches" style="margin:16px 0">
+      <div class="sw" style="background:#3a6db5"></div>
+      <div class="sw" style="background:#ff9d3a"></div>
+      <div class="sw" style="background:#5fe88a"></div>
+      <div class="sw" style="background:repeating-conic-gradient(#232b38 0% 25%, transparent 0% 50%) 0 0/8px 8px;border:1.5px dashed var(--red);position:relative" title="transparent"></div>
+    </div>
+    <p style="margin-top:-10px;font-size:12.5px;color:var(--muted)">The dashed swatch above is "transparent" — selecting it now means <em>nothing gets drawn there</em>, not "drawn in whatever the background happens to be."</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="template">
+    <h2><span class="num">13</span> Background Template Images</h2>
+    <p class="intro">Load a reference image — a real panel photo, a bezel mockup — to trace or align instruments against.</p>
+
+    <div class="shot" style="max-width:600px">
+      <div class="titlebar"><span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span></div>
+      <div class="mockapp" style="display:flex">
+        <div class="mock-palette" style="width:150px">
+          <div class="mock-pal-title">Decoration</div>
+          <div class="mock-pal-item"><i class="fa-solid fa-square"></i>Rectangle</div>
+          <div class="mock-pal-item"><i class="fa-solid fa-circle"></i>Circle</div>
+          <div class="mock-pal-item sel"><i class="fa-solid fa-image"></i>Background Template</div>
+        </div>
+        <div class="mock-props" style="flex:1;border-left:1px solid var(--border)">
+          <div class="mock-prop-section">
+            <div class="mock-prop-title"><i class="fa-solid fa-image"></i> Template Image</div>
+            <div class="mock-field"><label>Opacity (%)</label><input class="mock-num" value="70" readonly></div>
+            <div class="mock-check"><input type="checkbox" checked disabled><span>Locked</span></div>
+            <div class="mock-btn" style="width:100%;justify-content:center;margin-top:6px"><i class="fa-solid fa-image"></i> Replace Image</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="shot-caption">Click the palette item to open a file picker directly — no drag-to-place, since the size depends on the image you choose.</div>
+
+    <ul class="callouts">
+      <li><span class="badge">1</span><div><strong>Scalable and rotatable</strong> — same resize handles as any instrument, plus a full unrestricted 0–359° rotation (see <a href="#rotation">Instrument Rotation</a>).</div></li>
+      <li><span class="badge">2</span><div><strong>Lockable</strong> — toggle "Locked" (now in Position &amp; Size, a universal feature on every instrument, not just this one) to make it un-clickable and un-draggable directly on the canvas. Still fully selectable through the instrument picker (behind the instrument count in the top bar).</div></li>
+      <li><span class="badge">3</span><div><strong>Always on the bottom layer</strong> — real instruments always render on top of it, regardless of add order or later layer reordering.</div></li>
+      <li><span class="badge">4</span><div><strong>Editor only</strong> — never appears in the exported <code>.ino</code>. Purely a layout aid, not something the microcontroller ever draws.</div></li>
+    </ul>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="newinstruments">
+    <h2><span class="num">14</span> New Instruments &amp; Options</h2>
+
+    <h3>VSI Tape</h3>
+    <p>Vertical speed shown as a scrolling tape instead of a radial dial — shares the same rendering (and every option: mirroring, tick color, label step) as the other vertical tapes. Defaults to <code>VFR_HUD.climb</code>, range ±10 m/s.</p>
+
+    <h3>Static Text</h3>
+    <p>A purely decorative text label with no MAVLink source at all — type whatever you want. Configurable text/background/border color, alignment, and size like any other instrument. No rotation control (see the table in <a href="#rotation">Instrument Rotation</a>).</p>
+
+    <h3>Tape instrument options</h3>
+    <table>
+      <tr><th>Option</th><th>Applies to</th><th>What it does</th></tr>
+      <tr><td>Mirrored</td><td>Vertical tapes (not Heading Tape)</td><td>Flips the layout left-to-right — ticks/pointer move left, value box moves right. Text stays upright and in normal reading order, only its anchor/alignment flips.</td></tr>
+      <tr><td>Label Step</td><td>All tapes</td><td>Manual control over which values get a text label (every 5, every 25, etc.) instead of fully automatic. Heading Tape's version is in degrees (30° default).</td></tr>
+      <tr><td>Tick Length + Y Offset</td><td>Heading Tape</td><td>Independent length/position control for major and minor ticks.</td></tr>
+    </table>
+
+    <h3>Bar Gauge orientation</h3>
+    <p>Now supports <strong>vertical</strong> fill (bottom-to-top, like a thermometer) in addition to horizontal. Not a rotated version of the horizontal layout — label and value stay upright and readable in both orientations, with ticks, track, and bar redesigned around whichever direction you pick. Set via <strong>Orientation</strong> in Sizing &amp; Geometry.</p>
+
+    <h3>Heading Arc</h3>
+    <p>The same scrolling ±45° heading window as Heading Tape, curved along an arc instead of laid out on a straight line — like the compass arc on a real PFD. <strong>Arc Sweep (°)</strong> controls how tightly it curves; <strong>Flipped</strong> bends it the other way (frown instead of smile) for mounting at the bottom of a panel instead of the top. A higher heading value always moves the tick to the right, regardless of which way it's bent.</p>
+
+    <h3>Stick Position</h3>
+    <p>An RC transmitter stick indicator — a square box with a circle that moves inside it, tracking two independent channels for left/right and up/down. Each axis has its own <strong>Reverse</strong> checkbox (a channel's physical stick direction doesn't always match its raw PWM direction), and <strong>Circle Size</strong> controls how large the moving dot is relative to the box. Four independently selectable colors: square fill, square border, circle fill, circle border.</p>
+
+    <h3>RC Channels as a data source</h3>
+    <p><strong>RC Channel 1</strong> through <strong>16</strong> are selectable wherever a MAVLink source dropdown appears, reading raw PWM values (typically ~1000–2000µs) from MAVLink's <code>RC_CHANNELS</code> message. Useful for a threshold-based Indicator lamp watching a switch position, a Text Value showing a raw reading, or driving Stick Position directly. Requires MAVLink mode — CRSF's telemetry stream doesn't carry RC input data (see <a href="#protocol">Protocol</a>).</p>
+
+    <h3>Unit of Measure</h3>
+    <p>Groundspeed Tape, Airspeed Tape, Altimeter Tape, and VSI/VSI Tape have a <strong>Unit of Measure</strong> dropdown above their MAVLink Source — a shortcut on top of the existing Multiply By transform, not a separate mechanism. Speed instruments offer m/s, km/h, mph, knots; Altimeter offers meters/feet; VSI offers m/s, ft/min, ft/s. Home Distance has its own selector: Auto (meters, switching to km past 1000m) or fixed meters/km/feet/miles. Groundspeed Dial and Altimeter Dial don't have this dropdown, since their scale/tick-step fields are themselves expressed directly in a fixed unit, not just the displayed value.</p>
+
+    <h3>Locking any instrument</h3>
+    <p>Any instrument can be locked (Position &amp; Size section) — a locked instrument can't be clicked or dragged on the canvas, protecting it from accidental bumps, but stays fully selectable and editable through the instruments list popup. Purely an editor convenience with no effect on the generated code. Previously only available on Background Template images (see <a href="#template">Background Templates</a>); now universal.</p>
+
+    <h3>Canvas panning and view toggles</h3>
+    <p>The editor viewport can be panned by clicking and dragging empty background at any zoom level. Two toggle buttons next to the zoom controls: <strong>show/hide overhangs</strong> (whether instrument parts past the screen edge are visible or clipped — useful for previewing exactly what real hardware will show) and <strong>show/hide selection box</strong> (the dashed outline/glow/label around a selected instrument — the resize handles stay usable either way, only the visual overlay toggles, useful when it's obscuring a small instrument's true edges).</p>
+
+    <h3>Movement snapping</h3>
+    <p>Dragging an instrument moves it freely by default, including off the edge of the screen for intentional overhangs. Hold <strong>Ctrl</strong> (<strong>Cmd</strong> on Mac) while dragging to snap it back to staying fully within the screen bounds.</p>
+
+    <h3>ST7796S uses a different display library</h3>
+    <p>Every other color panel in this tool is driven by an Adafruit display library. ST7796S (320×480) is the one exception — it uses <strong>Arduino_GFX_Library</strong> (moononournation) instead, confirmed working through real hardware testing on RP2040 + ST7796S. It presents the same drawing API, so every instrument's generated code looks identical either way. Install it first: Library Manager → search "GFX Library for Arduino". A full 16-bit framebuffer at this resolution would need ~300KB — more than an RP2040's 264KB of SRAM — so double buffering here uses <code>Arduino_Canvas_Indexed</code> instead, an 8-bit buffered canvas (~150KB, fits comfortably). You still draw with normal RGB565 colors exactly like every other panel; the canvas builds its own 256-color palette automatically and only reduces precision if a design genuinely exceeds that, which a typical instrument cluster's limited palette is unlikely to do.</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="blackbox">
+    <h2><span class="num">15</span> Blackbox Log Playback &amp; Video Export</h2>
+    <p class="intro">Play a real recorded flight log through the instrument cluster instead of simulated data — useful for reviewing exactly how a design looks with actual flight data, no hardware required.</p>
+
+    <h3>Loading a log</h3>
+    <p>Click the waveform icon next to the telemetry toggle to load a CSV export of a flight log (Mission Planner's log-to-CSV export is directly supported). A mapping dialog lists every column: pick which one represents elapsed time, and map any columns to a MAVLink source using the same list every instrument's Data Source dropdown uses. Columns matching common ArduPilot/Mission Planner naming (<code>ATT_Roll</code>, <code>GPS_Lat</code>, <code>BAT_Volt</code>, <code>RCIN_C1</code>–<code>C16</code>, and more) are auto-mapped as a starting point.</p>
+
+    <h3>How playback works</h3>
+    <p>Values are linearly interpolated between the log rows surrounding the current position, so it moves smoothly regardless of the log's actual sample rate. Real multi-message-type exports log each field on only a fraction of rows (GPS at 5% of rows isn't unusual), so sparse columns are automatically <strong>forward-filled</strong> at load time — each field holds its last known value until the next real reading. Millisecond/microsecond time columns are auto-detected by name and scaled to seconds.</p>
+
+    <h3>Playback controls</h3>
+    <table>
+      <tr><th>Control</th><th>What it does</th></tr>
+      <tr><td>Restart</td><td>Jumps to the beginning, immediately showing the first row's values even while paused.</td></tr>
+      <tr><td>Play/Pause</td><td>Starts or stops advancing playback.</td></tr>
+      <tr><td>Seek slider</td><td>Live position during playback; drag to scrub anywhere in the log with instruments updating in real time. Pauses automatically during a drag, resumes after if it was playing.</td></tr>
+      <tr><td>Unload (✕)</td><td>Returns to simulated telemetry.</td></tr>
+    </table>
+
+    <h3>Video export</h3>
+    <p>With a log loaded, the video-camera icon opens an export dialog (frame rate, bitrate). Renders the entire log through the instrument cluster and encodes directly to <code>.webm</code> — not a real-time screen recording, so export is much faster than the log's own duration. Runs entirely in-browser; nothing is uploaded. Requires WebCodecs support (Chrome/Edge).</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="limitations">
+    <h2><span class="num">16</span> Known Limitations</h2>
+
+    <h3>STM32 custom pin remapping</h3>
+    <p>Not fully implemented — varies too much by board variant. Works fine on STM32's <em>default</em> SPI/I2C pins; genuinely custom pins need board-specific <code>SPI.setMOSI()/setMISO()/setSCLK()/setSSEL()</code> calls added yourself.</p>
+
+    <h3>RC RSSI scale</h3>
+    <p><code>RC_CHANNELS.rssi</code> is a device-dependent raw value (0–254), not 0–100%, per the MAVLink spec — true for both ArduPilot and iNav.</p>
+
+    <h3>Engine RPM</h3>
+    <p><code>EFI.rpm</code> isn't part of the MAVLink common dialect and isn't decoded — always 0 unless you add a custom <code>MAVLINK_MSG_ID_RPM</code> decoder.</p>
+
+    <h3>Flight mode numbering is vehicle-specific</h3>
+    <p><code>HEARTBEAT.custom_mode</code> numbering is entirely firmware- and vehicle-defined. ArduCopter, ArduPlane, Rover, and PX4 all differ. iNav mirrors ArduPilot's numbering, so no changes needed there.</p>
+
+    <h3>Home position is approximated</h3>
+    <p>No dedicated <code>HOME_POSITION</code>/<code>GPS_GLOBAL_ORIGIN</code> decode — "home" is your first valid GPS fix after boot, not a precise read of the FC's configured home point.</p>
+  </section>
+
+  <!-- ============================================================ -->
+  <section id="quickref">
+    <h2><span class="num">17</span> Quick-Reference</h2>
+    <table>
+      <tr><th>Your situation</th><th>Recommended settings</th></tr>
+      <tr><td>First-time setup, maximum reliability</td><td>RP2040, 57600 baud (code 57), MAVLink2, 16-bit color, 10Hz streams</td></tr>
+      <tr><td>Small mono display</td><td>Any board works well; I2C gets automatic 400kHz Fast Mode</td></tr>
+      <tr><td>Large color display, RAM-constrained</td><td>8-bit color depth for double-buffering headroom</td></tr>
+      <tr><td>Gauges sluggish, demo mode smooth</td><td>Check FC stream rates first — not a rendering problem</td></tr>
+      <tr><td>Works on one display, not another, same board</td><td>Suspect clock/timing specific to hardware-SPI color panels</td></tr>
+      <tr><td>Want to trace/align instruments over a real panel photo</td><td>Add a <a href="#template">Background Template</a> image — editor only, always stays behind real instruments</td></tr>
+      <tr><td>An instrument's rotation control is missing</td><td>Expected for linear/rectangular types — see the table in <a href="#rotation">Instrument Rotation</a></td></tr>
+    </table>
+  </section>
+
+  <footer>AvionixForge User Manual — mockups reconstructed from the editor's own component styles for accuracy.</footer>
+
+</main>
+</div>
+</body>
+</html>
