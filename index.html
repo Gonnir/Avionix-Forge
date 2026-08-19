@@ -32,6 +32,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .logo span{color:var(--accent)}
 .header-divider{width:1px;height:24px;background:var(--border)}
 .header-group{display:flex;align-items:center;gap:8px}
+.header-group-actions{margin-left:auto}
 .header-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-right:4px;font-weight:600}
 .select,.input{background:var(--panel-2);border:1px solid var(--border);color:var(--text);font-family:inherit;font-size:13px;padding:6px 10px;border-radius:5px;outline:none;transition:border-color .15s}
 .select:focus,.input:focus{border-color:var(--accent)}
@@ -44,6 +45,8 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .btn-ghost{background:transparent;border-color:transparent}
 .btn-ghost:hover{background:var(--panel-2)}
 .btn-icon{padding:7px 9px}
+.btn-icon.active{background:var(--accent);border-color:var(--accent);color:#1a1004}
+.btn-icon.active:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
 .spacer{flex:1}
 
 .layout{flex:1;display:grid;grid-template-columns:248px 1fr 460px;min-height:0}
@@ -69,8 +72,9 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 
 .editor{background:var(--bg-2);position:relative;overflow:hidden;display:flex;flex-direction:column}
 .editor-toolbar{height:42px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.6);display:flex;align-items:center;padding:0 16px;gap:12px}
-.editor-viewport{flex:1;overflow:auto;padding:40px;display:flex;align-items:center;justify-content:center;position:relative;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:24px 24px}
-#screen{position:relative;background:#040810;border:1px solid var(--border-bright);box-shadow:0 0 0 8px #1a212c,0 0 0 9px #2a3340,0 25px 70px rgba(0,0,0,.7);flex-shrink:0;transform-origin:center center}
+.editor-viewport{flex:1;overflow:auto;padding:40px;display:flex;position:relative;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:24px 24px;cursor:grab}
+.editor-viewport.panning{cursor:grabbing}
+#screen{position:relative;background:#040810;border:1px solid var(--border-bright);box-shadow:0 0 0 8px #1a212c,0 0 0 9px #2a3340,0 25px 70px rgba(0,0,0,.7);flex-shrink:0;transform-origin:center center;margin:auto}
 #orientationBadge{position:absolute;top:-30px;left:50%;transform:translateX(-50%);background:var(--panel-3);border:1px solid var(--border-bright);color:var(--accent-2);font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:3px 9px;border-radius:4px;pointer-events:none;letter-spacing:.6px;z-index:1001;white-space:nowrap}
 
 .instrument{position:absolute;user-select:none;transform-origin:center center}
@@ -80,6 +84,12 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .instrument.selected::before{content:'';position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:var(--accent);border:1px solid #1a1004;cursor:nwse-resize;border-radius:2px;z-index:10}
 .instrument-label{position:absolute;top:-24px;left:0;background:var(--accent);color:#1a1004;font-size:10px;font-weight:700;padding:3px 7px;border-radius:3px;white-space:nowrap;pointer-events:none;font-family:'JetBrains Mono',monospace;display:none;letter-spacing:.5px}
 .instrument.selected .instrument-label{display:block}
+/* Hides the dashed outline, glow, and floating name label so the true
+   rendered edges of a selected instrument aren't visually obscured -
+   corner resize handles (::before/::after above) stay visible and
+   functional either way, since those are needed to keep editing. */
+.hide-selection-box .instrument.selected{outline:none;box-shadow:none}
+.hide-selection-box .instrument.selected .instrument-label{display:none}
 
 .right-panel{background:var(--panel);border-left:1px solid var(--border);display:flex;flex-direction:column;min-height:0}
 .properties{border-bottom:1px solid var(--border);display:flex;flex-direction:column;max-height:58%;min-height:0}
@@ -180,11 +190,10 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--border-bright)}
 
-.live-indicator{display:inline-flex;align-items:center;gap:6px;font-size:10px;color:var(--green);text-transform:uppercase;letter-spacing:1.2px;font-weight:600;font-family:'JetBrains Mono',monospace;background:none;border:1px solid var(--border);border-radius:20px;padding:6px 14px;cursor:pointer;transition:border-color .15s,color .15s}
+.live-indicator{display:inline-flex;align-items:center;font-size:9px;color:var(--green);text-transform:uppercase;letter-spacing:1px;font-weight:600;font-family:'JetBrains Mono',monospace;background:none;border:1px solid var(--border);border-radius:20px;padding:5px 10px;cursor:pointer;transition:border-color .15s,color .15s}
+.bb-seek{width:110px;height:14px;margin:0 2px;accent-color:var(--accent);cursor:pointer;vertical-align:middle}
 .live-indicator:hover{border-color:var(--border-bright)}
-.live-indicator::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:pulse 1.5s infinite}
 .live-indicator.paused{color:var(--muted)}
-.live-indicator.paused::before{background:var(--muted);box-shadow:none;animation:none}
 
 @media (max-width:1200px){.layout{grid-template-columns:220px 1fr 400px}}
 @media (max-width:900px){.layout{grid-template-columns:180px 1fr 320px}}
@@ -271,14 +280,29 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
     <button class="btn btn-ghost btn-icon" id="zoomIn" title="Zoom in"><i class="fa fa-search-plus"></i></button>
     <button class="btn btn-ghost btn-icon" id="zoom100" title="Actual size (100%)">1:1</button>
     <button class="btn btn-ghost btn-icon" id="zoomFit" title="Fit to view"><i class="fa fa-expand"></i></button>
+    <button class="btn btn-ghost btn-icon" id="overhangToggle" title="Show/hide instrument parts that hang off the edge of the screen"><i class="fa fa-eye"></i></button>
+    <button class="btn btn-ghost btn-icon" id="selectionBoxToggle" title="Show/hide the selection outline and name label on the selected instrument"><i class="fa fa-vector-square"></i></button>
   </div>
   <div class="spacer"></div>
-  <button class="live-indicator" id="telemetryToggleBtn" title="Start/stop the simulated instrument animation in this editor">Simulated Telemetry</button>
+  <div id="telemetrySimArea" style="display:inline-flex;align-items:center;gap:6px">
+    <button class="live-indicator" id="telemetryToggleBtn" title="Start/stop the simulated instrument animation in this editor">Telemetry On</button>
+    <button class="btn btn-ghost btn-icon" id="loadBlackboxBtn" title="Load a recorded flight log (CSV) to play back through the instruments instead of simulated data"><i class="fa fa-file-waveform"></i></button>
+  </div>
+  <div id="blackboxPlayerArea" style="display:none;align-items:center;gap:4px">
+    <button class="btn btn-ghost btn-icon" id="bbRestartBtn" title="Restart from the beginning"><i class="fa fa-backward-step"></i></button>
+    <button class="btn btn-ghost btn-icon" id="bbPlayPauseBtn" title="Play/Pause"><i class="fa fa-play"></i></button>
+    <input type="range" id="bbSeekSlider" class="bb-seek" min="0" max="1000" value="0" title="Drag to seek">
+    <span id="bbProgressText" style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;min-width:78px;text-align:center">0.0s / 0.0s</span>
+    <button class="btn btn-ghost btn-icon" id="bbExportVideoBtn" title="Export the loaded log as a video, played through the instrument cluster"><i class="fa fa-video"></i></button>
+    <button class="btn btn-ghost btn-icon" id="bbUnloadBtn" title="Unload blackbox log and return to simulated telemetry"><i class="fa fa-xmark"></i></button>
+  </div>
+  <input type="file" id="blackboxFileInput" accept=".csv" style="display:none">
   <div class="header-divider"></div>
-  <div class="header-group">
+  <div class="header-group header-group-actions">
     <button class="btn" id="loadBtn"><i class="fa fa-folder-open"></i> Load</button>
     <button class="btn" id="saveBtn"><i class="fa fa-save"></i> Save</button>
     <button class="btn" id="setupBtn"><i class="fa fa-microchip"></i> Setup</button>
+    <button class="btn" id="multiPageBtn" title="Combine up to 3 saved layouts into one sketch, switchable by RC channel"><i class="fa fa-layer-group"></i> Multi-Page</button>
     <button class="btn btn-primary" id="exportBtn"><i class="fa fa-download"></i> Export .ino</button>
   </div>
 </header>
@@ -466,6 +490,72 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
   </div>
 </div>
 
+<div class="modal-overlay" id="blackboxModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa fa-file-waveform"></i> Map Blackbox Columns</div>
+      <button class="btn btn-ghost btn-icon" id="closeBlackboxModalBtn"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="field-label">Time Column</label>
+        <select id="bbTimeColSelect"></select>
+        <span class="field-hint">Which column represents elapsed time - used to drive playback speed. Values should be in seconds (or a consistent unit; the Speed control can compensate for milliseconds, etc.) and increase through the log.</span>
+      </div>
+      <div class="field" style="margin-top:14px">
+        <label class="field-label">Data Columns</label>
+        <span class="field-hint" style="display:block;margin-bottom:8px">Map each column you want to play back to the instrument data source it represents. Columns left as "Ignore" are skipped entirely.</span>
+        <div id="bbColumnMapList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelBlackboxBtn">Cancel</button>
+      <button class="btn btn-primary" id="confirmBlackboxBtn"><i class="fa fa-play"></i> Start Playback</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="exportVideoModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa fa-video"></i> Export Video</div>
+      <button class="btn btn-ghost btn-icon" id="closeExportVideoModalBtn"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="exportVideoSettings">
+        <div class="field-row">
+          <div class="field">
+            <label class="field-label">Frame Rate (fps)</label>
+            <select id="evFps">
+              <option value="24">24</option>
+              <option value="30" selected>30</option>
+              <option value="60">60</option>
+            </select>
+          </div>
+          <div class="field">
+            <label class="field-label">Bitrate (Mbps)</label>
+            <input type="number" id="evBitrate" value="4" min="0.5" max="50" step="0.5">
+          </div>
+        </div>
+        <span class="field-hint">Renders the entire loaded log through the instrument cluster and encodes it directly - not a real-time screen recording, so a long log doesn't take real time to export. The whole thing is done in your browser; nothing is uploaded anywhere.</span>
+        <span class="field-hint" id="exportVideoUnsupportedHint" style="display:none;color:#ff8a8a;margin-top:8px">Video export needs the WebCodecs API, which this browser doesn't support - try a recent Chrome or Edge.</span>
+      </div>
+      <div id="exportVideoProgress" style="display:none">
+        <div class="field">
+          <label class="field-label" id="exportVideoProgressLabel">Rendering frame 0 / 0…</label>
+          <div style="background:var(--bg-2,#1c232e);border-radius:6px;height:10px;overflow:hidden;margin-top:6px">
+            <div id="exportVideoProgressBar" style="background:var(--accent);height:100%;width:0%;transition:width .1s linear"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" id="cancelExportVideoBtn">Cancel</button>
+      <button class="btn btn-primary" id="startExportVideoBtn"><i class="fa fa-video"></i> Export</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-container" id="toastContainer"></div>
 <input type="file" id="fileInput" accept=".json" style="display:none">
 
@@ -479,6 +569,9 @@ const state = {
   customTemplates:[],
   mavlinkValues:{},
   telemetryRunning:true,
+  showOverhangs:true,
+  showSelectionBox:true,
+  blackbox:{loaded:false,headers:[],rows:[],timeColIdx:-1,columnMap:{},playing:false,currentTime:0,duration:0,speed:1,playStartWallTime:0,playStartDataTime:0,_seekIndex:0,_seeking:false},
   currentCustomType:'arc-gauge',
   currentCustomColor:'#ff9d3a',
   currentCustomBgColor:'#040810',
@@ -504,6 +597,22 @@ const MAVLINK_SOURCES = [
   {id:'SYS_STATUS.current',label:'Battery Current',unit:'A',sim:()=>14+Math.sin(Date.now()/5500)*6},
   {id:'SYS_STATUS.battery_remaining',label:'Battery Remaining',unit:'%',sim:()=>78},
   {id:'RC_CHANNELS.rssi',label:'RC RSSI',unit:'%',sim:()=>85+Math.sin(Date.now()/3000)*10},
+  {id:'RC_CHANNELS.chan1_raw',label:'RC Channel 1',unit:'us',sim:()=>1500+Math.sin(Date.now()/2000)*400},
+  {id:'RC_CHANNELS.chan2_raw',label:'RC Channel 2',unit:'us',sim:()=>1500+Math.sin(Date.now()/2300)*400},
+  {id:'RC_CHANNELS.chan3_raw',label:'RC Channel 3',unit:'us',sim:()=>1500+Math.sin(Date.now()/1800)*400},
+  {id:'RC_CHANNELS.chan4_raw',label:'RC Channel 4',unit:'us',sim:()=>1500+Math.sin(Date.now()/2600)*400},
+  {id:'RC_CHANNELS.chan5_raw',label:'RC Channel 5',unit:'us',sim:()=>((Date.now()/4000)%2)<1?1000:2000}, // simulates a 2-position switch
+  {id:'RC_CHANNELS.chan6_raw',label:'RC Channel 6',unit:'us',sim:()=>((Date.now()/5000)%3)<1?1000:((Date.now()/5000)%3)<2?1500:2000}, // simulates a 3-position switch
+  {id:'RC_CHANNELS.chan7_raw',label:'RC Channel 7',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan8_raw',label:'RC Channel 8',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan9_raw',label:'RC Channel 9',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan10_raw',label:'RC Channel 10',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan11_raw',label:'RC Channel 11',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan12_raw',label:'RC Channel 12',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan13_raw',label:'RC Channel 13',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan14_raw',label:'RC Channel 14',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan15_raw',label:'RC Channel 15',unit:'us',sim:()=>1500},
+  {id:'RC_CHANNELS.chan16_raw',label:'RC Channel 16',unit:'us',sim:()=>1500},
   {id:'GPS_RAW.satellites',label:'GPS Satellites',unit:'',sim:()=>Math.floor(9+Math.sin(Date.now()/15000)*4)},
   {id:'GPS_RAW.hdop',label:'GPS HDOP',unit:'',sim:()=>1.2+Math.sin(Date.now()/12000)*0.5},
   {id:'GPS.lat',label:'Latitude',unit:'°',sim:()=>47.4979+Math.sin(Date.now()/30000)*0.01},
@@ -539,6 +648,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'airspeed-tape',name:'Airspeed Tape',desc:'Vertical speed tape',icon:'fa-gauge-simple-high',defaultSize:{w:60,h:200},defaults:{mavSource:'VFR_HUD.airspeed',min:0,max:50,unit:'m/s',bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#5fe88a',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'vsi',name:'VSI',desc:'Vertical speed',icon:'fa-circle-notch',defaultSize:{w:90,h:90},defaults:{mavSource:'VFR_HUD.climb',min:-10,max:10,unit:'m/s',labelInset:0,sweepAngle:180,startAngle:-90,tickDivisions:5,bgColor:'#040810',pointerColor:'#ff9d3a',tickColor:'#7a8898',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#ff9d3a',showHub:true,showLabels:true,rotation:0}},
   {type:'heading-tape',name:'Heading Tape',desc:'Horizontal heading',icon:'fa-grip-lines',defaultSize:{w:200,h:40},defaults:{mavSource:'VFR_HUD.heading',bgColor:'#040810',pointerColor:'#ff9d3a',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#ff9d3a',showValue:true,showLabels:true,rotation:0}},
+  {type:'heading-arc',name:'Heading Arc',desc:'Curved heading strip',icon:'fa-compass',defaultSize:{w:220,h:80},defaults:{mavSource:'VFR_HUD.heading',bgColor:'#040810',pointerColor:'#ff9d3a',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#ff9d3a',showValue:true,showLabels:true,rotation:0}},
   {type:'mode-indicator',name:'Flight Mode',desc:'Current mode',icon:'fa-plane',defaultSize:{w:100,h:30},defaults:{mavSource:'HEARTBEAT.custom_mode',bgColor:'#040810',borderColor:'#5fe88a',textColor:'#5fe88a',showText:true,rotation:0}},
   {type:'groundspeed-dial',name:'Groundspeed Dial',desc:'Ground speed km/h',icon:'fa-gauge-high',defaultSize:{w:120,h:120},defaults:{mavSource:'VFR_HUD.groundspeed',bgColor:'#040810',pointerColor:'#5fa8ff',arcColor:'#5fa8ff',trackColor:'#2a3340',tickColor:'#7a8898',labelColor:'#e8eef5',hubColor:'#3a4555',borderColor:'#3a4555',maxSpeed:200,sweepAngle:220,startAngle:160,majorStep:40,minorStep:20,needleLength:80,showHub:true,showValue:true,showUnit:true,showLabel:true,showLabels:true,label:'GND SPD',rotation:0}},
   {type:'groundspeed-tape',name:'Groundspeed Tape',desc:'Ground speed tape km/h',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'VFR_HUD.groundspeed',min:0,max:200,bgColor:'#040810',pointerColor:'#5fa8ff',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#5fa8ff',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
@@ -552,6 +662,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'shape-line',name:'Line',desc:'Decorative line, any angle via endpoints',icon:'fa-slash',category:'Decoration',defaultSize:{w:100,h:40},defaults:{lineColor:'#3a4555',lineWidth:2,x1Pct:0,y1Pct:50,x2Pct:100,y2Pct:50}},
   {type:'shape-screw',name:'Screw Head',desc:'Panel rivet / screw detail',icon:'fa-compact-disc',category:'Decoration',defaultSize:{w:20,h:20},defaults:{headColor:'#8a94a3',slotColor:'#3a4555',slotStyle:'flat',rotation:0}},
   {type:'template-image',name:'Background Template',desc:'Reference image to trace/align instruments over - editor only, not included in the exported sketch',icon:'fa-image',category:'Decoration',defaultSize:{w:200,h:150},defaults:{imageData:'',locked:false,rotation:0,opacity:100}}
+  ,{type:'stick-position',name:'Stick Position',desc:'RC transmitter stick position (2 channels)',icon:'fa-square-full',defaultSize:{w:100,h:100},defaults:{mavSourceH:'RC_CHANNELS.chan1_raw',mavSourceV:'RC_CHANNELS.chan2_raw',reverseH:false,reverseV:false,squareColor:'#040810',squareBorderColor:'#3a4555',squareBorderWidth:2,circleColor:'#5fe88a',circleBorderColor:'#1a3d2e',circleBorderWidth:2,circleSize:20,rotation:0}}
 ];
 
 const COLOR_PRESETS = ['#ff9d3a','#4dd2c9','#5fe88a','#5fa8ff','#ff5c5c','#c08cff','#ffd93a','#ffffff','#000000','transparent','dither','#040810','#1c232e','#2a3340','#3a4555','#7a8898','#3a6db5','#6b4226'];
@@ -1214,14 +1325,20 @@ function onDragMove(e){
     const dy=(e.clientY-dragState.startMy)/state.zoom;
     let nx=dragState.startIx+dx;
     let ny=dragState.startIy+dy;
-    nx=Math.max(0,Math.min(state.screenW-dragState.inst.w,nx));
-    ny=Math.max(0,Math.min(state.screenH-dragState.inst.h,ny));
+    // Clamping to the screen bounds is opt-in via Ctrl/Cmd, not the
+    // default - a plain drag is free to leave an instrument overhanging
+    // the edge on purpose (e.g. a gauge that's meant to bleed off-panel),
+    // and holding the modifier snaps it back to staying fully on-screen.
+    if(e.ctrlKey||e.metaKey){
+      nx=Math.max(0,Math.min(state.screenW-dragState.inst.w,nx));
+      ny=Math.max(0,Math.min(state.screenH-dragState.inst.h,ny));
+    }
     dragState.inst.x=Math.round(nx);
     dragState.inst.y=Math.round(ny);
     dragState.inst.element.style.left=dragState.inst.x+'px';
     dragState.inst.element.style.top=dragState.inst.y+'px';
     updateStatusBar();
-    renderProperties();
+    updatePositionFields(dragState.inst);
   } else if(dragState.mode==='resize'){
     const d=dragState;
     const dx=(e.clientX-d.startMx)/state.zoom;
@@ -1254,8 +1371,7 @@ function onDragMove(e){
     inst.canvas.height=inst.h;
     redrawInstrumentCanvases(); // width/height reset above clears the canvas - see refreshAllInstruments for why this matters while paused
     updateStatusBar();
-    renderProperties();
-    generateCode();
+    updatePositionFields(inst);
   }
 }
 
@@ -1296,6 +1412,28 @@ function updateGhost(e){
 // ============================================================
 // PROPERTIES PANEL
 // ============================================================
+function updatePositionFields(inst){
+  // Cheap, targeted update for use during a drag/resize (called on every
+  // mousemove) - patches just the four position inputs' displayed values
+  // directly, instead of the full renderProperties() rebuild (which tears
+  // down and rebuilds the entire panel's HTML and every event listener on
+  // it). That full rebuild is fine for occasional changes, but firing it
+  // dozens of times per second during a fast drag can visibly lag behind
+  // the instrument's actual position - which looks exactly like the
+  // numbers being stuck, even though the underlying data is already correct.
+  if(!inst || inst.id!==state.selectedId) return;
+  const content=document.getElementById('propertiesContent');
+  if(!content) return;
+  const xInp=content.querySelector('input[data-prop="x"]');
+  const yInp=content.querySelector('input[data-prop="y"]');
+  const wInp=content.querySelector('input[data-prop="w"]');
+  const hInp=content.querySelector('input[data-prop="h"]');
+  if(xInp && document.activeElement!==xInp) xInp.value=inst.x;
+  if(yInp && document.activeElement!==yInp) yInp.value=inst.y;
+  if(wInp && document.activeElement!==wInp) wInp.value=inst.w;
+  if(hInp && document.activeElement!==hInp) hInp.value=inst.h;
+}
+
 function renderProperties(){
   const content=document.getElementById('propertiesContent');
   if(!state.selectedId){
@@ -1317,7 +1455,7 @@ function renderProperties(){
   // not a quick fix - so the control is hidden rather than left in as a
   // no-op that would silently do nothing once compiled.
   const isTemplateImage = inst.type==='template-image';
-  const rotationUnsupported = ['altimeter-tape','airspeed-tape','tape','heading-tape','vsi-tape',
+  const rotationUnsupported = ['altimeter-tape','airspeed-tape','tape','heading-tape','heading-arc','vsi-tape',
     'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text',
     'shape-line' /* angle is already fully controlled by its endpoint percentages */].includes(inst.type);
   if(rotationUnsupported && c.rotation){ c.rotation=0; if(inst.element) inst.element.style.transform='rotate(0deg)'; }
@@ -1333,6 +1471,7 @@ function renderProperties(){
       <div class="field"><label class="field-label">Width</label><input type="number" data-prop="w" value="${inst.w}"></div>
       <div class="field"><label class="field-label">Height</label><input type="number" data-prop="h" value="${inst.h}"></div>
     </div>
+    <div class="field-check"><input type="checkbox" data-cfg="locked" ${c.locked?'checked':''}><label>Locked (can't be clicked/dragged on the canvas - still selectable from the instrument list)</label></div>
   </div>${isTemplateImage ? `
   <div class="prop-section">
     <div class="prop-section-title"><i class="fa fa-rotate"></i> Rotation</div>
@@ -1359,10 +1498,14 @@ function renderProperties(){
         <label class="field-label">Opacity (%)</label>
         <input type="number" data-cfg="opacity" value="${c.opacity!==undefined?c.opacity:100}" min="0" max="100">
       </div>
-      <div class="field-check"><input type="checkbox" id="templateLockedChk" data-cfg="locked" ${c.locked?'checked':''}><label>Locked (can't be clicked/dragged on the canvas - still selectable from the instrument list)</label></div>
       <button class="btn" id="replaceTemplateImageBtn" style="width:100%;margin-top:6px"><i class="fa fa-image"></i> Replace Image</button>
       <span class="field-hint" style="display:block;margin-top:8px">Editor only - this is not included in the exported .ino, and always renders behind every real instrument regardless of layer order.</span>
     </div>`;
+  } else if(inst.type==='home-arrow'){
+    // Home Arrow computes its bearing entirely from GPS position vs. home
+    // position internally - there's no user-selectable data source for it
+    // at all, so this section is skipped rather than showing an irrelevant
+    // MAVLink Source field that the instrument would just ignore.
   } else {
   html+=`<div class="prop-section"><div class="prop-section-title"><i class="fa fa-${inst.type==='static-text'?'font':'satellite-dish'}"></i> ${inst.type==='static-text'?'Text Content':'Data Source'}</div>`;
   if(inst.type==='static-text'){
@@ -1373,8 +1516,16 @@ function renderProperties(){
   } else if(inst.type==='turn-coordinator'){
     html+=mavlinkField('Roll/Rate Source','mavSource',c.mavSource,c);
     html+=mavlinkField('Slip Source','slipSource',c.slipSource,c);
+  } else if(inst.type==='stick-position'){
+    html+=mavlinkField('Horizontal Channel (Left/Right)','mavSourceH',c.mavSourceH,c);
+    html+=checkboxField('reverseH','Reverse Horizontal',!!c.reverseH);
+    html+=mavlinkField('Vertical Channel (Up/Down)','mavSourceV',c.mavSourceV,c);
+    html+=checkboxField('reverseV','Reverse Vertical',!!c.reverseV);
+    html+=`<div class="field"><label class="field-label">Circle Size (% of box)</label><input type="number" data-cfg="circleSize" value="${c.circleSize!==undefined?c.circleSize:20}" min="2" max="45" step="1"><span class="field-hint">Circle diameter as a percentage of the smaller box dimension - kept under 50% so it always has room to move.</span></div>`;
   } else if(inst.type==='altimeter-tape'||inst.type==='airspeed-tape'||inst.type==='vsi'||inst.type==='vsi-tape'||inst.type==='tape'){
     html+=mavlinkField('Data Source','mavSource',c.mavSource,c);
+    const unitPresetKey={'altimeter-tape':'altitude','airspeed-tape':'speed','vsi':'vsi','vsi-tape':'vsi'}[inst.type];
+    if(unitPresetKey) html+=unitPresetField(unitPresetKey,c);
     html+=`<div class="field-row"><div class="field"><label class="field-label">Min</label><input type="number" data-cfg="min" value="${c.min||0}"></div><div class="field"><label class="field-label">Max</label><input type="number" data-cfg="max" value="${c.max||100}"></div></div>`;
     html+=`<div class="field"><label class="field-label">Unit</label><input type="text" data-cfg="unit" value="${c.unit||''}"></div>`;
   } else if(inst.type==='arc-gauge'||inst.type==='bar-gauge'||inst.type==='text-value'||inst.type==='dial'){
@@ -1389,6 +1540,7 @@ function renderProperties(){
     html+=`<div class="field-row"><div class="field"><label class="field-label">Unit</label><input type="text" data-cfg="unit" value="${c.unit||''}"></div><div class="field"><label class="field-label">Digits</label><input type="number" data-cfg="digits" value="${c.digits||0}" min="0" max="4"></div></div>`;
   } else {
     html+=mavlinkField('MAVLink Source','mavSource',c.mavSource,c);
+    if(inst.type==='groundspeed-tape') html+=unitPresetField('speed',c);
     if(c.mavSource==='CELL_VOLTAGE'){
       html+=`<div class="field"><label class="field-label">Cell Count (divisor)</label><input type="number" data-cfg="cellCount" value="${c.cellCount||3}" min="1" max="24" step="1"></div>`;
     }
@@ -1520,6 +1672,26 @@ function renderProperties(){
       html+=`<div class="field-row"><div class="field"><label class="field-label">Minor Tick Length (px)</label><input type="number" data-cfg="minorTickLen" value="${c.minorTickLen!==undefined?c.minorTickLen:''}" placeholder="auto" min="1" max="200"></div><div class="field"><label class="field-label">Minor Tick Y Offset (px)</label><input type="number" data-cfg="minorTickYOffset" value="${c.minorTickYOffset!==undefined?c.minorTickYOffset:0}" min="-100" max="100"></div></div>`;
     }
     html+=gaugeTextSection(c,inst.type==='heading-tape'?[['scale','Scale Labels'],['value','Value']]:[['scale','Scale Labels'],['value','Value'],['unit','Unit']],true);
+  } else if(inst.type==='heading-arc'){
+    html+=colorField('Background','bgColor',c.bgColor||'#040810');
+    html+=colorField('Pointer Color','pointerColor',c.pointerColor||'#ff9d3a');
+    html+=colorField('Text Color','textColor',c.textColor||'#ffffff');
+    html+=colorField('Tick Color','tickColor',c.tickColor||'#7a8898');
+    html+=colorField('Sub-tick Color','subTickColor',c.subTickColor||c.tickColor||'#7a8898');
+    html+=colorField('Border Color','borderColor',c.borderColor||'#2a3340');
+    html+=colorField('Value Box Bg','boxBgColor',c.boxBgColor||'#ff9d3a');
+    html+=colorField('North Marker Color','northColor',c.northColor||'#ff5c5c');
+    html+=checkboxField('showValue','Show Digital Value',c.showValue!==false);
+    html+=checkboxField('showLabels','Show Scale Labels',c.showLabels!==false);
+    html+=checkboxField('showTicks','Show Tick Marks',c.showTicks!==false);
+    html+=checkboxField('showPointer','Show Pointer',c.showPointer!==false);
+    html+=checkboxField('showBorder','Show Border',c.showBorder!==false);
+    html+=checkboxField('flipped','Flipped (bend the other way)',!!c.flipped);
+    html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Arc Sweep (°)</label><input type="number" data-cfg="arcSweepDeg" value="${c.arcSweepDeg>0?c.arcSweepDeg:''}" placeholder="auto (70°)" min="20" max="150" step="5"><span class="field-hint">Total curve width - how many degrees of arc the visible heading window (always +/-45° of heading) is drawn across. Larger sweeps curve more sharply.</span></div>`;
+    html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Sub-ticks per Major</label><input type="number" data-cfg="subTicks" value="${c.subTicks!==undefined?c.subTicks:0}" min="0" max="19"></div><div class="field"><label class="field-label">Label Step (°)</label><input type="number" data-cfg="labelStep" value="${c.labelStep>0?c.labelStep:''}" placeholder="auto (30°)" min="10" max="180" step="5"></div></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Major Tick Length (px)</label><input type="number" data-cfg="majorTickLen" value="${c.majorTickLen!==undefined?c.majorTickLen:''}" placeholder="auto" min="1" max="200"></div><div class="field"><label class="field-label">Minor Tick Length (px)</label><input type="number" data-cfg="minorTickLen" value="${c.minorTickLen!==undefined?c.minorTickLen:''}" placeholder="auto" min="1" max="200"></div></div>`;
+    html+=gaugeTextSection(c,[['scale','Scale Labels'],['value','Value']],true);
   } else if(inst.type==='vsi'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Pointer Color','pointerColor',c.pointerColor||'#ff9d3a');
@@ -1589,7 +1761,7 @@ function renderProperties(){
     html+=`<div class="field-row"><div class="field"><label class="field-label">Sub-ticks per Major</label><input type="number" data-cfg="subTicks" value="${c.subTicks!==undefined?c.subTicks:0}" min="0" max="19"></div><div class="field"><label class="field-label">Sub-tick Width (px)</label><input type="number" data-cfg="subTickWidth" value="${c.subTickWidth!==undefined?c.subTickWidth:1}" min="1" max="10"></div></div>`;
     html+=`<div class="field"><label class="field-label">Sub-tick Start (0-1)</label><input type="number" data-cfg="subTickInset" value="${c.subTickInset>0?c.subTickInset:''}" placeholder="auto" min="0" max="0.9" step="0.05"></div>`;
     html+=gaugeTextSection(c,[['scale','Scale Labels'],['value','Value'],['unit','Unit']],true);
-    html+=`<div class="field-row"><div class="field"><label class="field-label">Min (km/h)</label><input type="number" data-cfg="min" value="${c.min||0}" min="0"></div><div class="field"><label class="field-label">Max (km/h)</label><input type="number" data-cfg="max" value="${c.max||200}" min="10" step="10"></div></div>`;
+    html+=`<div class="field-row"><div class="field"><label class="field-label">Min</label><input type="number" data-cfg="min" value="${c.min||0}" min="0"></div><div class="field"><label class="field-label">Max</label><input type="number" data-cfg="max" value="${c.max||200}" min="10" step="10"></div></div>`;
   } else if(inst.type==='indicator'){
     // Condition
     const INDICATOR_SOURCES=[
@@ -1602,6 +1774,22 @@ function renderProperties(){
       ['VFR_HUD.throttle','Throttle (%)'],
       ['VFR_HUD.heading','Heading (°)'],
       ['RC_CHANNELS.rssi','RSSI'],
+      ['RC_CHANNELS.chan1_raw','RC Channel 1'],
+      ['RC_CHANNELS.chan2_raw','RC Channel 2'],
+      ['RC_CHANNELS.chan3_raw','RC Channel 3'],
+      ['RC_CHANNELS.chan4_raw','RC Channel 4'],
+      ['RC_CHANNELS.chan5_raw','RC Channel 5'],
+      ['RC_CHANNELS.chan6_raw','RC Channel 6'],
+      ['RC_CHANNELS.chan7_raw','RC Channel 7'],
+      ['RC_CHANNELS.chan8_raw','RC Channel 8'],
+      ['RC_CHANNELS.chan9_raw','RC Channel 9'],
+      ['RC_CHANNELS.chan10_raw','RC Channel 10'],
+      ['RC_CHANNELS.chan11_raw','RC Channel 11'],
+      ['RC_CHANNELS.chan12_raw','RC Channel 12'],
+      ['RC_CHANNELS.chan13_raw','RC Channel 13'],
+      ['RC_CHANNELS.chan14_raw','RC Channel 14'],
+      ['RC_CHANNELS.chan15_raw','RC Channel 15'],
+      ['RC_CHANNELS.chan16_raw','RC Channel 16'],
       ['GPS_RAW_INT.satellites_visible','Satellites'],
       ['MAVLINK_CONNECTED','MAVLink Connected'],
     ];
@@ -1640,8 +1828,16 @@ function renderProperties(){
     html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
     html+=colorField('Value Box Color','valueBoxColor',c.valueBoxColor||'#1c232e');
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
-    html+=checkboxField('showUnit','Show Unit (m/km)',c.showUnit!==false);
+    html+=checkboxField('showUnit','Show Unit',c.showUnit!==false);
     html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
+    html+=`<div class="field"><label class="field-label">Unit of Measure</label>
+      <select data-cfg="distanceUnit">
+        <option value="auto" ${(c.distanceUnit||'auto')==='auto'?'selected':''}>Auto (m, switches to km past 1000m)</option>
+        <option value="m" ${c.distanceUnit==='m'?'selected':''}>Meters</option>
+        <option value="km" ${c.distanceUnit==='km'?'selected':''}>Kilometers</option>
+        <option value="ft" ${c.distanceUnit==='ft'?'selected':''}>Feet</option>
+        <option value="mi" ${c.distanceUnit==='mi'?'selected':''}>Miles</option>
+      </select></div>`;
   } else if(inst.type==='arc-gauge'||inst.type==='bar-gauge'||inst.type==='text-value'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Primary Color','color',c.color||'#ff9d3a');
@@ -1700,6 +1896,14 @@ function renderProperties(){
       </select></div>`;
   }
   html+=`</div>`;
+  }
+  if(inst.type==='stick-position'){
+    html+=colorField('Square Fill Color','squareColor',c.squareColor||'#040810');
+    html+=colorField('Square Border Color','squareBorderColor',c.squareBorderColor||'#3a4555');
+    html+=`<div class="field"><label class="field-label">Square Border Width (px)</label><input type="number" data-cfg="squareBorderWidth" value="${c.squareBorderWidth!==undefined?c.squareBorderWidth:2}" min="0" max="20"></div>`;
+    html+=colorField('Circle Fill Color','circleColor',c.circleColor||'#5fe88a');
+    html+=colorField('Circle Border Color','circleBorderColor',c.circleBorderColor||'#1a3d2e');
+    html+=`<div class="field"><label class="field-label">Circle Border Width (px)</label><input type="number" data-cfg="circleBorderWidth" value="${c.circleBorderWidth!==undefined?c.circleBorderWidth:2}" min="0" max="20"></div>`;
   }
   if(inst.type==='static-text'){
     html+=gaugeTextSection(c,[['text','Text']]);
@@ -1776,6 +1980,19 @@ function renderProperties(){
 
   content.innerHTML=html;
 
+  content.querySelectorAll('select[data-unit-preset]').forEach(sel=>{
+    sel.addEventListener('change',()=>{
+      const presetKey=sel.dataset.unitPreset;
+      const idx=parseInt(sel.value);
+      if(idx<0) return; // "Custom" - leave whatever Multiply By/Unit already have alone
+      const preset=UNIT_PRESETS[presetKey][idx];
+      inst.config.mavMultiply=preset.mult;
+      inst.config.unit=preset.unit;
+      renderProperties(); // refresh so the Multiply By and Unit fields below show the new values
+      generateCode();
+    });
+  });
+
   // Use 'input' event for text/number/range for instant feedback, 'change' for select/checkbox
   content.querySelectorAll('input[data-prop], input[data-cfg], select[data-cfg]').forEach(inp=>{
     const evt = (inp.tagName === 'SELECT' || inp.type === 'checkbox') ? 'change' : 'input';
@@ -1784,6 +2001,7 @@ function renderProperties(){
       let v = inp.value;
       if (inp.type === 'checkbox') v = inp.checked;
       else if (inp.type === 'number' || inp.type === 'range') v = parseFloat(v) || 0;
+      else if (inp.dataset.cfg === 'rotation') v = parseFloat(v) || 0; // always numeric, whether it came from the restricted select or the free-entry number input - a string here breaks the select's "selected" match on re-render (strict equality, no coercion), even though the CSS transform itself works fine with a string via template-literal interpolation, which is why the object visibly rotated correctly while the dropdown silently showed 0deg
       
       if (inp.dataset.prop) {
         inst[inp.dataset.prop] = v;
@@ -1875,6 +2093,49 @@ function renderProperties(){
       generateCode();
     });
   });
+}
+
+// Unit conversion presets - a convenient shortcut on top of the existing
+// mavMultiply transform field (same one the "Multiply By" input under
+// MAVLink Source already exposes), not a separate mechanism. Selecting a
+// preset just fills that field with a known-good conversion factor and
+// updates the displayed unit text together, instead of the user having to
+// remember/type e.g. 3.6 for m/s to km/h by hand.
+const UNIT_PRESETS = {
+  speed: [ // base unit as received: m/s
+    {label:'m/s',unit:'m/s',mult:1},
+    {label:'km/h',unit:'km/h',mult:3.6},
+    {label:'mph',unit:'mph',mult:2.23694},
+    {label:'knots',unit:'kt',mult:1.94384},
+  ],
+  altitude: [ // base unit: meters
+    {label:'meters',unit:'m',mult:1},
+    {label:'feet',unit:'ft',mult:3.28084},
+  ],
+  vsi: [ // base unit: m/s
+    {label:'m/s',unit:'m/s',mult:1},
+    {label:'ft/min',unit:'ft/min',mult:196.850},
+    {label:'ft/s',unit:'ft/s',mult:3.28084},
+  ],
+  distance: [ // base unit: meters
+    {label:'meters',unit:'m',mult:1},
+    {label:'feet',unit:'ft',mult:3.28084},
+    {label:'km',unit:'km',mult:0.001},
+    {label:'miles',unit:'mi',mult:0.000621371},
+  ],
+};
+function unitPresetField(presetKey,cfg){
+  const presets=UNIT_PRESETS[presetKey];
+  const curMult=parseFloat(cfg.mavMultiply);
+  const hasMult=!isNaN(curMult)&&curMult!==1;
+  // Match the current Multiply By value against a known preset (small
+  // tolerance for floating point) so the dropdown reflects reality even if
+  // it was set via the preset last time - falls back to "Custom" if it
+  // doesn't match anything, e.g. the user typed their own factor by hand.
+  const matchIdx=presets.findIndex(p=>Math.abs(p.mult-(hasMult?curMult:1))<0.0005);
+  const opts=presets.map((p,i)=>`<option value="${i}" ${matchIdx===i?'selected':''}>${p.label}</option>`).join('')
+    +`<option value="-1" ${matchIdx<0?'selected':''}>Custom</option>`;
+  return `<div class="field"><label class="field-label">Unit of Measure</label><select data-unit-preset="${presetKey}">${opts}</select><span class="field-hint">Sets Multiply By and Unit together below - pick Custom to set your own factor manually.</span></div>`;
 }
 
 function mavlinkField(label,key,value,cfg){
@@ -2128,10 +2389,220 @@ function confirmCreateCustom(){
 // ============================================================
 // INSTRUMENT RENDERING
 // ============================================================
+// Simple, robust CSV parser - handles quoted fields (including commas and
+// escaped quotes within them), not just a naive split(','). Returns an
+// array of arrays (rows of string cells); the caller decides which row is
+// the header and converts cells to numbers as needed.
+// ---- Minimal EBML/WebM muxer ----
+// WebCodecs' VideoEncoder only produces raw encoded frames - there's no
+// browser API to package them into a playable file, so this builds a
+// minimal but spec-correct WebM (Matroska/EBML) container by hand.
+// Structure: EBML header, then one Segment (unknown size, so it can be
+// streamed without knowing the total size up front) containing Info,
+// Tracks, and Cluster(s) of SimpleBlocks - one block per encoded frame.
+function ebmlSize(value, minBytes){
+  let bytes = minBytes || 1;
+  while (Math.pow(2, 7 * bytes) - 2 < value) bytes++;
+  const arr = new Uint8Array(bytes);
+  let v = value;
+  for (let i = bytes - 1; i >= 0; i--) { arr[i] = v & 0xff; v = Math.floor(v / 256); }
+  arr[0] |= (1 << (8 - bytes));
+  return arr;
+}
+function ebmlUint(value){
+  if (value === 0) return new Uint8Array([0]);
+  const bytes = [];
+  let v = value;
+  while (v > 0) { bytes.unshift(v & 0xff); v = Math.floor(v / 256); }
+  return new Uint8Array(bytes);
+}
+function ebmlFloat64(value){
+  const buf = new ArrayBuffer(8);
+  new DataView(buf).setFloat64(0, value, false);
+  return new Uint8Array(buf);
+}
+function ebmlString(str){
+  return new Uint8Array(Array.from(str).map(c => c.charCodeAt(0)));
+}
+function concatBytes(arrays){
+  let total = 0;
+  for (const a of arrays) total += a.length;
+  const out = new Uint8Array(total);
+  let off = 0;
+  for (const a of arrays) { out.set(a, off); off += a.length; }
+  return out;
+}
+function ebmlElement(idHex, dataBytes){
+  const id = new Uint8Array(idHex.match(/.{2}/g).map(h => parseInt(h, 16)));
+  return concatBytes([id, ebmlSize(dataBytes.length), dataBytes]);
+}
+function ebmlElementUnknownSize(idHex, dataBytes){
+  const id = new Uint8Array(idHex.match(/.{2}/g).map(h => parseInt(h, 16)));
+  return concatBytes([id, new Uint8Array([0xFF]), dataBytes]); // all-1s size = "unknown", standard for a streamed Segment
+}
+function webmSimpleBlock(trackNum, relativeTimecodeMs, isKeyframe, frameData){
+  const trackVint = ebmlSize(trackNum); // track number is itself VINT-encoded
+  const tc = new Uint8Array(2);
+  new DataView(tc.buffer).setInt16(0, relativeTimecodeMs, false);
+  const flags = new Uint8Array([isKeyframe ? 0x80 : 0x00]);
+  return concatBytes([trackVint, tc, flags, frameData]);
+}
+class WebMMuxer {
+  constructor(width, height, codecId){
+    this.width=width; this.height=height; this.codecId=codecId||'V_VP8';
+    this.chunks=[]; // Uint8Array pieces assembled into the final Blob at the end
+    this.clusterFrames=[]; // frames pending for the current Cluster
+    this.clusterStartMs=0;
+    this.frameCount=0;
+    this._writeHeader();
+  }
+  _writeHeader(){
+    const ebmlHeader = ebmlElement('1A45DFA3', concatBytes([
+      ebmlElement('4286', ebmlUint(1)), ebmlElement('42F7', ebmlUint(1)),
+      ebmlElement('42F2', ebmlUint(4)), ebmlElement('42F3', ebmlUint(8)),
+      ebmlElement('4282', ebmlString('webm')),
+      ebmlElement('4287', ebmlUint(2)), ebmlElement('4285', ebmlUint(2)),
+    ]));
+    const info = ebmlElement('1549A966', concatBytes([
+      ebmlElement('2AD7B1', ebmlUint(1000000)), // TimecodeScale: 1ms per unit
+      ebmlElement('4D80', ebmlString('AvionixForge')),
+      ebmlElement('5741', ebmlString('AvionixForge')),
+    ]));
+    const trackEntry = ebmlElement('AE', concatBytes([
+      ebmlElement('D7', ebmlUint(1)), ebmlElement('73C5', ebmlUint(1)),
+      ebmlElement('83', ebmlUint(1)), ebmlElement('86', ebmlString(this.codecId)),
+      ebmlElement('E0', concatBytes([ ebmlElement('B0', ebmlUint(this.width)), ebmlElement('BA', ebmlUint(this.height)) ])),
+    ]));
+    const tracks = ebmlElement('1654AE6B', trackEntry);
+    this.chunks.push(ebmlHeader);
+    // Segment itself uses unknown size, written once; its content (Info,
+    // Tracks, then Clusters) streams in afterward as separate top-level
+    // writes into the same growing byte sequence.
+    this.chunks.push(concatBytes([new Uint8Array([0x18,0x53,0x80,0x67,0xFF])]));
+    this.chunks.push(info);
+    this.chunks.push(tracks);
+  }
+  // Called once per encoded frame, in presentation order. Starts a new
+  // Cluster at every keyframe - simple and always correct (a Cluster must
+  // start with a keyframe for seeking to work), at the cost of not
+  // batching multiple keyframes-worth of frames into one Cluster.
+  addFrame(encodedData, timestampUs, isKeyframe){
+    const timeMs = Math.round(timestampUs / 1000);
+    if (isKeyframe || this.clusterFrames.length === 0){
+      this._flushCluster();
+      this.clusterStartMs = timeMs;
+    }
+    this.clusterFrames.push({ data: encodedData, relMs: timeMs - this.clusterStartMs, keyframe: isKeyframe });
+    this.frameCount++;
+  }
+  _flushCluster(){
+    if (this.clusterFrames.length === 0) return;
+    const blocks = this.clusterFrames.map(f =>
+      ebmlElement('A3', webmSimpleBlock(1, f.relMs, f.keyframe, f.data))
+    );
+    const cluster = ebmlElement('1F43B675', concatBytes([
+      ebmlElement('E7', ebmlUint(this.clusterStartMs)),
+      ...blocks,
+    ]));
+    this.chunks.push(cluster);
+    this.clusterFrames = [];
+  }
+  finalize(){
+    this._flushCluster();
+    return new Blob(this.chunks, { type: 'video/webm' });
+  }
+}
+
+function parseCSV(text){
+  const rows=[];
+  let row=[], cell='', inQuotes=false;
+  for(let i=0;i<text.length;i++){
+    const ch=text[i], next=text[i+1];
+    if(inQuotes){
+      if(ch==='"' && next==='"'){ cell+='"'; i++; }
+      else if(ch==='"'){ inQuotes=false; }
+      else cell+=ch;
+    } else {
+      if(ch==='"') inQuotes=true;
+      else if(ch===','){ row.push(cell); cell=''; }
+      else if(ch==='\n'||ch==='\r'){
+        if(ch==='\r'&&next==='\n') i++;
+        row.push(cell); cell='';
+        if(row.length>1||row[0]!=='') rows.push(row);
+        row=[];
+      } else cell+=ch;
+    }
+  }
+  if(cell!==''||row.length>0){ row.push(cell); rows.push(row); }
+  return rows;
+}
+
 function updateMavlinkValues(){
-  MAVLINK_SOURCES.forEach(m=>{state.mavlinkValues[m.id]=m.sim()});
+  if(state.blackbox && state.blackbox.loaded){
+    if(state.blackbox.playing) advanceBlackboxPlayback();
+    // else: paused - leave state.mavlinkValues exactly as it was, frozen
+    // at the current playback position, rather than falling through to
+    // simulated data.
+  } else {
+    MAVLINK_SOURCES.forEach(m=>{state.mavlinkValues[m.id]=m.sim()});
+  }
   // Heartbeat timestamp — drives the MAVLINK_CONNECTED indicator condition.
   state.mavlinkValues['_lastUpdate']=Date.now();
+}
+
+// ---- Blackbox log playback ------------------------------------------
+// Loads a CSV export of recorded flight data and plays it back through the
+// exact same state.mavlinkValues that the simulated demo data normally
+// populates - every instrument reads from that one place regardless of
+// source, so nothing about drawing/instrument code needs to change at all.
+function advanceBlackboxPlayback(){
+  const bb=state.blackbox;
+  const elapsedWall=(Date.now()-bb.playStartWallTime)/1000*bb.speed;
+  bb.currentTime=Math.min(bb.duration, bb.playStartDataTime+elapsedWall);
+  if(bb.currentTime>=bb.duration){
+    bb.playing=false;
+    updateBlackboxUI();
+  }
+  applyBlackboxRowAtTime(bb.currentTime);
+  updateBlackboxProgressUI();
+}
+
+function updateBlackboxUI(){
+  const btn=document.getElementById('bbPlayPauseBtn');
+  btn.querySelector('i').className='fa '+(state.blackbox.playing?'fa-pause':'fa-play');
+  btn.title=state.blackbox.playing?'Pause':'Play';
+}
+function updateBlackboxProgressUI(){
+  const bb=state.blackbox;
+  document.getElementById('bbProgressText').textContent=`${bb.currentTime.toFixed(1)}s / ${bb.duration.toFixed(1)}s`;
+  if(!bb._seeking){
+    const slider=document.getElementById('bbSeekSlider');
+    slider.value=bb.duration>0 ? Math.round((bb.currentTime/bb.duration)*1000) : 0;
+  }
+}
+
+// Linear interpolation between the two rows surrounding the given time,
+// using a cached "last index" so playback (which moves forward through
+// time almost all the time) doesn't rescan from the start every frame -
+// only seeks (restart, scrubbing) need to search from scratch.
+function applyBlackboxRowAtTime(t){
+  const bb=state.blackbox;
+  const rows=bb.rows, n=rows.length;
+  if(n===0) return;
+  let i=bb._seekIndex||0;
+  if(i>=n||rows[i][bb.timeColIdx]>t) i=0; // time went backwards (restart/seek) - rescan
+  while(i<n-1 && rows[i+1][bb.timeColIdx]<=t) i++;
+  bb._seekIndex=i;
+  const rowA=rows[i], rowB=rows[Math.min(i+1,n-1)];
+  const tA=rowA[bb.timeColIdx], tB=rowB[bb.timeColIdx];
+  const frac=(tB>tA) ? Math.max(0,Math.min(1,(t-tA)/(tB-tA))) : 0;
+  Object.keys(bb.columnMap).forEach(colIdx=>{
+    const mavId=bb.columnMap[colIdx];
+    if(!mavId) return;
+    const a=parseFloat(rowA[colIdx]), b=parseFloat(rowB[colIdx]);
+    if(isNaN(a)) return;
+    state.mavlinkValues[mavId]=isNaN(b) ? a : a+(b-a)*frac;
+  });
 }
 
 // ---- Pixel-accurate text: match Adafruit_GFX, not the browser's font ----
@@ -2393,6 +2864,155 @@ function redrawInstrumentCanvases(){
   });
 }
 
+// ---- Video export ----
+// Renders the loaded blackbox log to a WebM video: WebCodecs' VideoEncoder
+// does the actual video compression, the WebMMuxer above (verified
+// separately, byte-for-byte, against a hand-written EBML parser) wraps the
+// encoded frames into a playable file, since VideoEncoder alone only
+// produces raw compressed frames with no container around them.
+function isVideoExportSupported(){
+  return typeof VideoEncoder!=='undefined' && typeof VideoFrame!=='undefined';
+}
+
+async function exportBlackboxVideo(opts){
+  const { fps, bitrateMbps, onProgress, isCancelled } = opts;
+  const bb = state.blackbox;
+  if(!bb || !bb.loaded) throw new Error('No blackbox log loaded');
+  if(!isVideoExportSupported()) throw new Error('WebCodecs (VideoEncoder) is not supported in this browser - try a recent Chrome or Edge.');
+
+  const width = state.screenW, height = state.screenH;
+  const totalFrames = Math.max(1, Math.ceil(bb.duration * fps));
+
+  // Full-resolution composite canvas - what actually gets encoded each frame.
+  const compositeCanvas = document.createElement('canvas');
+  compositeCanvas.width = width; compositeCanvas.height = height;
+  const compositeCtx = compositeCanvas.getContext('2d');
+
+  // One offscreen canvas per instrument, drawn via the exact same
+  // drawInstrument() the live editor uses, then composited onto the full
+  // canvas by hand (with rotation applied as a canvas transform, matching
+  // how the live editor applies it via CSS instead) - this is a completely
+  // separate set of canvases from the ones visible in the editor, so
+  // export never disturbs whatever's currently on screen.
+  const layers = state.instruments
+    // template-image always renders at the bottom in the live editor via
+    // explicit z-index:-1, independent of its position in the array - the
+    // export needs the same ordering, not just array order, or a template
+    // image added after other instruments would wrongly end up on top.
+    .slice()
+    .sort((a,b)=>(a.type==='template-image'?0:1)-(b.type==='template-image'?0:1))
+    .map(inst=>{
+      const c = document.createElement('canvas');
+      c.width = Math.max(1,inst.w); c.height = Math.max(1,inst.h);
+      return { inst, canvas:c, ctx: wrapCtxFontQuantize(c.getContext('2d')) };
+    });
+
+  // Isolate from the live UI: applyBlackboxRowAtTime() writes into the
+  // same state.mavlinkValues the visible instruments read from, and the
+  // seek cache is shared too - both get restored once export finishes (or
+  // is cancelled), so the live view ends up exactly where it was.
+  const savedMavlinkValues = Object.assign({}, state.mavlinkValues);
+  const savedSeekIndex = bb._seekIndex;
+  const savedCurrentTime = bb.currentTime;
+
+  const muxer = new WebMMuxer(width, height, 'V_VP8');
+  let resolveEncoder;
+  let encoderError = null;
+  const encoder = new VideoEncoder({
+    output:(chunk)=>{
+      const buf = new Uint8Array(chunk.byteLength);
+      chunk.copyTo(buf);
+      muxer.addFrame(buf, chunk.timestamp, chunk.type==='key');
+    },
+    error:(e)=>{ encoderError = e; }
+  });
+  encoder.configure({
+    codec:'vp8',
+    width, height,
+    bitrate: Math.round(bitrateMbps*1000000),
+    framerate: fps,
+  });
+
+  const frameDurationUs = Math.round(1000000/fps);
+  const keyframeEveryNFrames = Math.max(1, Math.round(fps*2)); // one keyframe every ~2s
+
+  try {
+    for(let i=0;i<totalFrames;i++){
+      if(isCancelled && isCancelled()) break;
+      if(encoderError) throw encoderError;
+
+      const t = Math.min(bb.duration, i/fps);
+      applyBlackboxRowAtTime(t);
+
+      compositeCtx.fillStyle = state.screenBgColor || '#000000';
+      compositeCtx.fillRect(0,0,width,height);
+
+      for(const layer of layers){
+        const inst = layer.inst;
+        layer.ctx.clearRect(0,0,inst.w,inst.h);
+        drawInstrument(layer.ctx, inst);
+        compositeCtx.save();
+        const rot = (inst.config && inst.config.rotation) || 0;
+        if(rot){
+          const cx = inst.x+inst.w/2, cy = inst.y+inst.h/2;
+          compositeCtx.translate(cx,cy);
+          compositeCtx.rotate(rot*Math.PI/180);
+          compositeCtx.drawImage(layer.canvas, -inst.w/2, -inst.h/2);
+        } else {
+          compositeCtx.drawImage(layer.canvas, inst.x, inst.y);
+        }
+        compositeCtx.restore();
+      }
+
+      const frame = new VideoFrame(compositeCanvas, {
+        timestamp: i*frameDurationUs,
+        duration: frameDurationUs,
+      });
+      encoder.encode(frame, { keyFrame: (i % keyframeEveryNFrames)===0 });
+      frame.close();
+
+      if(onProgress) onProgress(i/totalFrames);
+
+      // Backpressure: genuinely wait for the encoder's queue to drain
+      // before producing more frames, not just yield once and continue
+      // regardless. Without this while loop, an encoder slower than frame
+      // production (common for VP8 at any real resolution) lets the queue
+      // grow unboundedly through the whole export - then flush() at the
+      // end has to silently grind through that entire backlog with no
+      // progress feedback at all, which looks exactly like the export
+      // freezing right at the end instead of what's actually happening
+      // (it's still working, just with a queue that got far too deep).
+      while(encoder.encodeQueueSize>8){
+        if(encoderError) throw encoderError;
+        await new Promise(r=>setTimeout(r,0));
+      }
+      if(i%10===0){
+        await new Promise(r=>setTimeout(r,0));
+      }
+    }
+
+    if(onProgress) onProgress(0.999); // distinguish "encoding done, finalizing" from mid-loop progress
+    // flush() can legitimately take a while if any backlog remains -
+    // guarded with a timeout so a genuine stall (browser/encoder issue)
+    // surfaces as a clear error instead of hanging the export forever with
+    // no way out.
+    await Promise.race([
+      encoder.flush(),
+      new Promise((_,reject)=>setTimeout(()=>reject(new Error('Encoder finalization timed out - try a lower resolution/bitrate or a shorter log.')),30000)),
+    ]);
+  } finally {
+    encoder.close();
+    // Restore the live view exactly where it was before export started.
+    state.mavlinkValues = savedMavlinkValues;
+    bb._seekIndex = savedSeekIndex;
+    bb.currentTime = savedCurrentTime;
+    applyBlackboxRowAtTime(savedCurrentTime);
+    redrawInstrumentCanvases();
+  }
+
+  return muxer.finalize();
+}
+
 function renderLoop(){
   if(!state.telemetryRunning) return; // paused - the loop stops scheduling itself until resumed
   updateMavlinkValues();
@@ -2519,9 +3139,22 @@ function drawInstrument(ctx,inst){
     case 'tape': drawTape(ctx,w,h,gm(c.mavSource),c.min||0,c.max||100,c.unit||'',c); break;
     case 'vsi': drawVSI(ctx,w,h,gm(c.mavSource),c.min||-10,c.max||10,c.unit||'m/s',c); break;
     case 'heading-tape': drawHeadingTape(ctx,w,h,gm(c.mavSource),c); break;
+    case 'heading-arc': drawHeadingArc(ctx,w,h,gm(c.mavSource),c); break;
     case 'mode-indicator': drawModeIndicator(ctx,w,h,gm(c.mavSource),c); break;
     case 'groundspeed-dial': drawGroundspeedDial(ctx,w,h,gm(c.mavSource),c); break;
-    case 'groundspeed-tape': drawGroundspeedTape(ctx,w,h,gm(c.mavSource),c); break;
+    case 'groundspeed-tape': {
+      // Same backward-compatibility backfill as the C++ generator - any
+      // design saved before the Unit of Measure dropdown existed has no
+      // mavMultiply/unit set, but the generated code always displayed
+      // km/h via a separate, hardcoded conversion. This editor preview,
+      // however, never applied that conversion at all (a genuine,
+      // pre-existing mismatch between the two) - backfilling here brings
+      // the preview in line with what the real hardware has always shown.
+      if(c.mavMultiply===undefined) c.mavMultiply=3.6;
+      if(c.unit===undefined) c.unit='km/h';
+      drawGroundspeedTape(ctx,w,h,gm(c.mavSource),c);
+      break;
+    }
     case 'home-arrow': drawHomeArrow(ctx,w,h,gm('HOME_BEARING'),gm('VFR_HUD.heading'),c); break;
     case 'home-distance': drawHomeDistance(ctx,w,h,gm('HOME_DISTANCE'),c); break;
     case 'indicator': drawIndicator(ctx,w,h,c); break;
@@ -2535,6 +3168,7 @@ function drawInstrument(ctx,inst){
     case 'shape-circle': drawShapeCircle(ctx,w,h,c); break;
     case 'shape-oval': drawShapeOval(ctx,w,h,c); break;
     case 'shape-triangle': drawShapeTriangle(ctx,w,h,c); break;
+    case 'stick-position': drawStickPosition(ctx,w,h,gm(c.mavSourceH),gm(c.mavSourceV),c); break;
     case 'shape-line': drawShapeLine(ctx,w,h,c); break;
     case 'shape-screw': drawShapeScrew(ctx,w,h,c); break;
   }
@@ -2563,6 +3197,30 @@ function drawShapeOval(ctx,w,h,c){
   if(fill!=='transparent') bresenhamFillEllipse(ctx,cx,cy,Math.max(0,rx-ow/2),Math.max(0,ry-ow/2),0,fill);
   if(ow>0 && outline!=='transparent') for(let i=0;i<ow;i++) bresenhamEllipseOutline(ctx,cx,cy,rx-i,ry-i,0,outline);
 }
+function drawStickPosition(ctx,w,h,hVal,vVal,c){
+  ctx.fillStyle=c.squareColor||'#040810'; ctx.fillRect(0,0,w,h);
+  const sbw=c.squareBorderWidth!==undefined?c.squareBorderWidth:2;
+  if(sbw>0) for(let i=0;i<sbw;i++) bresenhamRect(ctx,i,i,w-2*i,h-2*i,c.squareBorderColor||'#3a4555');
+
+  // Normalize the typical RC PWM range (1000-2000us, centered at 1500) to
+  // -1..1, then to a pixel offset from centre - each axis independently
+  // reversible since a channel's physical direction on the stick doesn't
+  // always match its raw PWM direction (wiring/TX-dependent).
+  const hNorm=Math.max(-1,Math.min(1,(hVal-1500)/500))*(c.reverseH?-1:1);
+  const vNorm=Math.max(-1,Math.min(1,(vVal-1500)/500))*(c.reverseV?-1:1);
+  const r=Math.min(w,h)*(c.circleSize!==undefined?c.circleSize:20)/100/2;
+  const cx=w/2+hNorm*(w/2-r);
+  const cy=h/2-vNorm*(h/2-r); // higher value = up (smaller y) by default
+
+  bresenhamFillCircle(ctx,cx,cy,r,c.circleColor||'#5fe88a');
+  const cbw=c.circleBorderWidth!==undefined?c.circleBorderWidth:2;
+  if(cbw>0){
+    ctx.strokeStyle=c.circleBorderColor||'#1a3d2e';
+    ctx.lineWidth=cbw;
+    ctx.beginPath(); ctx.arc(cx,cy,Math.max(0,r-cbw/2),0,Math.PI*2); ctx.stroke();
+  }
+}
+
 function drawShapeTriangle(ctx,w,h,c){
   const fill=c.fillColor||'transparent';
   const outline=c.outlineColor||'#3a4555';
@@ -3337,6 +3995,104 @@ function drawHeadingTape(ctx,w,h,heading,c){
   }
 }
 
+function drawHeadingArc(ctx,w,h,heading,c){
+  const ptrColor=c.pointerColor||'#ff9d3a';
+  const txtColor=c.textColor||'#ffffff';
+  const tickCol=c.tickColor||'#7a8898';
+  const D2R=Math.PI/180;
+  const flipped=!!c.flipped;
+
+  ctx.fillStyle=c.bgColor||'#040810'; ctx.fillRect(0,0,w,h);
+  if(c.showBorder!==false){
+    const bw=c.borderWidth!==undefined?c.borderWidth:1;
+    for(let bi=0;bi<bw;bi++) bresenhamRect(ctx,bi,bi,w-2*bi,h-2*bi,c.borderColor||'#2a3340');
+  }
+  // The arc's own circle centre sits outside the box (below when normal,
+  // above when flipped) - the visible portion is just a slice of that
+  // circle, which is what makes it curve like a smile (normal) or a frown
+  // (flipped) instead of a straight line. apexY is where the
+  // current-heading point sits - top of the box normally (pointer hangs
+  // down into it, matching Heading Tape), bottom when flipped (pointer
+  // rises up into it instead).
+  const apexY=flipped?h*0.85:h*0.15;
+  const arcSweep=c.arcSweepDeg>0?c.arcSweepDeg:70; // total visual sweep, degrees
+  const headingRange=90; // heading range represented, matches Heading Tape's +/-45 window
+  const degPerHeadingDeg=arcSweep/headingRange;
+  const halfSweepRad=(arcSweep/2)*D2R;
+  const radius=(w*0.42)/Math.sin(halfSweepRad);
+  const acx=w/2, acy=flipped?apexY-radius:apexY+radius;
+  // Apex angle is 270deg (straight up from a centre below) when normal, or
+  // 90deg (straight down from a centre above) when flipped. The sign on
+  // angOffset flips too, so a higher heading value still moves the tick
+  // rightward either way - only the vertical bend direction changes.
+  const apexAngle=flipped?90:270;
+  const angSign=flipped?-1:1;
+
+  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.22))}px JetBrains Mono`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const startH=Math.floor((heading-45)/10)*10;
+  const showTicks=c.showTicks!==false;
+  const subCount = Math.max(0, Math.round(parseFloat(c.subTicks)||0));
+  const subDiv = subCount + 1;
+  const subCol = c.subTickColor||tickCol;
+  const majTickLenPx = c.majorTickLen!==undefined ? c.majorTickLen : h*0.22;
+  const minTickLenPx = c.minorTickLen!==undefined ? c.minorTickLen : h*0.12;
+  const labelGap = h*0.16;
+  const fineStep = 10/subDiv;
+  const nSteps = Math.ceil(90/fineStep)+subDiv*2;
+  for(let i=0;i<=nSteps;i++){
+    const a = startH + i*fineStep;
+    if(a > heading+45) break;
+    const angOffset=(a-heading)*degPerHeadingDeg;
+    if(Math.abs(angOffset)>arcSweep/2+0.01) continue;
+    const tickAngle=(apexAngle+angSign*angOffset)*D2R;
+    const ca=Math.cos(tickAngle), sa=Math.sin(tickAngle);
+    const isMajor = (i % subDiv)===0;
+    const norm=((a%360)+360)%360;
+    const tickLen = isMajor?majTickLenPx:minTickLenPx;
+    const innerR = radius-tickLen;
+    if(showTicks){
+      bresenhamLine(ctx,acx+ca*radius,acy+sa*radius,acx+ca*innerR,acy+sa*innerR,isMajor?tickCol:subCol);
+    }
+    if(isMajor && norm%(c.labelStep>0?c.labelStep:30)===0 && c.showLabels!==false){
+      const labelR=innerR-labelGap;
+      const label=norm===0?'N':norm===90?'E':norm===180?'S':norm===270?'W':norm.toString().padStart(3,'0');
+      ctx.fillStyle=norm===0?(c.northColor||'#ff5c5c'):txtColor;
+      gText(ctx,c,'scale',label,acx+ca*labelR,acy+sa*labelR);
+    }
+  }
+  if(c.showPointer!==false){
+    const pw=Math.max(3,w*0.02);
+    // Same style as Heading Tape's pointer, just mirrored vertically when
+    // flipped: normally a flat base at the top edge with the apex hanging
+    // down into the ticks; flipped, a flat base at the bottom edge with
+    // the apex rising up into the ticks instead.
+    if(flipped){
+      bresenhamFillTriangle(ctx,acx,apexY,acx-pw,h,acx+pw,h,ptrColor);
+      ctx.fillStyle=ptrColor; ctx.fillRect(acx-1,apexY-2,2,h-apexY+2);
+    } else {
+      bresenhamFillTriangle(ctx,acx,apexY,acx-pw,0,acx+pw,0,ptrColor);
+      ctx.fillStyle=ptrColor; ctx.fillRect(acx-1,0,2,apexY+2);
+    }
+  }
+
+  if(c.showValue!==false){
+    const valTxt=Math.round(heading).toString().padStart(3,'0');
+    const vSize=gSize(c,'value',Math.max(9,h*0.24));
+    ctx.font=`bold ${vSize}px JetBrains Mono`;
+    const tw=ctx.measureText(valTxt).width;
+    const bw2=Math.max(28,tw+vSize*0.5), bh=Math.max(8*Math.round(vSize/8)+4, h*0.26);
+    // Value box sits opposite the arc's apex - bottom of the box normally
+    // (arc occupies the top), top of the box when flipped (arc occupies
+    // the bottom instead).
+    const boxY=flipped?1:h-bh-1;
+    ctx.fillStyle=c.boxBgColor||ptrColor; ctx.fillRect(acx-bw2/2+gDX(c,'value'),boxY+gDY(c,'value'),bw2,bh);
+    ctx.fillStyle=c.valueTextColor||'#040810';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    gText(ctx,c,'value',valTxt,acx,boxY+bh/2);
+  }
+}
+
 function drawModeIndicator(ctx,w,h,mode,c){
   const modeIdx=Math.round(mode);
   const modeName=(modeIdx>=0&&modeIdx<FLIGHT_MODES.length)?(FLIGHT_MODES[modeIdx]||'UNKNOWN'):'UNKNOWN';
@@ -3481,7 +4237,13 @@ function drawHomeDistance(ctx,w,h,distance,c){
   ctx.fillText('HOME DIST',w/2,h*0.22);
 
   // Value
-  const disp=distance>=1000?(distance/1000).toFixed(2)+' km':Math.round(distance)+' m';
+  const distUnit=c.distanceUnit||'auto';
+  let disp;
+  if(distUnit==='auto') disp=distance>=1000?(distance/1000).toFixed(2)+' km':Math.round(distance)+' m';
+  else if(distUnit==='m') disp=Math.round(distance)+' m';
+  else if(distUnit==='km') disp=(distance/1000).toFixed(2)+' km';
+  else if(distUnit==='ft') disp=Math.round(distance*3.28084)+' ft';
+  else if(distUnit==='mi') disp=(distance*0.000621371).toFixed(2)+' mi';
   const valSize=Math.max(10,h*0.38);
   ctx.font=`bold ${valSize}px JetBrains Mono`;
   if(c.showValueBox!==false){
@@ -3499,7 +4261,8 @@ function drawHomeDistance(ctx,w,h,distance,c){
     ctx.fillStyle=labelCol;
     ctx.font=`${Math.max(7,h*0.14)}px JetBrains Mono`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    ctx.fillText('m / km',w/2,h*0.82);
+    const unitCaption=distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
+    ctx.fillText(unitCaption,w/2,h*0.82);
   }
 }
 
@@ -4094,7 +4857,43 @@ function getPanelConfig(){
     return {name:'ST7789',gfx:'#include <Adafruit_GFX.h>',include:'#include <Adafruit_ST7789.h>',ctor:'Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);',note:'// ST7789 uses init(w,h) — begin() is protected in Adafruit_ST77xx.',mono:false,setupExtra:'  tft.init('+nw+', '+nh+');  // NATIVE panel resolution, not SCREEN_W/H (those are post-rotation)\n  tft.setSPISpeed(SPI_HZ);\n  tft.setRotation(SCREEN_ROT);',colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
   }
   if(dimKey==='320x480'){
-    return {name:'ST7796S',gfx:'',include:'#include <TFT_eSPI.h>',ctor:'TFT_eSPI tft = TFT_eSPI();',note:'// NOTE: ST7796S — configure driver, pins AND SPI_FREQUENCY in TFT_eSPI/User_Setup.h\n// TFT_eSPI sets its clock at compile time, so SPI_HZ below is only a reminder.',mono:false,setupExtra:'  tft.begin();\n  tft.setRotation(SCREEN_ROT);',colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
+    const hw2=state.hw||HW_DEFAULTS;
+    // Arduino_GFX_Library instead of TFT_eSPI - confirmed working on this
+    // exact hardware (RP2040 + ST7796, same pins) via a real working
+    // reference sketch, and specifically designed for Adafruit_GFX API
+    // compatibility (unlike TFT_eSPI, a separate, similar-but-not-
+    // identical API that kept surfacing missing-method errors here:
+    // writePixel, drawRGBBitmap, GFXcanvas8 - none of which are
+    // Adafruit_GFX-guaranteed, all of which Arduino_GFX_Library provides
+    // directly since it mirrors that API rather than approximating it).
+    // RP2040's bus talks to the spi0 peripheral directly via constructor
+    // arguments (matching the proven-working sketch exactly), rather than
+    // going through the Arduino core's SPI abstraction the way TFT_eSPI's
+    // RP2040 support did - avoiding whatever caused that path to silently
+    // fail to communicate with the panel at all.
+    const busCtor = hw2.board==='rp2040'
+      ? `Arduino_DataBus *bus = new Arduino_RPiPicoSPI(TFT_DC, TFT_CS, TFT_SCK, TFT_MOSI, 8 /* MISO - unused by this write-only display, any free pin is fine */, spi0);`
+      : `Arduino_DataBus *bus = new Arduino_HWSPI(TFT_DC, TFT_CS);`;
+    const spiHz2 = Math.round((parseFloat(hw2.spiMhz)||24)*1e6);
+    // Passing the frequency to begin() matters - without an argument here,
+    // Arduino_GFX_Library falls back to its own conservative internal
+    // default, which is almost certainly why performance felt sluggish
+    // before this was added. If display corruption/glitches show up at
+    // the configured speed, lower "SPI Frequency" in Hardware Setup - the
+    // reference sketch this was validated against used a conservative
+    // 24MHz, well below this tool's 62.5MHz default.
+    // A full 320x480 8-bit indexed canvas fits comfortably in RP2040 SRAM
+    // (~150KB of 264KB available) - recomputed here since getPanelConfig()
+    // runs separately from where useIndexedCanvas is otherwise computed.
+    const useIndexedCanvas2 = ((state.hw&&state.hw.useFramebuffer)||'auto')!=='off';
+    const realDisplayCtor = `Arduino_GFX *${useIndexedCanvas2?'outputDisplay':'tft'} = new Arduino_ST7796(bus, TFT_RST, 0, false);`;
+    const canvasCtor = useIndexedCanvas2
+      ? `\n// Buffered drawing: all instrument code draws into this in-RAM canvas,\n// then flush() pushes the whole finished frame to outputDisplay in one\n// batch of SPI transactions instead of one per primitive - removes\n// flicker entirely and is dramatically faster than drawing straight to\n// the panel. Colours are plain RGB565 exactly like every other panel -\n// the canvas builds its own 256-entry palette automatically as colours\n// are actually used, only reducing precision if a design uses more than\n// 256 distinct colours at once (rare for an instrument cluster's\n// deliberately limited palette). mask_level starts at 0 (full precision)\n// per the library's own documented pattern, and is only raised\n// automatically, internally, if that 256-colour budget is exceeded.\nArduino_GFX *tft = new Arduino_Canvas_Indexed(SCREEN_W, SCREEN_H, outputDisplay, 0, 0, 0);`
+      : '';
+    const setupExtra2 = useIndexedCanvas2
+      ? `  // Explicit frequency on the REAL display object, not left to the\n  // canvas's own begin() to forward correctly - unverified pass-through\n  // behaviour isn't a risk worth taking twice in the same sketch.\n  outputDisplay->begin(${spiHz2});\n  tft->begin();\n  tft->setRotation(SCREEN_ROT);`
+      : `  tft->begin(${spiHz2});\n  tft->setRotation(SCREEN_ROT);`;
+    return {name:'ST7796S',gfx:'',include:'#include <Arduino_GFX_Library.h>',ctor:`${busCtor}\n${realDisplayCtor}${canvasCtor}`,note:'// NOTE: ST7796S uses the Arduino_GFX_Library (moononournation), not\n// Adafruit or TFT_eSPI - install it first: Sketch > Include Library >\n// Manage Libraries, search "GFX Library for Arduino", Install.',mono:false,setupExtra:setupExtra2,colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
   }
   if(dimKey==='480x320'){
     return {name:'HX8357',gfx:'#include <Adafruit_GFX.h>',include:'#include <Adafruit_HX8357.h>',ctor:'Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);',note:'',mono:false,setupExtra:'  tft.begin();\n  tft.setSPISpeed(SPI_HZ);  // big win: default is only 24 MHz\n  tft.setRotation(SCREEN_ROT);',colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
@@ -4250,6 +5049,14 @@ function buildArduinoCode(){
   const isMono=!!panel.mono;
   const hw=state.hw||HW_DEFAULTS;
   const isU8g2=panelId==='128x64-st7567'||panelId==='72x40'||panelId==='72x40-spi';
+  const isTftESPI=panel.include==='#include <Arduino_GFX_Library.h>';
+  // tft is a pointer for Arduino_GFX_Library (polymorphic bus/display
+  // construction) but a plain value object for every other panel - the GFX
+  // macro already accounts for this for instrument-drawing code, but a
+  // few other places (the DISPLAY_TEST colour-cycle block, the splash
+  // screen) reference tft directly rather than through that macro, so they
+  // need the same distinction applied by hand.
+  const tftAccess = isTftESPI ? 'tft->' : 'tft.';
   // U8g2's rotation constants (U8G2_R0..R3) are the display-driver equivalent
   // of tft.setRotation() for the Adafruit-GFX panels - both use the same
   // 0/1/2/3 = 0/90/180/270deg convention, so `rot` maps directly across.
@@ -4263,7 +5070,13 @@ function buildArduinoCode(){
   const fbMode=(hw.useFramebuffer||'auto');
   // Mono panels already buffer inside their own driver, so an extra canvas
   // would just duplicate memory for no gain.
-  const useFB = !isMonoPanelHW() && fbMode!=='off' && (fbMode==='on'||fbFits);
+  const useFB = !isMonoPanelHW() && !isTftESPI && fbMode!=='off' && (fbMode==='on'||fbFits);
+  // A full-screen 8-bit indexed canvas (Arduino_Canvas_Indexed) fits
+  // comfortably in RP2040 SRAM at this panel's resolution (~150KB of
+  // 264KB available) - unlike a 16-bit canvas, which would need ~300KB
+  // and simply doesn't fit at all - so this doesn't need a size-fit check
+  // the way useFB does, just the same on/off/auto Hardware Setup toggle.
+  const useIndexedCanvas = isTftESPI && !isMonoPanelHW() && fbMode!=='off';
   const canvasClass = depth===1?'GFXcanvas1':depth===8?'GFXcanvas8':'GFXcanvas16';
   // Two buffers let core1 push the finished frame while core0 draws the next,
   // so frame time becomes max(render, transfer) instead of their sum.
@@ -4306,6 +5119,7 @@ function buildArduinoCode(){
     : `// SPI Screen pins\n#define TFT_CS    ${hw.cs}\n#define TFT_DC    ${hw.dc}\n#define TFT_RST   ${hw.rst}\n#define TFT_SCK   ${hw.sck}\n#define TFT_MOSI  ${hw.mosi}${hw.bl!=='-1'?`\n#define TFT_BL    ${hw.bl}  // backlight`:''}\n#define SPI_HZ    ${spiHz}  // SPI clock; the library default (24 MHz) is far slower`;
   // The RP2040 core needs the pins assigned before begin(), otherwise it uses
   // its own defaults and the display stays blank however the #defines read.
+  const effectiveBaud = hw.protocol==='crsf' ? '420000' : hw.baud;
   const uartPinSetup = (hw.board==='rp2040' && (hw.rx!==''||hw.tx!==''))
     ? `  // Route ${hw.uart} to the configured pins (RP2040 core)\n`+
       (hw.tx!==''?`  ${hw.uart}.setTX(${hw.tx});\n`:'')+
@@ -4313,9 +5127,9 @@ function buildArduinoCode(){
     : '';
   const mavlinkFifoSetup = (hw.board==='rp2040')
     ? `  // RP2040's hardware UART RX FIFO defaults to just 32 bytes - at\n`+
-      `  // ${hw.baud} baud that's only ~${Math.round(32*10*1000/parseInt(hw.baud)*10)/10}ms of buffering. Any single blocking call in\n`+
+      `  // ${effectiveBaud} baud that's only ~${Math.round(32*10*1000/parseInt(effectiveBaud)*10)/10}ms of buffering. Any single blocking call in\n`+
       `  // loop() longer than that (a slow display flush, for example) silently\n`+
-      `  // drops/corrupts incoming bytes and breaks MAVLink frame sync. Must be\n`+
+      `  // drops/corrupts incoming bytes and breaks ${hw.protocol==='crsf'?'CRSF':'MAVLink'} frame sync. Must be\n`+
       `  // called before .begin().\n`+
       `  ${hw.uart}.setFIFOSize(1024);\n`
     : '';
@@ -4339,9 +5153,11 @@ function buildArduinoCode(){
       `  // at 125MHz or lower.\n`+
       `  { uint32_t sysHz = clock_get_hz(clk_sys); clock_configure(clk_peri, 0, CLOCKS_CLK_PERI_CTRL_AUXSRC_VALUE_CLK_SYS, sysHz, sysHz); }\n`
     : '';
-  const spiPinSetup = (!isI2CPanel() && !isU8g2 && hw.board==='rp2040')
+  const spiPinSetup = (!isI2CPanel() && !isU8g2 && !isTftESPI && hw.board==='rp2040')
     ? `  // Route hardware SPI to the configured pins (RP2040 core)\n`+
       `  SPI.setSCK(${hw.sck});\n  SPI.setTX(${hw.mosi});\n  // NB: no SPI.begin() here - the display library calls it during init.`
+    : (isTftESPI && hw.board==='rp2040')
+    ? `  // Arduino_GFX_Library's RP2040-specific bus (Arduino_RPiPicoSPI) takes\n  // CS/DC/SCK/MOSI/MISO as direct constructor arguments (see the bus/tft\n  // object construction below) rather than reading them from the global\n  // SPI object, so there is nothing to pre-configure here at all.`
     : (!isI2CPanel() && !isU8g2 && (hw.board==='esp32'||hw.board==='esp32s3'))
     ? `  // The display library's own begin() calls SPI.begin() with no args,\n`+
       `  // which silently falls back to this board's DEFAULT hardware SPI pins\n`+
@@ -4378,14 +5194,32 @@ function buildArduinoCode(){
     : (isI2CPanel() ? '  Wire.begin();\n  Wire.setClock(400000);  // Fast Mode - much faster than the core\'s 100kHz default' : '');
   // Most breakout boards leave the backlight off until it is driven high.
   // Without this the panel initialises fine but shows nothing at all.
+  const blMode = hw.blMode||'on';
   const blSetup = (!isI2CPanel() && hw.bl!=='-1' && hw.bl!=='')
-    ? `  pinMode(TFT_BL, OUTPUT);\n  digitalWrite(TFT_BL, HIGH);   // backlight on`
+    ? (blMode==='fixed'
+        ? `  pinMode(TFT_BL, OUTPUT);\n  analogWrite(TFT_BL, ${Math.round((hw.blFixedValue!==undefined?hw.blFixedValue:100)/100*255)});   // fixed brightness`
+        : blMode==='rc'
+        ? `  pinMode(TFT_BL, OUTPUT);   // brightness set every frame below, from ${hw.blRcSource||'RC_CHANNELS.chan7_raw'}`
+        : `  pinMode(TFT_BL, OUTPUT);\n  digitalWrite(TFT_BL, HIGH);   // backlight on`)
     : '  // No backlight pin configured. If the panel stays black, set one in\n  // Hardware Setup - most ST7789/ILI9341 boards need BL driven high.';
-  const uartSection=`// MAVLink UART\n#define MAVLINK_SERIAL  ${hw.uart}\n#define MAVLINK_BAUD    ${hw.baud}\n// RX pin: ${hw.rx}${hw.tx?`  TX pin: ${hw.tx}`:''}  (routed in setup() below)`;
+  // Contrast applies to this tool's two mono panel families: U8g2-driven
+  // (ST7567/72x40, via _u8g2.setContrast) and Adafruit_SSD1306-driven
+  // (SSD1306/SSD1315, via the library's own documented-public
+  // ssd1306_command(SSD1306_SETCONTRAST) API) - nothing to emit on color
+  // panels, rather than a placeholder comment cluttering every build that
+  // doesn't use either of these.
+  const isAdafruitMonoContrast = isMonoPanelHW() && !isU8g2;
+  const contrastMode = hw.contrastMode||'default';
+  const contrastSetup = (isU8g2 && contrastMode==='fixed')
+    ? `  _u8g2.setContrast(${Math.round((hw.contrastFixedValue!==undefined?hw.contrastFixedValue:50)/100*255)});   // fixed contrast`
+    : (isAdafruitMonoContrast && contrastMode==='fixed')
+    ? `  tft.ssd1306_command(SSD1306_SETCONTRAST);\n  tft.ssd1306_command(${Math.round((hw.contrastFixedValue!==undefined?hw.contrastFixedValue:50)/100*255)});   // fixed contrast - effect varies by module, some respond weakly`
+    : '';
+  const uartSection=`// ${hw.protocol==='crsf'?'CRSF':'MAVLink'} UART\n#define MAVLINK_SERIAL  ${hw.uart}\n#define MAVLINK_BAUD    ${effectiveBaud}\n// RX pin: ${hw.rx}${hw.tx?`  TX pin: ${hw.tx}`:''}  (routed in setup() below)`;
   const debugSection=hw.debugSerial!=='none'?`#define DEBUG_SERIAL    ${hw.debugSerial}`:`// Debug serial disabled`;
   const rgbLedOn = (hw.rgbLed||'on')==='on';
   const demoModeOn = (hw.demoMode||'on')==='on';
-  const includes=(panel.gfx?panel.gfx+'\n':'')+panel.include+(isI2CPanel()?'\n#include <Wire.h>':'')+(hw.board==='rp2040'?'\n#include "hardware/clocks.h"  // for the clk_peri re-tie fix in setup()':'')+(!isU8g2?'\n#include <Fonts/TomThumb.h>  // compact font for small instruments':'')+(rgbLedOn?'\n#include <Adafruit_NeoPixel.h>':'');
+  const includes=(panel.gfx?panel.gfx+'\n':'')+panel.include+(isI2CPanel()?'\n#include <Wire.h>':'')+(hw.board==='rp2040'?'\n#include "hardware/clocks.h"  // for the clk_peri re-tie fix in setup()':'')+(!isU8g2&&!isTftESPI?'\n#include <Fonts/TomThumb.h>  // compact font for small instruments':'')+(rgbLedOn?'\n#include <Adafruit_NeoPixel.h>':'');
   let code=`// ============================================================
 // AvionixForge - Generated Instrument Cluster Code
 // ------------------------------------------------------------
@@ -4400,14 +5234,14 @@ function buildArduinoCode(){
 // ------------------------------------------------------------
 // Section 1 : Includes & driver setup
 // ------------------------------------------------------------
-// Suppress -Waddress-of-packed-member warnings from MAVLink library headers.
+${hw.protocol==='crsf' ? '' : `// Suppress -Waddress-of-packed-member warnings from MAVLink library headers.
 // These are harmless alignment warnings inside the library itself, not in this code.
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress-of-packed-member"
-${includes}
-#include <MAVLink.h>
+`}${includes}
+${hw.protocol==='crsf' ? '' : `#include <MAVLink.h>
 #pragma GCC diagnostic pop
-${panel.note}
+`}${panel.note}
 
 ${pinSection}
 
@@ -4462,7 +5296,7 @@ volatile bool fbPending = false;           // set by core0, cleared by core1
 ${isMonoPanelHW() ? '// The mono driver keeps its own buffer, so this is already buffered.'
   : fbFits ? '// Framebuffer disabled in Hardware Setup.'
   : `// A ${depth}bpp framebuffer would need ${(fbBytes/1024).toFixed(0)} KB, which exceeds available SRAM.\n// Lower the colour depth in Hardware Setup to enable double buffering.`}
-#define GFX tft
+${isTftESPI ? '#define GFX (*tft)      // Arduino_GFX_Library: tft is a pointer (polymorphic bus/display construction)' : '#define GFX tft'}
 `}
 
 // ------------------------------------------------------------
@@ -4510,7 +5344,9 @@ struct MavlinkData {
   float voltage, current, temperature, pressure, hdop;
   int battery_remaining, rssi, satellites;
   int flight_mode;
+  char flightModeStr[16]; // CRSF sends flight mode as ASCII text, not a numeric mode like MAVLink's custom_mode
   float rpm, slip;
+  int rcChan[16]; // raw PWM (typically ~1000-2000us) per RC channel, 1-indexed in MAVLink but stored 0-indexed here
   double lat, lon;         // current GPS position (degrees)
   double homeLat, homeLon; // home position (degrees, set on first fix or arm)
   bool homeSet;
@@ -4773,7 +5609,19 @@ int gfxCharH(int sz) { return _gfxCompact ? 6 : 10; }
 // convention to U8g2's baseline convention internally (see Section 3b),
 // and that conversion is fixed there to already account for the compact
 // font's shorter ascent - so no additional correction belongs here.
-int gfxCenterOffset(int sz) { return 0; }` : `int gfxSizeF(float pxHeight) {
+int gfxCenterOffset(int sz) { return 0; }` : isTftESPI ? `int gfxSizeF(float pxHeight) {
+  // Arduino_GFX_Library is Adafruit_GFX-API-compatible and may well
+  // support the GFXfont pointer API the TomThumb compact font (used below
+  // for the other panel family) needs - but that has not been confirmed
+  // on real hardware, so this stays on the safe, already-proven path:
+  // the standard built-in font, just scaled by size, no font switching.
+  // Small instruments render a little larger as a result.
+  int s = (int)roundf(pxHeight / 8.0f);
+  return s < 1 ? 1 : s;
+}
+int gfxCharW(int sz) { return 6*sz; }
+int gfxCharH(int sz) { return 8*sz; }
+int gfxCenterOffset(int sz) { return -(gfxCharH(sz)/2); }` : `int gfxSizeF(float pxHeight) {
   if (pxHeight < 7.0f) { GFX.setFont(&TomThumb); _gfxCompact = true; return 1; }
   GFX.setFont();  // back to the built-in default font
   _gfxCompact = false;
@@ -4807,11 +5655,16 @@ int gfxCenterOffset(int sz) { return _gfxCompact ? (gfxCharH(sz)/2) : -(gfxCharH
 // thousands of them for a single dithered shape; on the mono/U8g2 path
 // these are harmless no-ops (see GFXShim), since U8g2 already buffers
 // everything in RAM with no per-pixel SPI cost to batch in the first place.
+// Deliberately drawPixel(), not the lower-level writePixel() some
+// Adafruit_GFX SPI displays offer for a further marginal speedup inside an
+// open startWrite() block - TFT_eSPI supports startWrite()/endWrite() but
+// has no writePixel() method at all, so using it here would compile fine
+// on Adafruit_GFX panels while failing outright on TFT_eSPI ones.
 void ditherFillRect(int x, int y, int w, int h, uint16_t color) {
   GFX.startWrite();
   for (int py = y; py < y + h; py++)
     for (int px = x; px < x + w; px++)
-      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
   GFX.endWrite();
 }
 void ditherFillCircle(int cx, int cy, int r, uint16_t color) {
@@ -4821,7 +5674,7 @@ void ditherFillCircle(int cx, int cy, int r, uint16_t color) {
     for (int px = cx - r; px <= cx + r; px++) {
       int dx = px - cx;
       if (dx*dx + dy*dy > r*r) continue;
-      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
     }
   }
   GFX.endWrite();
@@ -4845,7 +5698,7 @@ void ditherFillRotatedRect(int cx, int cy, float w, float h, float rotDeg, uint1
       float lx =  dx*c + dy*s;
       float ly = -dx*s + dy*c;
       if (lx < -hw || lx > hw || ly < -hh || ly > hh) continue;
-      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
     }
   }
   GFX.endWrite();
@@ -4867,7 +5720,7 @@ void ditherFillRotatedTriangle(int cx, int cy, float w, float h, float rotDeg, u
   for (int py = minY; py <= maxY; py++) {
     for (int px = minX; px <= maxX; px++) {
       if (!_pointInTriangle(px, py, rx[0],ry[0], rx[1],ry[1], rx[2],ry[2])) continue;
-      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
     }
   }
   GFX.endWrite();
@@ -4885,7 +5738,7 @@ void ditherFillRotatedEllipse(int cx, int cy, float radX, float radY, float rotD
       float lx =  dx*c + dy*s;
       float ly = -dx*s + dy*c;
       if ((lx*lx)/(radX*radX) + (ly*ly)/(radY*radY) > 1.0f) continue;
-      if (((px ^ py) & 1) == 0) GFX.writePixel(px, py, color);
+      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
     }
   }
   GFX.endWrite();
@@ -4931,7 +5784,105 @@ void updateDemoValues() {
   if (!mav.homeSet) { mav.homeLat = 47.4979; mav.homeLon = 19.0402; mav.homeSet = true; }
 }
 ` : ''}
+${hw.protocol==='crsf' ? `// ---- CRSF telemetry (ExpressLRS / Crossfire) ----
+// This is the same telemetry stream an EdgeTX radio receives from the
+// aircraft - parsed directly here instead of MAVLink, no external library
+// needed since the CRSF frame format is simple enough to hand-parse: a
+// sync byte, a length byte, a type byte, the payload, then a CRC8.
+#define CRSF_SYNC_BYTE 0xC8
+#define CRSF_MAX_FRAME_LEN 64
+
+uint8_t crsfCrc8(const uint8_t *data, uint8_t len) {
+  uint8_t crc = 0;
+  for (uint8_t i = 0; i < len; i++) {
+    crc ^= data[i];
+    for (uint8_t j = 0; j < 8; j++) crc = (crc & 0x80) ? (crc << 1) ^ 0xD5 : (crc << 1);
+  }
+  return crc;
+}
+
+void handleCrsfFrame(uint8_t type, uint8_t *payload, uint8_t len) {
+  switch (type) {
+    case 0x02: { // GPS: lat, lon (deg*1e7), groundspeed (km/h*10), heading (deg*100), altitude (m, +1000 offset), satellites
+      if (len < 15) return;
+      int32_t lat = ((int32_t)payload[0]<<24)|((int32_t)payload[1]<<16)|((int32_t)payload[2]<<8)|payload[3];
+      int32_t lon = ((int32_t)payload[4]<<24)|((int32_t)payload[5]<<16)|((int32_t)payload[6]<<8)|payload[7];
+      uint16_t gs  = (payload[8]<<8)|payload[9];
+      uint16_t hdg = (payload[10]<<8)|payload[11];
+      uint16_t alt = (payload[12]<<8)|payload[13];
+      mav.satellites = payload[14];
+      mav.lat = lat / 1e7; mav.lon = lon / 1e7;
+      mav.groundspeed = gs / 36.0f; // km/h*10 -> m/s (matches MAVLink's own m/s convention)
+      mav.heading = hdg / 100.0f;
+      mav.alt = (float)alt - 1000.0f;
+      if (!mav.homeSet && mav.satellites >= 6) { mav.homeLat = mav.lat; mav.homeLon = mav.lon; mav.homeSet = true; }
+      break;
+    }
+    case 0x08: { // Battery: voltage (0.1V), current (0.1A), capacity_used (mAh, 3 bytes, unused here), remaining (%)
+      if (len < 8) return;
+      uint16_t volt = (payload[0]<<8)|payload[1];
+      uint16_t curr = (payload[2]<<8)|payload[3];
+      mav.voltage = volt / 10.0f;
+      mav.current = curr / 10.0f;
+      mav.battery_remaining = payload[7];
+      break;
+    }
+    case 0x1E: { // Attitude: pitch, roll, yaw (radians * 10000, big-endian int16)
+      if (len < 6) return;
+      int16_t pitch = (payload[0]<<8)|payload[1];
+      int16_t roll  = (payload[2]<<8)|payload[3];
+      int16_t yaw   = (payload[4]<<8)|payload[5];
+      mav.pitch = pitch / 10000.0f * 57.2958f;
+      mav.roll  = roll  / 10000.0f * 57.2958f;
+      mav.yaw   = yaw   / 10000.0f * 57.2958f;
+      break;
+    }
+    case 0x21: { // Flight mode: ASCII text, not a number like MAVLink's custom_mode
+      uint8_t n = (uint8_t)min((size_t)len, sizeof(mav.flightModeStr) - 1);
+      memcpy(mav.flightModeStr, payload, n);
+      mav.flightModeStr[n] = 0;
+      break;
+    }
+    case 0x14: { // Link statistics: uplink RSSI (antenna 1) as a stand-in for MAVLink's rssi field
+      if (len < 1) return;
+      mav.rssi = payload[0];
+      break;
+    }
+  }
+}
+
 void receiveMavlink() {
+  // Same bounded-budget reasoning as the MAVLink path: without a cap, a
+  // receiver streaming telemetry fast enough can keep this loop from ever
+  // returning, starving whatever else needs to run on this core.
+  static uint8_t buf[CRSF_MAX_FRAME_LEN];
+  static uint8_t idx = 0;
+  int budget = 128;
+  while (budget-- > 0 && MAVLINK_SERIAL.available()) {
+    uint8_t c = MAVLINK_SERIAL.read();
+    if (idx == 0) {
+      if (c != CRSF_SYNC_BYTE) continue; // not a frame start - resync
+      buf[idx++] = c;
+    } else if (idx == 1) {
+      if (c < 2 || c > CRSF_MAX_FRAME_LEN - 2) { idx = 0; continue; } // length byte out of range - resync
+      buf[idx++] = c;
+    } else {
+      buf[idx++] = c;
+      uint8_t frameLen = buf[1]; // type + payload + crc
+      if (idx >= frameLen + 2) { // full frame received (2 = sync + length bytes, then frameLen more)
+        uint8_t type = buf[2];
+        uint8_t crcReceived = buf[idx-1];
+        uint8_t crcCalc = crsfCrc8(&buf[2], frameLen - 1); // over type+payload only, not sync/length/crc
+        if (crcCalc == crcReceived) {
+          handleCrsfFrame(type, &buf[3], frameLen - 2);
+          mav.lastUpdate = millis();
+        }
+        idx = 0;
+      }
+    }
+  }
+}
+` : `void receiveMavlink() {
   mavlink_message_t msg;
   mavlink_status_t status;
   // Bounded on purpose: without this cap, a real FC streaming full
@@ -4957,7 +5908,15 @@ void handleMavlinkMessage(mavlink_message_t *msg) {
     case MAVLINK_MSG_ID_ATTITUDE: { mavlink_attitude_t a; mavlink_msg_attitude_decode(msg, &a); mav.roll = a.roll*57.2958; mav.pitch = a.pitch*57.2958; mav.yaw = a.yaw*57.2958; mav.yawspeed = a.yawspeed*57.2958; break; }
     case MAVLINK_MSG_ID_VFR_HUD: { mavlink_vfr_hud_t h; mavlink_msg_vfr_hud_decode(msg, &h); mav.alt=h.alt; mav.airspeed=h.airspeed; mav.groundspeed=h.groundspeed; mav.heading=h.heading; mav.throttle=h.throttle; mav.climb=h.climb; break; }
     case MAVLINK_MSG_ID_SYS_STATUS: { mavlink_sys_status_t s; mavlink_msg_sys_status_decode(msg, &s); mav.voltage=s.voltage_battery/1000.0; mav.current=s.current_battery/100.0; mav.battery_remaining=s.battery_remaining; break; }
-    case MAVLINK_MSG_ID_RC_CHANNELS: { mavlink_rc_channels_t r; mavlink_msg_rc_channels_decode(msg, &r); mav.rssi=r.rssi; break; }
+    case MAVLINK_MSG_ID_RC_CHANNELS: {
+      mavlink_rc_channels_t r; mavlink_msg_rc_channels_decode(msg, &r);
+      mav.rssi=r.rssi;
+      mav.rcChan[0]=r.chan1_raw; mav.rcChan[1]=r.chan2_raw; mav.rcChan[2]=r.chan3_raw; mav.rcChan[3]=r.chan4_raw;
+      mav.rcChan[4]=r.chan5_raw; mav.rcChan[5]=r.chan6_raw; mav.rcChan[6]=r.chan7_raw; mav.rcChan[7]=r.chan8_raw;
+      mav.rcChan[8]=r.chan9_raw; mav.rcChan[9]=r.chan10_raw; mav.rcChan[10]=r.chan11_raw; mav.rcChan[11]=r.chan12_raw;
+      mav.rcChan[12]=r.chan13_raw; mav.rcChan[13]=r.chan14_raw; mav.rcChan[14]=r.chan15_raw; mav.rcChan[15]=r.chan16_raw;
+      break;
+    }
     case MAVLINK_MSG_ID_GPS_RAW_INT: { mavlink_gps_raw_int_t g; mavlink_msg_gps_raw_int_decode(msg, &g); mav.satellites=g.satellites_visible; mav.lat=g.lat/1e7; mav.lon=g.lon/1e7; mav.hdop = (g.eph==UINT16_MAX) ? 0 : g.eph/100.0f; if(!mav.homeSet&&g.fix_type>=3){mav.homeLat=mav.lat;mav.homeLon=mav.lon;mav.homeSet=true;} break; }
     case MAVLINK_MSG_ID_HOME_POSITION: { mavlink_home_position_t hp; mavlink_msg_home_position_decode(msg, &hp); mav.homeLat=hp.latitude/1e7; mav.homeLon=hp.longitude/1e7; mav.homeSet=true; break; }
     case MAVLINK_MSG_ID_HEARTBEAT: { mavlink_heartbeat_t hb; mavlink_msg_heartbeat_decode(msg, &hb); mav.flight_mode=hb.custom_mode; break; }
@@ -4966,7 +5925,7 @@ void handleMavlinkMessage(mavlink_message_t *msg) {
     case MAVLINK_MSG_ID_HIGHRES_IMU: { mavlink_highres_imu_t imu; mavlink_msg_highres_imu_decode(msg, &imu); mav.temperature=imu.temperature; mav.pressure=imu.abs_pressure/100.0; break; }
   }
 }
-
+`}
 float getMavlinkValue(const char* source) {
   if (strcmp(source,"ATTITUDE.roll")==0) return mav.roll;
   if (strcmp(source,"ATTITUDE.pitch")==0) return mav.pitch;
@@ -4983,6 +5942,22 @@ float getMavlinkValue(const char* source) {
   if (strcmp(source,"SYS_STATUS.current")==0) return mav.current;
   if (strcmp(source,"SYS_STATUS.battery_remaining")==0) return mav.battery_remaining;
   if (strcmp(source,"RC_CHANNELS.rssi")==0) return mav.rssi;
+  if (strcmp(source,"RC_CHANNELS.chan1_raw")==0) return mav.rcChan[0];
+  if (strcmp(source,"RC_CHANNELS.chan2_raw")==0) return mav.rcChan[1];
+  if (strcmp(source,"RC_CHANNELS.chan3_raw")==0) return mav.rcChan[2];
+  if (strcmp(source,"RC_CHANNELS.chan4_raw")==0) return mav.rcChan[3];
+  if (strcmp(source,"RC_CHANNELS.chan5_raw")==0) return mav.rcChan[4];
+  if (strcmp(source,"RC_CHANNELS.chan6_raw")==0) return mav.rcChan[5];
+  if (strcmp(source,"RC_CHANNELS.chan7_raw")==0) return mav.rcChan[6];
+  if (strcmp(source,"RC_CHANNELS.chan8_raw")==0) return mav.rcChan[7];
+  if (strcmp(source,"RC_CHANNELS.chan9_raw")==0) return mav.rcChan[8];
+  if (strcmp(source,"RC_CHANNELS.chan10_raw")==0) return mav.rcChan[9];
+  if (strcmp(source,"RC_CHANNELS.chan11_raw")==0) return mav.rcChan[10];
+  if (strcmp(source,"RC_CHANNELS.chan12_raw")==0) return mav.rcChan[11];
+  if (strcmp(source,"RC_CHANNELS.chan13_raw")==0) return mav.rcChan[12];
+  if (strcmp(source,"RC_CHANNELS.chan14_raw")==0) return mav.rcChan[13];
+  if (strcmp(source,"RC_CHANNELS.chan15_raw")==0) return mav.rcChan[14];
+  if (strcmp(source,"RC_CHANNELS.chan16_raw")==0) return mav.rcChan[15];
   if (strcmp(source,"GPS_RAW.satellites")==0) return mav.satellites;
   if (strcmp(source,"GPS_RAW.hdop")==0) return mav.hdop;
   if (strcmp(source,"GPS.lat")==0) return (float)mav.lat;
@@ -5010,8 +5985,12 @@ float homeDistanceM() {
 }
 float homeBearingDeg() {
   if (!mav.homeSet) return 0;
-  float y = sinf((mav.lon-mav.homeLon)*PI/180) * cosf(mav.lat*PI/180);
-  float x = cosf(mav.homeLat*PI/180)*sinf(mav.lat*PI/180) - sinf(mav.homeLat*PI/180)*cosf(mav.lat*PI/180)*cosf((mav.lon-mav.homeLon)*PI/180);
+  // Bearing FROM current position TO home - not the other way around. The
+  // standard great-circle bearing formula computes "from point 1 to point
+  // 2"; point 1 must be the current position and point 2 must be home for
+  // this to point back toward home, which is what this arrow is for.
+  float y = sinf((mav.homeLon-mav.lon)*PI/180) * cosf(mav.homeLat*PI/180);
+  float x = cosf(mav.lat*PI/180)*sinf(mav.homeLat*PI/180) - sinf(mav.lat*PI/180)*cosf(mav.homeLat*PI/180)*cosf((mav.homeLon-mav.lon)*PI/180);
   float b = atan2f(y, x) * 180.0f / PI;
   return fmodf(b + 360.0f, 360.0f);
 }
@@ -5081,6 +6060,8 @@ float homeBearingDeg() {
       '    }',
       '  }'
     ].join('\n');
+  } else if(useIndexedCanvas){
+    flushBuf='  tft->flush(); // push the finished frame from the indexed canvas to the real display';
   } else {
     flushBuf=''; // drawing went straight to the panel; nothing to push
   }
@@ -5104,6 +6085,7 @@ ${spiPinSetup}
 ${i2cPinSetup}
 ${blSetup}
 ${panel.setupExtra||('  tft.begin();\n  tft.setRotation(SCREEN_ROT);')}
+${contrastSetup}
   memset(&mav, 0, sizeof(mav));
 
   // ---- Display self-test -------------------------------------------
@@ -5128,10 +6110,10 @@ ${isU8g2 ? `  // Mono panel: no RGB to cycle. First sweep contrast with a filled
     _u8g2.drawBox(0, 0, SCREEN_W, SCREEN_H); _u8g2.sendBuffer(); delay(600);   // all on
     _u8g2.clearBuffer(); _u8g2.sendBuffer(); delay(600);                       // all off
   }` : `  for (;;) {
-    tft.fillScreen(0xF800); delay(600);   // red
-    tft.fillScreen(0x07E0); delay(600);   // green
-    tft.fillScreen(0x001F); delay(600);   // blue
-    tft.fillScreen(0xFFFF); delay(600);   // white
+    ${tftAccess}fillScreen(0xF800); delay(600);   // red${useIndexedCanvas?'\n    tft->flush();':''}
+    ${tftAccess}fillScreen(0x07E0); delay(600);   // green${useIndexedCanvas?'\n    tft->flush();':''}
+    ${tftAccess}fillScreen(0x001F); delay(600);   // blue${useIndexedCanvas?'\n    tft->flush();':''}
+    ${tftAccess}fillScreen(0xFFFF); delay(600);   // white${useIndexedCanvas?'\n    tft->flush();':''}
   }`}
 #endif
 
@@ -5140,9 +6122,9 @@ ${isU8g2 ? `  // Mono panel: no RGB to cycle. First sweep contrast with a filled
   // fits even on the smallest supported screens.
   ${isU8g2
     ? `_u8g2.clearBuffer();\n  _u8g2.setFont(u8g2_font_6x10_tf);\n  _u8g2.setDrawColor(C_FG);\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("AVIONIX"))/2, SCREEN_H/2 - 6, "AVIONIX");\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("FORGE"))/2, SCREEN_H/2 + 8, "FORGE");\n  _u8g2.sendBuffer();`
-    : `tft.fillScreen(C_BG);\n  tft.setTextColor(${splashColor}); tft.setTextSize(1);\n  tft.setCursor(SCREEN_W/2 - (int)(strlen("AVIONIX")*6)/2, SCREEN_H/2 - 10);\n  tft.print("AVIONIX");\n  tft.setCursor(SCREEN_W/2 - (int)(strlen("FORGE")*6)/2, SCREEN_H/2 + 2);\n  tft.print("FORGE");${displayRefresh}`}
+    : `${tftAccess}fillScreen(C_BG);\n  ${tftAccess}setTextColor(${splashColor}); ${tftAccess}setTextSize(1);\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("AVIONIX")*6)/2, SCREEN_H/2 - 10);\n  ${tftAccess}print("AVIONIX");\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("FORGE")*6)/2, SCREEN_H/2 + 2);\n  ${tftAccess}print("FORGE");${useIndexedCanvas?'\n  tft->flush();':''}${displayRefresh}`}
   delay(1500);
-  ${isU8g2?'_u8g2.clearBuffer(); _u8g2.sendBuffer();':'tft.fillScreen(C_BG);'}
+  ${isU8g2?'_u8g2.clearBuffer(); _u8g2.sendBuffer();':tftAccess+'fillScreen(C_BG);'}${useIndexedCanvas?'\n  tft->flush();':''}
 ${useFB ? `  // GFXcanvas allocates with malloc and fails SILENTLY - getBuffer() just
   // returns null and the screen stays blank with no error. Check it.
 ${pingPong ? `  if (!fbA.getBuffer() || !fbB.getBuffer()) {
@@ -5253,7 +6235,7 @@ ${hw.board!=='rp2040' ? '  receiveMavlink();\n' : '  // receiveMavlink() now run
 // Section 8 : Master draw dispatch
 // ------------------------------------------------------------
 void drawAll() {
-${fillScreen}
+${(blMode==='rc'||((isU8g2||isAdafruitMonoContrast)&&contrastMode==='rc'))?`  // Brightness/contrast set from an RC channel can change in flight, so\n  // it is re-applied every frame here rather than once in setup().\n${blMode==='rc'?`  analogWrite(TFT_BL, constrain(map((int)getMavlinkValue("${hw.blRcSource||'RC_CHANNELS.chan7_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isU8g2&&contrastMode==='rc')?`  _u8g2.setContrast(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isAdafruitMonoContrast&&contrastMode==='rc')?`  tft.ssd1306_command(SSD1306_SETCONTRAST);\n  tft.ssd1306_command(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}`:''}${fillScreen}
 `;
   if(insts.length===0){
     code+=`  // (nothing to draw)\n`;
@@ -5285,6 +6267,104 @@ ${fillScreen}
   return code;
 }
 
+// Generates one combined sketch from up to 3 independently-designed layouts
+// (each a normal saved project JSON, loaded and instruments extracted),
+// switchable at runtime via an RC channel. All 3 pages share ONE hardware
+// config (board, pins, display, etc.) - that of the currently active
+// editor session - since they describe one physical device showing
+// different screens, not three different devices.
+//
+// Approach: generate each page as a complete, independent sketch through
+// the existing, UNCHANGED buildArduinoCode() (proven correct by every test
+// already run against it), then splice out just the instrument-specific
+// portion of each (position/size #defines, the draw-dispatch function, and
+// the per-instrument draw functions - Sections 6/8/9, identified by their
+// existing, already-unique section-comment markers) and rename every
+// identifier in that portion to be unique per page. Everything else
+// (includes, telemetry state, MAVLink receive, setup/loop) comes from page
+// 0's sketch only, since none of it depends on which instruments exist -
+// confirmed by inspection: those sections never reference an INSTn_x
+// constant or a draw_TYPE_n function name at all, only Section 8 (being
+// replaced) and Section 9 (being namespaced) do. The one exception is
+// setup()/loop()'s single "drawAll();" call site, which gets replaced with
+// RC-channel page selection instead of being carried over unmodified.
+function buildMultiPageArduinoCode(pages, rcSource) {
+  const S6 = '// Section 6 : Instrument layout defines';
+  const S7 = '// Section 7 : Arduino entry points';
+  const S8 = '// Section 8 : Master draw dispatch';
+  const S9 = '// Section 9 : Per-instrument draw functions';
+  const END = '// ============================================================\n// End of generated code';
+
+  const savedInstruments = state.instruments;
+  let sharedHead = null, sharedLoop = null;
+  const pageBlocks = [];
+
+  try {
+    pages.forEach((page, idx) => {
+      state.instruments = page.instruments;
+      const full = buildArduinoCode();
+
+      const s6i = full.indexOf(S6), s7i = full.indexOf(S7), s8i = full.indexOf(S8), endi = full.indexOf(END);
+      if (s6i < 0 || s7i < 0 || s8i < 0 || endi < 0) {
+        throw new Error('Could not locate expected section markers while building page ' + (idx + 1) + ' - the generator output changed shape unexpectedly.');
+      }
+
+      if (idx === 0) {
+        sharedHead = full.slice(0, s6i);         // Sections 1-5
+        sharedLoop = full.slice(s7i, s8i);        // Section 7 (setup/loop), unmodified for now
+      }
+
+      // Page-specific: Section 6 (defines) + Section 8 (dispatch) + Section 9 (draw fns)
+      let block = full.slice(s6i, s7i) + full.slice(s8i, endi);
+      // Namespace every per-page identifier so 3 pages can coexist in one
+      // file without colliding: INSTn_X/Y/W/H constants, draw_TYPE_n
+      // function names (definitions AND call sites - one regex pass
+      // covers both, since they're textually identical), and drawAll
+      // itself (the page's own dispatch function).
+      block = block.replace(/\bINST(\d+)_/g, `P${idx}_INST$1_`);
+      block = block.replace(/\bdraw_([a-z_]+?)_(\d+)\b/g, `draw_$1_$2_p${idx}`);
+      block = block.replace(/\bdrawAll\b/g, `drawPage${idx}`);
+      pageBlocks.push(block);
+    });
+  } finally {
+    state.instruments = savedInstruments;   // always restore, even on error
+  }
+
+  // Replace the single "drawAll(); lastDraw = millis();" call site in
+  // loop() with RC-channel-based page selection. Exact substring match
+  // rather than a regex, since this line's surrounding formatting is fixed
+  // and known.
+  const oldCall = 'drawAll(); lastDraw = millis();';
+  if (!sharedLoop.includes(oldCall)) {
+    throw new Error('Could not find the expected drawAll() call site in loop() to replace with page switching.');
+  }
+  const pageCount = pages.length;
+  const newCall =
+`{
+    // Divides the 1000-2000us range into ${pageCount} equal zones directly,
+    // rather than map()'s linear-and-truncating behaviour, which would
+    // make the last page reachable only at the exact maximum PWM value.
+    int _pg = (int)(((float)getMavlinkValue("${rcSource}") - 1000.0f) / (1000.0f / ${pageCount}));
+    _pg = constrain(_pg, 0, ${pageCount - 1});
+    switch (_pg) {
+${pages.map((p,i)=>`      case ${i}: drawPage${i}(); break;`).join('\n')}
+    }
+    lastDraw = millis();
+  }`;
+  sharedLoop = sharedLoop.replace(oldCall, newCall);
+
+  // RP2040 boards also have a SECOND, separate "prime the first frame"
+  // drawAll() call at the end of setup1() (core 1), independent of the
+  // main loop() dispatch just replaced above - defaults to page 0 here,
+  // since the main loop() re-evaluates the RC channel and corrects to the
+  // right page within milliseconds regardless, and RC/MAVLink data may
+  // not have arrived yet this early in boot either way.
+  sharedLoop = sharedLoop.replace(/\bdrawAll\(\);/, 'drawPage0();');
+
+  return sharedHead + sharedLoop + '\n' + pageBlocks.join('\n') +
+    '\n// ============================================================\n// End of generated code - AvionixForge (multi-page)\n// ============================================================\n';
+}
+
 function generateInstrumentCode(inst, i) {
   const c = inst.config;
   const label = c.label || c.mavSource || '';
@@ -5311,7 +6391,7 @@ function generateInstrumentCode(inst, i) {
   L.push(`void ${fnName}(int x, int y, int w, int h) {`);
   L.push(`  int cx = x + w/2, cy = y + h/2;`);
   L.push(`  int r  = min(w, h)/2 - 2;`);
-  const ROTATION_UNSUPPORTED_TYPES = ['altimeter-tape','airspeed-tape','tape','heading-tape','vsi-tape',
+  const ROTATION_UNSUPPORTED_TYPES = ['altimeter-tape','airspeed-tape','tape','heading-tape','heading-arc','vsi-tape',
     'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text','shape-line'];
   const effectiveRot = ROTATION_UNSUPPORTED_TYPES.includes(inst.type) ? 0 : (c.rotation || 0);
   L.push(`  float rot = ${effectiveRot};`);
@@ -5367,7 +6447,7 @@ function generateInstrumentCode(inst, i) {
   if(c.handColor100)  L.push(`  uint16_t hand100    = ${hexTo565Const(c.handColor100)};`);
   if(c.handColor1000) L.push(`  uint16_t hand1000   = ${hexTo565Const(c.handColor1000)};`);
   if(c.digitalColor)  L.push(`  uint16_t digColor   = ${hexTo565Const(c.digitalColor)};`);
-  if(inst.type==='compass'||inst.type==='heading-tape') L.push(`  uint16_t northColor = ${hexTo565Const(c.northColor||'#ff5c5c')};`);
+  if(inst.type==='compass'||inst.type==='heading-tape'||inst.type==='heading-arc') L.push(`  uint16_t northColor = ${hexTo565Const(c.northColor||'#ff5c5c')};`);
   else if(c.northColor) L.push(`  uint16_t northColor = ${hexTo565Const(c.northColor)};`);
   L.push(``);
   // Clear only this instrument's own rectangle. Repainting the whole screen
@@ -5798,10 +6878,17 @@ function generateInstrumentCode(inst, i) {
     const unitDX  = Math.round(gDX(c,'unit')),  unitDY  = Math.round(gDY(c,'unit'));
     L.push(`  // --- Vertical Tape ---`);
     if (inst.type==='groundspeed-tape') {
-      L.push(`  float value = ${mavFetch(c.mavSource)} * 3.6f;  // m/s -> km/h`);
-    } else {
-      L.push(`  float value = ${mavFetch(c.mavSource)};`);
+      // Backward compatibility: any design saved before the Unit of
+      // Measure dropdown existed has no mavMultiply/unit set for this
+      // instrument, but always displayed km/h (a separate, hardcoded
+      // conversion used to live here). Backfilling those two fields once,
+      // the first time this generates, keeps existing designs looking
+      // exactly as they did - after which this is a no-op, since the
+      // fields are no longer undefined.
+      if(c.mavMultiply===undefined) c.mavMultiply=3.6;
+      if(c.unit===undefined) c.unit='km/h';
     }
+    L.push(`  float value = ${mavFetch(c.mavSource)};`);
     L.push(`  bool showVal    = ${b(c.showValue)};`);
     L.push(`  bool showUnit   = ${b(c.showUnit)};`);
     L.push(`  bool showLabels = ${b(c.showLabels)};`);
@@ -5860,7 +6947,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
     L.push(`    GFX.setCursor(boxX + charW/2 + (${valueDX}), midY - charH/2 + (${valueDY})); GFX.print(vbuf);`);
     L.push(`  }`);
-    L.push(`  if (showUnit && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','w*0.12f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(x + w/2 - 2*gfxCharW(uSz) + (${unitDX}), y + h - max(6,(int)(h*0.04)) + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${inst.type==='groundspeed-tape'?'km/h':(c.unit||'')}"); }`);
+    L.push(`  if (showUnit && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','w*0.12f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(x + w/2 - 2*gfxCharW(uSz) + (${unitDX}), y + h - max(6,(int)(h*0.04)) + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}"); }`);
   }
   else if (inst.type === 'vsi') {
     const vSweep = c.sweepAngle!==undefined?c.sweepAngle:180;
@@ -5979,16 +7066,109 @@ function generateInstrumentCode(inst, i) {
     L.push(`    if (hdg < 10) GFX.print("00"); else if (hdg < 100) GFX.print("0"); GFX.print(hdg);`);
     L.push(`  }`);
   }
+  else if (inst.type === 'heading-arc') {
+    const haSubCount = Math.max(0, Math.round(parseFloat(c.subTicks)||0));
+    const haSubDiv = haSubCount + 1;
+    const haSweep = c.arcSweepDeg>0 ? c.arcSweepDeg : 70;
+    const haFlipped = !!c.flipped;
+    const haApexAngle = haFlipped ? 90 : 270;
+    const haAngSign = haFlipped ? -1 : 1;
+    const haMajLenExpr = c.majorTickLen!==undefined ? `${Number(c.majorTickLen).toFixed(2)}f` : `h*0.22f`;
+    const haMinLenExpr = c.minorTickLen!==undefined ? `${Number(c.minorTickLen).toFixed(2)}f` : `h*0.12f`;
+    const habw = c.borderWidth!==undefined ? c.borderWidth : 1;
+    const haScaleDX = Math.round(gDX(c,'scale')), haScaleDY = Math.round(gDY(c,'scale'));
+    const haValueDX = Math.round(gDX(c,'value')), haValueDY = Math.round(gDY(c,'value'));
+    L.push(`  // --- Heading Arc ---`);
+    L.push(`  float heading = ${mavFetch(c.mavSource)};`);
+    L.push(`  bool showVal = ${b(c.showValue)};`);
+    L.push(`  bool showLabels = ${b(c.showLabels)};`);
+    L.push(`  bool showTicksHA = ${b(c.showTicks)};`);
+    L.push(`  bool showPtrHA = ${b(c.showPointer)};`);
+    L.push(bgFillLine(c,'rect'));
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) { for (int bi=0;bi<${habw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
+    L.push(`  // The arc's own circle centre sits outside the box (below when normal,`);
+    L.push(`  // above when flipped) - the visible portion is just a slice of that`);
+    L.push(`  // circle, curving like a smile (normal) or a frown (flipped). apexY is`);
+    L.push(`  // the current-heading point - top of the box normally (matching`);
+    L.push(`  // Heading Tape's pointer position), bottom when flipped.`);
+    L.push(`  float haApexY = ${haFlipped?'h*0.85f':'h*0.15f'};`);
+    L.push(`  float haSweep = ${haSweep.toFixed(2)}f;`);
+    L.push(`  float haDegPerHeadingDeg = haSweep / 90.0f;`);
+    L.push(`  float haRadius = (w*0.42f) / sinf((haSweep/2.0f) * PI/180.0f);`);
+    L.push(`  float haCx = x + w/2.0f, haCy = y + ${haFlipped?'haApexY - haRadius':'haApexY + haRadius'};`);
+    L.push(`  float startHA = floorf((heading - 45) / 10.0f) * 10.0f;`);
+    L.push(`  float haFineStep = 10.0f / ${haSubDiv}.0f;`);
+    L.push(`  int haSteps = (int)ceilf(90.0f/haFineStep) + ${haSubDiv*2};`);
+    L.push(`  for (int i = 0; i <= haSteps; i++) {`);
+    L.push(`    float a = startHA + i*haFineStep;`);
+    L.push(`    if (a > heading + 45) break;`);
+    L.push(`    float angOff = (a - heading) * haDegPerHeadingDeg;`);
+    L.push(`    if (fabsf(angOff) > haSweep/2.0f + 0.01f) continue;`);
+    L.push(`    float tickAng = (${haApexAngle.toFixed(2)}f + (${haAngSign.toFixed(2)}f)*angOff) * PI/180.0f;`);
+    L.push(`    float haCa = cosf(tickAng), haSa = sinf(tickAng);`);
+    L.push(`    bool isMajor = (i % ${haSubDiv}) == 0;`);
+    L.push(`    int norm = (((int)roundf(a)) % 360 + 360) % 360;`);
+    L.push(`    float tickLen = isMajor ? (${haMajLenExpr}) : (${haMinLenExpr});`);
+    L.push(`    float innerR = haRadius - tickLen;`);
+    L.push(`    if (showTicksHA) {`);
+    L.push(`      uint16_t tc = isMajor?tickColor:subTickColor;`);
+    L.push(`      if (tc != C_BG) GFX.drawLine(haCx+haCa*haRadius, haCy+haSa*haRadius, haCx+haCa*innerR, haCy+haSa*innerR, tc);`);
+    L.push(`    }`);
+    L.push(`    if (isMajor && norm % ${c.labelStep>0?Math.round(c.labelStep):30} == 0 && showLabels) {`);
+    L.push(`      uint16_t lc = norm == 0 ? northColor : txtColor;`);
+    L.push(`      if (lc != C_BG) {`);
+    L.push(`      float labelR = innerR - h*0.16f;`);
+    L.push(`      int hLblSz=gfxSizeF(${sizeExpr(c,'scale','h*0.22f')}); GFX.setCursor(haCx+haCa*labelR - gfxCharW(hLblSz)/2 + (${haScaleDX}), haCy+haSa*labelR - gfxCenterOffset(hLblSz) + (${haScaleDY})); GFX.setTextColor(lc); GFX.setTextSize(hLblSz);`);
+    L.push(`      if (norm == 0) GFX.print("N"); else if (norm == 90) GFX.print("E");`);
+    L.push(`      else if (norm == 180) GFX.print("S"); else if (norm == 270) GFX.print("W");`);
+    L.push(`      else { if(norm<100) GFX.print("0"); GFX.print(norm); }`);
+    L.push(`      }`);
+    L.push(`    }`);
+    L.push(`  }`);
+    L.push(`  // Same style as Heading Tape's pointer, mirrored vertically when`);
+    L.push(`  // flipped: normally a flat base at the top edge with the apex hanging`);
+    L.push(`  // down; flipped, a flat base at the bottom edge with the apex rising up.`);
+    L.push(`  if (showPtrHA && ptrColor != C_BG) {`);
+    L.push(`    float pw = max(3.0f, w*0.02f);`);
+    if(haFlipped){
+      L.push(`    GFX.fillTriangle(haCx, y+haApexY, haCx - pw, y+h, haCx + pw, y+h, ptrColor);`);
+      L.push(`    GFX.fillRect(haCx - 1, y+haApexY-2, 2, h-haApexY+2, ptrColor);`);
+    } else {
+      L.push(`    GFX.fillTriangle(haCx, y+haApexY, haCx - pw, y, haCx + pw, y, ptrColor);`);
+      L.push(`    GFX.fillRect(haCx - 1, y, 2, haApexY + 2, ptrColor);`);
+    }
+    L.push(`  }`);
+    L.push(`  // Value box sits opposite the arc's apex - bottom of the box normally`);
+    L.push(`  // (arc occupies the top), top of the box when flipped.`);
+    L.push(`  if (showVal) {`);
+    L.push(`    int vSz = gfxSizeF(${sizeExpr(c,'value','h*0.24f')});`);
+    L.push(`    int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz);`);
+    L.push(`    float bw = max(28.0f, (float)(3*vCharW+8)), bh = max((float)(vCharH+4), h*0.26f);`);
+    L.push(`    float boxY = ${haFlipped?'y + 1':'y + h - bh - 1'};`);
+    L.push(`    if (boxBg != C_BG) GFX.fillRect(haCx - bw/2 + (${haValueDX}), boxY + (${haValueDY}), bw, bh, boxBg);`);
+    L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
+    L.push(`    GFX.setCursor(haCx - 3*vCharW/2 + (${haValueDX}), boxY + bh/2 - vCharH/2 + (${haValueDY}));`);
+    L.push(`    int hdg = (int)heading % 360;`);
+    L.push(`    if (hdg < 10) GFX.print("00"); else if (hdg < 100) GFX.print("0"); GFX.print(hdg);`);
+    L.push(`  }`);
+  }
   else if (inst.type === 'mode-indicator') {
+    const modeHw = state.hw||HW_DEFAULTS;
     L.push(`  // --- Flight Mode Indicator ---`);
-    L.push(`  float modeVal = ${mavFetch(c.mavSource)};`);
-    L.push(`  int modeIdx = (int)modeVal;`);
-    L.push(`  // ArduPlane-specific mode numbering - does NOT apply to ArduCopter/Rover/PX4.`);
-    L.push(`  // Edit this table to match your actual vehicle/firmware if it isn't ArduPlane.`);
-    L.push(`  // Index 9 has no standard ArduPlane mode (a gap in the enum). Indices 17-23`);
-    L.push(`  // (QSTABILIZE..QACRO) only apply to QuadPlane builds.`);
-    L.push(`  const char* FLIGHT_MODES[] = {"MANUAL","CIRCLE","STABILIZE","TRAINING","ACRO","FBWA","FBWB","CRUISE","AUTOTUNE","MODE_9","AUTO","RTL","LOITER","TAKEOFF","AVOID_ADSB","GUIDED","INITIALISING","QSTABILIZE","QHOVER","QLOITER","QLAND","QRTL","QAUTOTUNE","QACRO"};`);
-    L.push(`  const char* modeName = (modeIdx>=0 && modeIdx<24) ? FLIGHT_MODES[modeIdx] : "UNKNOWN";`);
+    if(modeHw.protocol==='crsf'){
+      L.push(`  // CRSF sends flight mode as ready-made ASCII text, not a number to`);
+      L.push(`  // look up - use it directly instead of the ArduPlane mode table below.`);
+      L.push(`  const char* modeName = mav.flightModeStr;`);
+    } else {
+      L.push(`  float modeVal = ${mavFetch(c.mavSource)};`);
+      L.push(`  int modeIdx = (int)modeVal;`);
+      L.push(`  // ArduPlane-specific mode numbering - does NOT apply to ArduCopter/Rover/PX4.`);
+      L.push(`  // Edit this table to match your actual vehicle/firmware if it isn't ArduPlane.`);
+      L.push(`  // Index 9 has no standard ArduPlane mode (a gap in the enum). Indices 17-23`);
+      L.push(`  // (QSTABILIZE..QACRO) only apply to QuadPlane builds.`);
+      L.push(`  const char* FLIGHT_MODES[] = {"MANUAL","CIRCLE","STABILIZE","TRAINING","ACRO","FBWA","FBWB","CRUISE","AUTOTUNE","MODE_9","AUTO","RTL","LOITER","TAKEOFF","AVOID_ADSB","GUIDED","INITIALISING","QSTABILIZE","QHOVER","QLOITER","QLAND","QRTL","QAUTOTUNE","QACRO"};`);
+      L.push(`  const char* modeName = (modeIdx>=0 && modeIdx<24) ? FLIGHT_MODES[modeIdx] : "UNKNOWN";`);
+    }
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
     { const modeDX = Math.round(gDX(c,'mode')), modeDY = Math.round(gDY(c,'mode'));
@@ -6318,6 +7498,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  }`);
   }
   else if (inst.type === 'home-distance') {
+    const distUnit = c.distanceUnit || 'auto';
     L.push(`  // --- Home Distance ---`);
     L.push(`  float dist = homeDistanceM();`);
     L.push(bgFillLine(c,'rect'));
@@ -6333,14 +7514,25 @@ function generateInstrumentCode(inst, i) {
     L.push(`    // matching the "box sized to actual text" pattern used elsewhere,`);
     L.push(`    // rather than a fixed-character-count guess.`);
     L.push(`    char hvbuf[16];`);
-    L.push(`    if (dist >= 1000) { char hvtmp[8]; dtostrf(dist/1000.0f, 1, 2, hvtmp); snprintf(hvbuf, sizeof(hvbuf), "%s km", hvtmp); }`);
-    L.push(`    else { snprintf(hvbuf, sizeof(hvbuf), "%d m", (int)dist); }`);
+    if(distUnit==='auto'){
+      L.push(`    if (dist >= 1000) { char hvtmp[8]; dtostrf(dist/1000.0f, 1, 2, hvtmp); snprintf(hvbuf, sizeof(hvbuf), "%s km", hvtmp); }`);
+      L.push(`    else { snprintf(hvbuf, sizeof(hvbuf), "%d m", (int)dist); }`);
+    } else if(distUnit==='m'){
+      L.push(`    snprintf(hvbuf, sizeof(hvbuf), "%d m", (int)dist);`);
+    } else if(distUnit==='km'){
+      L.push(`    { char hvtmp[8]; dtostrf(dist/1000.0f, 1, 2, hvtmp); snprintf(hvbuf, sizeof(hvbuf), "%s km", hvtmp); }`);
+    } else if(distUnit==='ft'){
+      L.push(`    snprintf(hvbuf, sizeof(hvbuf), "%d ft", (int)(dist*3.28084f));`);
+    } else if(distUnit==='mi'){
+      L.push(`    { char hvtmp[8]; dtostrf(dist*0.000621371f, 1, 2, hvtmp); snprintf(hvbuf, sizeof(hvbuf), "%s mi", hvtmp); }`);
+    }
     L.push(`    int hvW = hvCharW * (int)strlen(hvbuf);`);
     L.push(`    int hvCurX = x + w/2 - hvW/2, hvCurY = y + h*0.5f - hvCharH/2;`);
     L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(hvCurX - hvCharW/2 - 2, hvCurY - 2, hvW + hvCharW + 4, hvCharH + 4, valueBoxColor);`);
     L.push(`    GFX.setTextColor(ptrColor); GFX.setTextSize(hvSz); GFX.setCursor(hvCurX, hvCurY); GFX.print(hvbuf);`);
     L.push(`  }`);
-    L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) { int huSz=gfxSizeF(h*0.14f); GFX.setTextColor(labelColor); GFX.setTextSize(huSz); GFX.setCursor(x+w/2-3*gfxCharW(huSz), y+h*0.82 + gfxCenterOffset(huSz)); GFX.print("m / km"); }`);
+    const unitCaption = distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
+    L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) { int huSz=gfxSizeF(h*0.14f); GFX.setTextColor(labelColor); GFX.setTextSize(huSz); GFX.setCursor(x+w/2-${Math.ceil(unitCaption.length/2)}*gfxCharW(huSz), y+h*0.82 + gfxCenterOffset(huSz)); GFX.print("${unitCaption}"); }`);
   }
   else if (inst.type === 'groundspeed-dial') {
     const maxSpd = c.maxSpeed || 200;
@@ -6392,6 +7584,30 @@ function generateInstrumentCode(inst, i) {
     L.push(`  if (${b(c.showUnit)} && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.14f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(cx - 2*gfxCharW(uSz) + (${unitDX}), cy + r*0.52 + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("km/h"); }`); }
     { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
     L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int gSz=gfxSizeF(${sizeExpr(c,'label','r*0.15f')}); GFX.setTextColor(labelColor); GFX.setTextSize(gSz); GFX.setCursor(cx - (int)strlen("${c.label||'GND SPD'}")*gfxCharW(gSz)/2 + (${labelDX}), cy - r*0.52 + gfxCenterOffset(gSz) + (${labelDY})); GFX.print("${c.label||'GND SPD'}"); }`); }
+  }
+  else if (inst.type === 'stick-position') {
+    L.push(`  // --- Stick Position ---`);
+    L.push(`  float hVal = ${mavFetch(c.mavSourceH)};`);
+    L.push(`  float vVal = ${mavFetch(c.mavSourceV)};`);
+    L.push(`  uint16_t sqColor = ${hexTo565Const(c.squareColor||'#040810')};`);
+    L.push(`  uint16_t sqBorderColor = ${hexTo565Const(c.squareBorderColor||'#3a4555')};`);
+    L.push(`  uint16_t circColor = ${hexTo565Const(c.circleColor||'#5fe88a')};`);
+    L.push(`  uint16_t circBorderColor = ${hexTo565Const(c.circleBorderColor||'#1a3d2e')};`);
+    L.push(`  if (sqColor != C_BG) GFX.fillRect(x, y, w, h, sqColor);`);
+    const sbw = c.squareBorderWidth!==undefined?c.squareBorderWidth:2;
+    L.push(`  if (sqBorderColor != C_BG) { for (int i=0;i<${sbw};i++) GFX.drawRect(x+i, y+i, w-2*i, h-2*i, sqBorderColor); }`);
+    // Same normalization as the editor preview: typical RC PWM range
+    // (1000-2000us, centred at 1500) mapped to -1..1, each axis
+    // independently reversible since a channel's physical stick direction
+    // doesn't always match its raw PWM direction (wiring/TX-dependent).
+    L.push(`  float hNorm = constrain((hVal - 1500.0f) / 500.0f, -1.0f, 1.0f) * ${c.reverseH?'-1.0f':'1.0f'};`);
+    L.push(`  float vNorm = constrain((vVal - 1500.0f) / 500.0f, -1.0f, 1.0f) * ${c.reverseV?'-1.0f':'1.0f'};`);
+    L.push(`  float stickR = min(w,h) * ${(Number(c.circleSize!==undefined?c.circleSize:20)).toFixed(2)}f / 100.0f / 2.0f;`);
+    L.push(`  int stickCx = x + w/2 + (int)(hNorm * (w/2.0f - stickR));`);
+    L.push(`  int stickCy = y + h/2 - (int)(vNorm * (h/2.0f - stickR));`); // higher value = up (smaller y), matching the editor preview
+    L.push(`  if (circColor != C_BG) GFX.fillCircle(stickCx, stickCy, (int)stickR, circColor);`);
+    const cbw = c.circleBorderWidth!==undefined?c.circleBorderWidth:2;
+    L.push(`  if (circBorderColor != C_BG) { for (int i=0;i<${cbw};i++) GFX.drawCircle(stickCx, stickCy, max(0,(int)stickR-i), circBorderColor); }`);
   }
   else if (inst.type === 'shape-rectangle' || inst.type === 'shape-circle' || inst.type === 'shape-oval' || inst.type === 'shape-triangle') {
     const fillParsed = parseColorValue(c.fillColor||'#1c232e');
@@ -6517,21 +7733,360 @@ function setupEventListeners(){
   document.getElementById('editorViewport').addEventListener('mousedown',e=>{
     if(e.target.id==='editorViewport') selectInstrument(null);
   });
+  // Drag-to-pan: only starts from a background click (viewport, screen, or
+  // its badges), never from an instrument - and only once the mouse has
+  // actually moved a few pixels, so a plain click still just deselects
+  // (above) instead of every click flagging itself as a tiny pan.
+  (function(){
+    const vp=document.getElementById('editorViewport');
+    let panning=false, startX=0, startY=0, startScrollL=0, startScrollT=0, moved=false;
+    const PAN_THRESHOLD=4;
+    vp.addEventListener('mousedown',e=>{
+      const bg=e.target.id==='editorViewport'||e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge';
+      if(!bg) return;
+      panning=true; moved=false;
+      startX=e.clientX; startY=e.clientY;
+      startScrollL=vp.scrollLeft; startScrollT=vp.scrollTop;
+    });
+    window.addEventListener('mousemove',e=>{
+      if(!panning) return;
+      const dx=e.clientX-startX, dy=e.clientY-startY;
+      if(!moved && (Math.abs(dx)>PAN_THRESHOLD||Math.abs(dy)>PAN_THRESHOLD)){
+        moved=true;
+        vp.classList.add('panning');
+      }
+      if(moved){
+        vp.scrollLeft=startScrollL-dx;
+        vp.scrollTop=startScrollT-dy;
+      }
+    });
+    window.addEventListener('mouseup',()=>{
+      panning=false; moved=false;
+      vp.classList.remove('panning');
+    });
+  })();
   document.getElementById('paletteSearch').addEventListener('input',renderPalette);
   document.getElementById('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(3,state.zoom*1.2);applyZoom()});
   document.getElementById('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(0.2,state.zoom/1.2);applyZoom()});
   document.getElementById('zoom100').addEventListener('click',()=>{state.zoom=1;applyZoom()});
   document.getElementById('zoomFit').addEventListener('click',fitToView);
+  document.getElementById('overhangToggle').addEventListener('click',()=>{
+    state.showOverhangs=!state.showOverhangs;
+    const btn=document.getElementById('overhangToggle');
+    const screen=document.getElementById('screen');
+    if(state.showOverhangs){
+      screen.style.clipPath='';
+      btn.classList.remove('active');
+      btn.querySelector('i').className='fa fa-eye';
+      btn.title='Show/hide instrument parts that hang off the edge of the screen';
+    } else {
+      // clip-path, not overflow:hidden - overflow:hidden visually clips the
+      // same way here, but it also makes the element a valid scroll target
+      // (even with no visible scrollbars), which risks the view snapping
+      // unexpectedly if anything ever tries to scroll/focus something
+      // inside #screen. clip-path clips identically without that risk.
+      screen.style.clipPath='inset(0)';
+      btn.classList.add('active');
+      btn.querySelector('i').className='fa fa-eye-slash';
+      btn.title='Overhangs hidden - click to show instrument parts that hang off the edge of the screen';
+    }
+  });
+  document.getElementById('selectionBoxToggle').addEventListener('click',()=>{
+    state.showSelectionBox=!state.showSelectionBox;
+    const btn=document.getElementById('selectionBoxToggle');
+    const screen=document.getElementById('screen');
+    screen.classList.toggle('hide-selection-box',!state.showSelectionBox);
+    btn.classList.toggle('active',!state.showSelectionBox);
+    btn.title=state.showSelectionBox
+      ? 'Show/hide the selection outline and name label on the selected instrument'
+      : 'Selection outline hidden - click to show it again (resize handles stay usable either way)';
+  });
   document.getElementById('telemetryToggleBtn').addEventListener('click',()=>{
     state.telemetryRunning=!state.telemetryRunning;
     const btn=document.getElementById('telemetryToggleBtn');
     if(state.telemetryRunning){
-      btn.textContent='Simulated Telemetry';
+      btn.textContent='Telemetry On';
       btn.classList.remove('paused');
       renderLoop(); // was stopped scheduling itself while paused - kick it back off
     } else {
       btn.textContent='Telemetry Off';
       btn.classList.add('paused');
+    }
+  });
+
+  // ---- Blackbox log playback ----
+  let bbParsedRows=null, bbParsedHeaders=null; // staged between file load and confirmed mapping
+  document.getElementById('loadBlackboxBtn').addEventListener('click',()=>{
+    document.getElementById('blackboxFileInput').click();
+  });
+  document.getElementById('blackboxFileInput').addEventListener('change',e=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const parsed=parseCSV(ev.target.result);
+      if(parsed.length<2){ showToast('CSV has no data rows','error'); return; }
+      bbParsedHeaders=parsed[0];
+      bbParsedRows=parsed.slice(1);
+      openBlackboxMappingModal();
+    };
+    reader.onerror=()=>showToast('Could not read that file','error');
+    reader.readAsText(file);
+    e.target.value='';
+  });
+
+  // ArduPilot DataFlash / Mission Planner CSV export column names, mapped to
+  // the closest matching MAVLink source id - these don't match any source
+  // id directly (unlike a raw MAVLink field dump would), so this is a
+  // second-tier guess used only when the exact-id match above finds
+  // nothing. Some of these are approximate (GPS course vs. compass heading,
+  // throttle output scale) - shown as a pre-selected guess in the dropdown,
+  // not applied silently, so it's easy to check and correct before playback.
+  const MP_COLUMN_ALIASES = {
+    'att_roll':'ATTITUDE.roll', 'att_pitch':'ATTITUDE.pitch', 'att_yaw':'ATTITUDE.yaw',
+    'gps_lat':'GPS.lat', 'gps_lng':'GPS.lon', 'gps_lon':'GPS.lon',
+    'gps_alt':'VFR_HUD.alt', 'gps_spd':'VFR_HUD.groundspeed', 'gps_gcrs':'VFR_HUD.heading',
+    'gps_nsats':'GPS_RAW.satellites', 'gps_hdop':'GPS_RAW.hdop',
+    'bat_volt':'SYS_STATUS.voltage', 'bat_curr':'SYS_STATUS.current', 'bat_rempct':'SYS_STATUS.battery_remaining',
+    'ctun_as':'VFR_HUD.airspeed', 'ctun_tho':'VFR_HUD.throttle',
+    'mode_modenum':'HEARTBEAT.custom_mode',
+  };
+  // ArduPilot's RCIN DataFlash message logs each channel as RCIN_C1..C16 -
+  // maps them to the same RC_CHANNELS.chanN_raw sources the Stick Position
+  // instrument (and any other RC-channel-driven instrument) reads from, so
+  // a loaded flight log can drive stick position from real recorded input.
+  for(let i=1;i<=16;i++) MP_COLUMN_ALIASES['rcin_c'+i]='RC_CHANNELS.chan'+i+'_raw';
+
+  function openBlackboxMappingModal(){
+    const timeSel=document.getElementById('bbTimeColSelect');
+    timeSel.innerHTML=bbParsedHeaders.map((h,i)=>`<option value="${i}">${h}</option>`).join('');
+    // Guess a reasonable default time column by name. A "GLOBAL"-prefixed
+    // time column (Mission Planner's merged multi-message-type CSV export
+    // convention) is preferred when present - it's the only column
+    // consistently populated on every row; the per-message _TimeUS columns
+    // (ATT_TimeUS, GPS_TimeUS, etc.) are exactly as sparse as their own
+    // message type, no better than any other field from that message.
+    let guessIdx=bbParsedHeaders.findIndex(h=>/^global[_]?time/i.test(h.trim()));
+    if(guessIdx<0) guessIdx=bbParsedHeaders.findIndex(h=>/^(time|timestamp|time_boot_ms|time_us)$/i.test(h.trim()));
+    if(guessIdx>=0) timeSel.value=guessIdx;
+
+    const list=document.getElementById('bbColumnMapList');
+    list.innerHTML=bbParsedHeaders.map((h,i)=>{
+      // Guess a mapping: first try an exact MAVLink source id match, then
+      // fall back to the known Mission Planner column-name aliases above.
+      const hKey=h.trim().toLowerCase();
+      const guess=MAVLINK_SOURCES.find(m=>m.id.toLowerCase()===hKey) || MAVLINK_SOURCES.find(m=>m.id===MP_COLUMN_ALIASES[hKey]);
+      const opts=`<option value="">Ignore</option>`+MAVLINK_SOURCES.filter(m=>m.id!=='CUSTOM_VALUE').map(m=>`<option value="${m.id}" ${guess&&guess.id===m.id?'selected':''}>${m.label} (${m.id})</option>`).join('');
+      return `<div class="field-row" data-col-idx="${i}" style="grid-template-columns:40% 1fr;margin-bottom:8px">
+        <div class="field" style="min-width:0;margin-bottom:0;display:flex;align-items:center"><label class="field-label" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:0" title="${h}">${h}</label></div>
+        <div class="field" style="min-width:0;margin-bottom:0"><select data-bb-col="${i}" style="width:100%;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${opts}</select></div>
+      </div>`;
+    }).join('');
+    document.getElementById('blackboxModal').classList.add('active');
+  }
+
+  document.getElementById('closeBlackboxModalBtn').addEventListener('click',()=>document.getElementById('blackboxModal').classList.remove('active'));
+  document.getElementById('cancelBlackboxBtn').addEventListener('click',()=>document.getElementById('blackboxModal').classList.remove('active'));
+
+  document.getElementById('confirmBlackboxBtn').addEventListener('click',()=>{
+    const timeColIdx=parseInt(document.getElementById('bbTimeColSelect').value);
+    const columnMap={};
+    document.querySelectorAll('#bbColumnMapList select[data-bb-col]').forEach(sel=>{
+      const idx=sel.dataset.bbCol;
+      if(sel.value) columnMap[idx]=sel.value;
+    });
+    if(Object.keys(columnMap).length===0){
+      showToast('Map at least one column to a data source','error');
+      return;
+    }
+    // Convert every row's cells to numbers up front (not per-frame) - a
+    // one-time cost paid once at load instead of repeatedly during playback,
+    // even for a real multi-thousand-row flight log export.
+    const rows=bbParsedRows.map(r=>r.map(cell=>parseFloat(cell)));
+    rows.sort((a,b)=>a[timeColIdx]-b[timeColIdx]); // must be time-ascending for the playback seek logic
+
+    // Auto-detect millisecond/microsecond time columns by name and scale to
+    // seconds - a name like "GLOBAL_TimeMS" treated as raw seconds would
+    // compute a duration ~1000x too long, making playback appear to never
+    // progress (real elapsed wall-clock time would need ~1000x longer to
+    // reach it).
+    const timeColName=bbParsedHeaders[timeColIdx]||'';
+    let timeScale=1;
+    if(/(^|_)time_?us(_|$)|timeus/i.test(timeColName)) timeScale=1e6;
+    else if(/(^|_)time_?ms(_|$)|timems/i.test(timeColName)) timeScale=1e3;
+    if(timeScale!==1) rows.forEach(r=>{ r[timeColIdx]=r[timeColIdx]/timeScale; });
+
+    // Forward-fill (then backfill the leading gap) every mapped column.
+    // Real multi-message-type log exports like this one interleave several
+    // sensor types into one wide table, where any single field (e.g.
+    // ATT_Roll) is only actually populated on the small fraction of rows
+    // that specific message arrived on - everywhere else is blank. Without
+    // this, playback would look up the current value by nearby row index,
+    // usually land on a blank cell, and silently never update most
+    // instruments for most of the log.
+    Object.keys(columnMap).forEach(colIdx=>{
+      const idx=parseInt(colIdx);
+      let last=NaN;
+      for(let i=0;i<rows.length;i++){
+        if(!isNaN(rows[i][idx])) last=rows[i][idx];
+        else if(!isNaN(last)) rows[i][idx]=last;
+      }
+      let first=NaN;
+      for(let i=0;i<rows.length;i++){ if(!isNaN(rows[i][idx])){ first=rows[i][idx]; break; } }
+      if(!isNaN(first)){
+        for(let i=0;i<rows.length;i++){
+          if(isNaN(rows[i][idx])) rows[i][idx]=first; else break;
+        }
+      }
+    });
+
+    const duration=rows.length?rows[rows.length-1][timeColIdx]-rows[0][timeColIdx]:0;
+    // Normalize time to start at 0, so playback position and duration
+    // don't depend on whatever absolute/offset timestamp the log used.
+    const t0=rows.length?rows[0][timeColIdx]:0;
+    rows.forEach(r=>{ r[timeColIdx]-=t0; });
+
+    state.blackbox={
+      loaded:true, headers:bbParsedHeaders, rows, timeColIdx, columnMap,
+      playing:false, currentTime:0, duration, speed:1,
+      playStartWallTime:0, playStartDataTime:0, _seekIndex:0, _seeking:false
+    };
+    applyBlackboxRowAtTime(0);
+    redrawInstrumentCanvases();
+    document.getElementById('blackboxModal').classList.remove('active');
+    document.getElementById('telemetrySimArea').style.display='none';
+    document.getElementById('blackboxPlayerArea').style.display='inline-flex';
+    updateBlackboxUI();
+    updateBlackboxProgressUI();
+    state.telemetryRunning=true; // ensure the render loop is actually ticking, even if simulated telemetry was paused before this load
+    renderLoop();
+    showToast('Blackbox log loaded','success');
+  });
+
+
+
+  document.getElementById('bbPlayPauseBtn').addEventListener('click',()=>{
+    const bb=state.blackbox;
+    bb.playing=!bb.playing;
+    if(bb.playing){
+      bb.playStartWallTime=Date.now();
+      bb.playStartDataTime=bb.currentTime;
+      // If playback had already reached the end, pressing play again restarts from 0.
+      if(bb.currentTime>=bb.duration){ bb.currentTime=0; bb.playStartDataTime=0; bb._seekIndex=0; }
+    }
+    updateBlackboxUI();
+  });
+  document.getElementById('bbRestartBtn').addEventListener('click',()=>{
+    const bb=state.blackbox;
+    bb.currentTime=0;
+    bb._seekIndex=0;
+    bb.playStartDataTime=0;
+    bb.playStartWallTime=Date.now();
+    applyBlackboxRowAtTime(0);
+    redrawInstrumentCanvases();
+    updateBlackboxProgressUI();
+  });
+  // Seek slider - dragging pauses live playback advancement so the two
+  // don't fight over the current position, then resumes from the new spot
+  // (if it was playing before) once the user lets go.
+  let bbWasPlayingBeforeSeek=false;
+  const bbSeekSlider=document.getElementById('bbSeekSlider');
+  const bbStartSeek=()=>{
+    const bb=state.blackbox;
+    bbWasPlayingBeforeSeek=bb.playing;
+    bb.playing=false;
+    bb._seeking=true;
+  };
+  const bbApplySeek=()=>{
+    const bb=state.blackbox;
+    const t=(parseInt(bbSeekSlider.value)/1000)*bb.duration;
+    bb.currentTime=t;
+    applyBlackboxRowAtTime(t);
+    redrawInstrumentCanvases();
+    updateBlackboxProgressUI();
+  };
+  const bbEndSeek=()=>{
+    const bb=state.blackbox;
+    bb._seeking=false;
+    if(bbWasPlayingBeforeSeek){
+      bb.playing=true;
+      bb.playStartWallTime=Date.now();
+      bb.playStartDataTime=bb.currentTime;
+    }
+    updateBlackboxUI();
+  };
+  bbSeekSlider.addEventListener('mousedown',bbStartSeek);
+  bbSeekSlider.addEventListener('touchstart',bbStartSeek);
+  bbSeekSlider.addEventListener('input',bbApplySeek);
+  bbSeekSlider.addEventListener('mouseup',bbEndSeek);
+  bbSeekSlider.addEventListener('touchend',bbEndSeek);
+  document.getElementById('bbUnloadBtn').addEventListener('click',()=>{
+    state.blackbox.loaded=false;
+    state.blackbox.playing=false;
+    document.getElementById('telemetrySimArea').style.display='inline-flex';
+    document.getElementById('blackboxPlayerArea').style.display='none';
+    showToast('Blackbox log unloaded - back to simulated telemetry','success');
+  });
+
+  // ---- Video export ----
+  let exportInProgress=false, exportCancelled=false;
+  function closeExportVideoModal(){
+    if(exportInProgress){ exportCancelled=true; return; } // cancel instead of closing outright while running
+    document.getElementById('exportVideoModal').classList.remove('active');
+  }
+  document.getElementById('bbExportVideoBtn').addEventListener('click',()=>{
+    document.getElementById('exportVideoSettings').style.display='';
+    document.getElementById('exportVideoProgress').style.display='none';
+    document.getElementById('startExportVideoBtn').style.display='';
+    document.getElementById('startExportVideoBtn').disabled=false;
+    const supported=isVideoExportSupported();
+    document.getElementById('exportVideoUnsupportedHint').style.display=supported?'none':'';
+    if(!supported) document.getElementById('startExportVideoBtn').disabled=true;
+    document.getElementById('exportVideoModal').classList.add('active');
+  });
+  document.getElementById('closeExportVideoModalBtn').addEventListener('click',closeExportVideoModal);
+  document.getElementById('cancelExportVideoBtn').addEventListener('click',closeExportVideoModal);
+  document.getElementById('startExportVideoBtn').addEventListener('click',async()=>{
+    const fps=parseInt(document.getElementById('evFps').value)||30;
+    const bitrateMbps=parseFloat(document.getElementById('evBitrate').value)||4;
+    document.getElementById('exportVideoSettings').style.display='none';
+    document.getElementById('exportVideoProgress').style.display='';
+    document.getElementById('startExportVideoBtn').style.display='none';
+    exportInProgress=true; exportCancelled=false;
+    const bar=document.getElementById('exportVideoProgressBar');
+    const label=document.getElementById('exportVideoProgressLabel');
+    const totalFrames=Math.max(1,Math.ceil(state.blackbox.duration*fps));
+    try{
+      const blob=await exportBlackboxVideo({
+        fps, bitrateMbps,
+        onProgress:(frac)=>{
+          if(frac>=0.999){
+            bar.style.width='100%';
+            label.textContent='Finalizing video…';
+          } else {
+            bar.style.width=(frac*100).toFixed(1)+'%';
+            label.textContent=`Rendering frame ${Math.round(frac*totalFrames)} / ${totalFrames}…`;
+          }
+        },
+        isCancelled:()=>exportCancelled,
+      });
+      exportInProgress=false;
+      if(exportCancelled){
+        showToast('Video export cancelled','success');
+        document.getElementById('exportVideoModal').classList.remove('active');
+        return;
+      }
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='avionix_cluster.webm';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url),10000);
+      document.getElementById('exportVideoModal').classList.remove('active');
+      showToast('Video exported','success');
+    }catch(err){
+      exportInProgress=false;
+      document.getElementById('exportVideoModal').classList.remove('active');
+      showToast('Video export failed: '+(err&&err.message?err.message:err),'error');
     }
   });
 
@@ -6740,8 +8295,6 @@ window.addEventListener('load',init);
         item.innerHTML=`<i class="fa ${src.icon}"></i><span class="inst-picker-label">${src.name||inst.type} <span style="color:var(--muted);font-size:10px">${label}</span></span><span class="inst-picker-dim">${inst.w}×${inst.h}</span>`;
         item.addEventListener('click',()=>{
           selectInstrument(inst.id);
-          // Scroll instrument into view in the editor
-          if(inst.element) inst.element.scrollIntoView({behavior:'smooth',block:'nearest'});
           closeInstPicker();
         });
         list.appendChild(item);
@@ -6895,7 +8448,17 @@ window.addEventListener('load',init);
 
       <!-- UART / MAVLink -->
       <div class="setup-section">
-        <div class="setup-section-title"><i class="fa fa-plug"></i> MAVLink UART</div>
+        <div class="setup-section-title"><i class="fa fa-plug"></i> Telemetry</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <label>Telemetry Protocol</label>
+            <select id="hw_telemProtocol">
+              <option value="mavlink">MAVLink (ArduPilot / iNav via flight controller)</option>
+              <option value="crsf">CRSF (ExpressLRS / Crossfire - EdgeTX compatible)</option>
+            </select>
+            <span class="field-hint" id="hw_telemProtocolHint">Standard MAVLink telemetry from the flight controller's own telemetry port.</span>
+          </div>
+        </div>
         <div class="setup-row triple">
           <div class="setup-field">
             <label>Serial Port</label>
@@ -6907,7 +8470,7 @@ window.addEventListener('load',init);
               <option value="Serial4">Serial4</option>
             </select>
           </div>
-          <div class="setup-field">
+          <div class="setup-field" id="hw_baudField">
             <label>Baud Rate</label>
             <select id="hw_baud">
               <option value="57600">57600</option>
@@ -6932,12 +8495,12 @@ window.addEventListener('load',init);
           <div class="setup-field">
             <label>RX Pin</label>
             <input type="text" id="hw_rx" placeholder="e.g. 1, GP1" value="1">
-            <span class="field-hint">Board RX ← FC TX</span>
+            <span class="field-hint" id="hw_rxHint">Board RX ← FC TX</span>
           </div>
           <div class="setup-field">
             <label>TX Pin (optional)</label>
             <input type="text" id="hw_tx" placeholder="e.g. 0, GP0" value="0">
-            <span class="field-hint">Board TX → FC RX</span>
+            <span class="field-hint" id="hw_txHint">Board TX → FC RX</span>
           </div>
         </div>
       </div>
@@ -7010,6 +8573,58 @@ window.addEventListener('load',init);
         </div>
       </div>
 
+      <div class="setup-section">
+        <div class="setup-section-title"><i class="fa fa-sun"></i> Display Brightness &amp; Contrast</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <label>Backlight</label>
+            <select id="hw_blMode" onchange="updateBlContrastUI()">
+              <option value="on">Always On (full brightness)</option>
+              <option value="fixed">Fixed Brightness</option>
+              <option value="rc">RC Channel Controlled</option>
+            </select>
+            <span class="field-hint">Only applies if a Backlight pin is set above - ignored otherwise.</span>
+          </div>
+        </div>
+        <div class="setup-row" id="hw_blFixedRow" style="display:none">
+          <div class="setup-field">
+            <label>Fixed Brightness (%)</label>
+            <input type="number" id="hw_blFixedValue" value="100" min="0" max="100">
+          </div>
+        </div>
+        <div class="setup-row" id="hw_blRcRow" style="display:none">
+          <div class="setup-field">
+            <label>Brightness Channel</label>
+            <select id="hw_blRcSource"></select>
+            <span class="field-hint">Raw PWM (~1000-2000µs) mapped to 0-100% brightness. Requires MAVLink mode - CRSF's telemetry does not carry RC channel data.</span>
+          </div>
+        </div>
+        <div class="setup-row" id="hw_contrastSection" style="display:none">
+          <div class="setup-field">
+            <label>Contrast</label>
+            <select id="hw_contrastMode" onchange="updateBlContrastUI()">
+              <option value="default">Default</option>
+              <option value="fixed">Fixed</option>
+              <option value="rc">RC Channel Controlled</option>
+            </select>
+            <span class="field-hint" id="hw_contrastHint">Only available on this panel's display driver (U8g2-based mono panels).</span>
+          </div>
+        </div>
+        <div class="setup-row" id="hw_contrastFixedRow" style="display:none">
+          <div class="setup-field">
+            <label>Fixed Contrast (%)</label>
+            <input type="number" id="hw_contrastFixedValue" value="50" min="0" max="100">
+          </div>
+        </div>
+        <div class="setup-row" id="hw_contrastRcRow" style="display:none">
+          <div class="setup-field">
+            <label>Contrast Channel</label>
+            <select id="hw_contrastRcSource"></select>
+            <span class="field-hint">Raw PWM (~1000-2000µs) mapped to 0-100% contrast. Requires MAVLink mode.</span>
+          </div>
+        </div>
+      </div>
+
       <div class="setup-section" id="i2cPinsSection">
         <div class="setup-section-title"><i class="fa fa-display"></i> Screen — I²C Pins</div>
         <div class="setup-row triple">
@@ -7036,16 +8651,76 @@ window.addEventListener('load',init);
   </div>
 </div>
 
+<div class="modal-backdrop" id="multiPageModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa fa-layer-group"></i> &nbsp;Multi-Page Export</div>
+      <button class="modal-close" id="multiPageModalClose"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div class="callout" style="margin-bottom:16px">
+        Load up to 3 saved layout JSONs (from the Save button) and pick an RC channel to switch between them at runtime - a 3-position transmitter switch works well. All pages share this session's current Hardware Setup (one physical device, multiple screens), so save each layout with the same board/display/pins to avoid surprises. At least 2 pages are required; leave Page 3 empty for a 2-page export.
+      </div>
+      <div class="setup-section" id="mpPageSlot0">
+        <div class="setup-section-title"><i class="fa fa-file"></i> Page 1 (required)</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <button class="btn" id="mpLoadBtn0">Choose JSON File</button>
+            <span class="field-hint" id="mpInfo0">No file loaded</span>
+          </div>
+        </div>
+      </div>
+      <div class="setup-section" id="mpPageSlot1">
+        <div class="setup-section-title"><i class="fa fa-file"></i> Page 2 (required)</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <button class="btn" id="mpLoadBtn1">Choose JSON File</button>
+            <span class="field-hint" id="mpInfo1">No file loaded</span>
+          </div>
+        </div>
+      </div>
+      <div class="setup-section" id="mpPageSlot2">
+        <div class="setup-section-title"><i class="fa fa-file"></i> Page 3 (optional)</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <button class="btn" id="mpLoadBtn2">Choose JSON File</button>
+            <span class="field-hint" id="mpInfo2">No file loaded</span>
+            <button class="btn btn-ghost btn-icon" id="mpClearBtn2" title="Remove Page 3" style="margin-left:6px"><i class="fa fa-xmark"></i></button>
+          </div>
+        </div>
+      </div>
+      <div class="setup-section">
+        <div class="setup-section-title"><i class="fa fa-sliders"></i> Page Switching</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <label>Page Switch Channel</label>
+            <select id="mpRcSource"></select>
+            <span class="field-hint">Splits the 1000-2000µs range evenly across however many pages are loaded. Requires MAVLink mode - CRSF's telemetry does not carry RC channel data.</span>
+          </div>
+        </div>
+      </div>
+      <input type="file" id="mpFileInput" accept=".json" style="display:none">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="multiPageModalCancel">Cancel</button>
+      <button class="btn btn-primary" id="multiPageGenerateBtn"><i class="fa fa-download"></i> Generate Combined Sketch</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ── Hardware config state ────────────────────────────────────────
 const HW_DEFAULTS = {
   board:'rp2040', speed:'133',
+  protocol:'mavlink',
   uart:'Serial1', baud:'57600', debugSerial:'Serial', rx:'1', tx:'0',
   cs:'5', dc:'4', rst:'6', sck:'2', mosi:'3', bl:'7', spiMhz:'62.5',
   rgbLed:'on', rgbLedPin:'16',
   demoMode:'on',
   colorDepth:'16', useFramebuffer:'auto',
-  sda:'4', scl:'5', i2cAddr:'0x3C'
+  sda:'4', scl:'5', i2cAddr:'0x3C',
+  blMode:'on', blFixedValue:100, blRcSource:'RC_CHANNELS.chan7_raw',
+  contrastMode:'default', contrastFixedValue:50, contrastRcSource:'RC_CHANNELS.chan8_raw'
 };
 state.hw = {...HW_DEFAULTS};
 
@@ -7057,6 +8732,7 @@ function openSetupModal(){
   const hw=state.hw;
   document.getElementById('hw_board').value   = hw.board;
   document.getElementById('hw_speed').value   = hw.speed;
+  document.getElementById('hw_telemProtocol').value = hw.protocol||'mavlink';
   document.getElementById('hw_uart').value    = hw.uart;
   document.getElementById('hw_baud').value    = hw.baud;
   document.getElementById('hw_debug_serial').value = hw.debugSerial;
@@ -7068,6 +8744,7 @@ function openSetupModal(){
   document.getElementById('hw_sck').value     = hw.sck;
   document.getElementById('hw_mosi').value    = hw.mosi;
   document.getElementById('hw_bl').value      = hw.bl;
+  updateTelemProtocolUI();
   {
     const savedMhz = hw.spiMhz||'62.5';
     const presetSel = document.getElementById('hw_spiPreset');
@@ -7107,6 +8784,29 @@ function openSetupModal(){
   document.getElementById('hw_i2c_addr').value= hw.i2cAddr;
   document.getElementById('spiPinsSection').style.display = isSPIPanel()?'':'none';
   document.getElementById('i2cPinsSection').style.display = isI2CPanel()?'':'none';
+
+  // Backlight / contrast
+  {
+    const rcOpts=Array.from({length:16},(_,i)=>`<option value="RC_CHANNELS.chan${i+1}_raw">RC Channel ${i+1}</option>`).join('');
+    document.getElementById('hw_blRcSource').innerHTML=rcOpts;
+    document.getElementById('hw_contrastRcSource').innerHTML=rcOpts;
+    document.getElementById('hw_blMode').value=hw.blMode||'on';
+    document.getElementById('hw_blFixedValue').value=hw.blFixedValue!==undefined?hw.blFixedValue:100;
+    document.getElementById('hw_blRcSource').value=hw.blRcSource||'RC_CHANNELS.chan7_raw';
+    document.getElementById('hw_contrastMode').value=hw.contrastMode||'default';
+    document.getElementById('hw_contrastFixedValue').value=hw.contrastFixedValue!==undefined?hw.contrastFixedValue:50;
+    document.getElementById('hw_contrastRcSource').value=hw.contrastRcSource||'RC_CHANNELS.chan8_raw';
+    // Contrast applies to any mono panel this tool supports - U8g2-driven
+    // (ST7567/72x40) or Adafruit_SSD1306-driven (SSD1306/SSD1315) - both
+    // expose a contrast control, just through different library APIs.
+    document.getElementById('hw_contrastSection').style.display = isMonoPanelHW() ? '' : 'none';
+    const panelIsU8g2 = state.panelId==='128x64-st7567'||state.panelId==='72x40'||state.panelId==='72x40-spi';
+    document.getElementById('hw_contrastHint').textContent = panelIsU8g2
+      ? 'Only available on this panel\u2019s display driver (U8g2-based mono panels).'
+      : 'SSD1306/SSD1315: uses the display\u2019s own contrast register. Effect varies by module - some respond clearly, others barely at all.';
+    updateBlContrastUI();
+  }
+
   document.getElementById('setupModal').classList.add('open');
 }
 
@@ -7116,6 +8816,7 @@ function applySetupModal(){
   state.hw = {
     board: document.getElementById('hw_board').value,
     speed: document.getElementById('hw_speed').value,
+    protocol: document.getElementById('hw_telemProtocol').value,
     uart:  document.getElementById('hw_uart').value,
     baud:  document.getElementById('hw_baud').value,
     debugSerial: document.getElementById('hw_debug_serial').value,
@@ -7136,6 +8837,12 @@ function applySetupModal(){
     sda:   document.getElementById('hw_sda').value,
     scl:   document.getElementById('hw_scl').value,
     i2cAddr: document.getElementById('hw_i2c_addr').value,
+    blMode: document.getElementById('hw_blMode').value,
+    blFixedValue: parseFloat(document.getElementById('hw_blFixedValue').value)||0,
+    blRcSource: document.getElementById('hw_blRcSource').value,
+    contrastMode: document.getElementById('hw_contrastMode').value,
+    contrastFixedValue: parseFloat(document.getElementById('hw_contrastFixedValue').value)||0,
+    contrastRcSource: document.getElementById('hw_contrastRcSource').value,
   };
   closeSetupModal();
   // Colour depth changes the palette, the swatches and how the preview renders,
@@ -7155,5 +8862,112 @@ document.getElementById('setupModalApply').addEventListener('click', applySetupM
 // Intentionally no backdrop-click-to-close handler here - the modal should
 // only close via Apply, Cancel, or the X button, not an accidental click
 // outside it (easy to lose settings changes that way otherwise).
+
+function updateBlContrastUI(){
+  const blMode=document.getElementById('hw_blMode').value;
+  document.getElementById('hw_blFixedRow').style.display = blMode==='fixed' ? '' : 'none';
+  document.getElementById('hw_blRcRow').style.display = blMode==='rc' ? '' : 'none';
+  const contrastMode=document.getElementById('hw_contrastMode').value;
+  document.getElementById('hw_contrastFixedRow').style.display = contrastMode==='fixed' ? '' : 'none';
+  document.getElementById('hw_contrastRcRow').style.display = contrastMode==='rc' ? '' : 'none';
+}
+
+// ── Multi-Page Export ────────────────────────────────────────────
+const mpPages = [null, null, null];   // {name, instruments, screenW, screenH, panelId} | null
+let mpActiveSlot = null;
+
+function openMultiPageModal(){
+  const rcOpts=Array.from({length:16},(_,i)=>`<option value="RC_CHANNELS.chan${i+1}_raw">RC Channel ${i+1}</option>`).join('');
+  document.getElementById('mpRcSource').innerHTML=rcOpts;
+  document.getElementById('multiPageModal').classList.add('open');
+}
+function closeMultiPageModal(){
+  document.getElementById('multiPageModal').classList.remove('open');
+}
+document.getElementById('multiPageBtn').addEventListener('click', openMultiPageModal);
+document.getElementById('multiPageModalClose').addEventListener('click', closeMultiPageModal);
+document.getElementById('multiPageModalCancel').addEventListener('click', closeMultiPageModal);
+
+[0,1,2].forEach(slot=>{
+  document.getElementById('mpLoadBtn'+slot).addEventListener('click',()=>{
+    mpActiveSlot=slot;
+    document.getElementById('mpFileInput').click();
+  });
+});
+document.getElementById('mpClearBtn2').addEventListener('click',()=>{
+  mpPages[2]=null;
+  document.getElementById('mpInfo2').textContent='No file loaded';
+});
+
+document.getElementById('mpFileInput').addEventListener('change', e=>{
+  const file=e.target.files[0];
+  e.target.value='';   // allow re-selecting the same file later
+  if(!file || mpActiveSlot===null) return;
+  const slot=mpActiveSlot;
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    let data;
+    try{ data=JSON.parse(ev.target.result); }
+    catch(err){ showToast('Not a valid JSON file', 'error'); return; }
+    if(!Array.isArray(data.instruments)){
+      showToast('This JSON has no instruments array - is it a saved AvionixForge project?', 'error');
+      return;
+    }
+    mpPages[slot]={
+      name: file.name.replace(/\.json$/i,''),
+      instruments: data.instruments,
+      screenW: data.screenW, screenH: data.screenH, panelId: data.panelId
+    };
+    let info = `${file.name} - ${data.instruments.length} instrument${data.instruments.length===1?'':'s'}`;
+    // Warn (not block) on a resolution/panel mismatch against the current
+    // editor session, since all pages will be generated using THIS
+    // session's shared hardware config - a mismatch means the loaded
+    // layout's instrument positions were designed for a different screen
+    // and will likely look wrong, even though the sketch still compiles.
+    if((data.screenW && data.screenH && (data.screenW!==state.screenW || data.screenH!==state.screenH)) || (data.panelId && data.panelId!==state.panelId)){
+      info += ` ⚠️ saved at ${data.screenW}×${data.screenH}, current session is ${state.screenW}×${state.screenH} - positions may not match`;
+    }
+    document.getElementById('mpInfo'+slot).textContent = info;
+  };
+  reader.readAsText(file);
+});
+
+document.getElementById('multiPageGenerateBtn').addEventListener('click', ()=>{
+  const loaded = mpPages.filter(p=>p);
+  if(loaded.length < 2){
+    showToast('Load at least 2 pages (Page 1 and Page 2 are required)', 'error');
+    return;
+  }
+  if(!mpPages[0] || !mpPages[1]){
+    showToast('Page 1 and Page 2 must both be loaded (Page 3 is optional)', 'error');
+    return;
+  }
+  const rcSource = document.getElementById('mpRcSource').value;
+  try{
+    const code = buildMultiPageArduinoCode(loaded, rcSource);
+    const blob=new Blob([code],{type:'text/plain'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='avionix_multipage.ino'; a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported avionix_multipage.ino (${loaded.length} pages)`, 'success');
+    closeMultiPageModal();
+  }catch(err){
+    showToast('Could not generate multi-page sketch: '+err.message, 'error');
+  }
+});
+
+function updateTelemProtocolUI(){
+  const isCrsf = document.getElementById('hw_telemProtocol').value==='crsf';
+  // CRSF runs at a fixed 420000 baud - the field is meaningless for it, so
+  // it's hidden rather than left showing a value that gets silently ignored.
+  document.getElementById('hw_baudField').style.display = isCrsf ? 'none' : '';
+  document.getElementById('hw_telemProtocolHint').textContent = isCrsf
+    ? 'Reads CRSF telemetry directly from an ExpressLRS/Crossfire receiver - the same data stream an EdgeTX radio displays. Wire to the telemetry/CRSF pin on the receiver, not the flight controller.'
+    : 'Standard MAVLink telemetry from the flight controller’s own telemetry port.';
+  document.getElementById('hw_rxHint').textContent = isCrsf ? 'Board RX ← Receiver TX (CRSF/telemetry pin)' : 'Board RX ← FC TX';
+  document.getElementById('hw_txHint').textContent = isCrsf ? 'Board TX → Receiver RX (only needed for telemetry-capable half-duplex wiring)' : 'Board TX → FC RX';
+}
+document.getElementById('hw_telemProtocol').addEventListener('change', updateTelemProtocolUI);
 </script>
 </html>
