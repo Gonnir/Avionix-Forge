@@ -9,9 +9,6 @@ No installation, no build step — it's a single self-contained HTML file. Open 
 Start it with this link:
 https://gonnir.github.io/Avionix-Forge/
 
-The manual is available here:
-https://gonnir.github.io/Avionix-Forge/manual.html
-
 1. **Design in the browser.** Drag instruments (artificial horizon, airspeed tape, compass, gauges, decorative shapes, etc.) onto a live canvas sized to match your actual display. Position, resize, recolor, and rotate each one; the canvas is a pixel-accurate preview of what the real hardware will show, running on simulated demo data so you can see it move before anything is wired up.
 
 2. **Configure your hardware once.** Pick your microcontroller (RP2040 tested so far, ESP32, ESP32-S3 coming soon), your display panel, its wiring pins, and your MAVLink UART settings in a single setup dialog.
