@@ -236,7 +236,7 @@ footer{padding:40px 60px;color:var(--muted);font-size:12px;font-family:'JetBrain
 
   <div class="hero">
     <div class="eyebrow">User Manual</div>
-    <h1>Everything the editor does,<br>and how to <span class="accent">actually get MAVLink connected.</span></h1>
+    <h1>Everything the editor does,<br>and how to <span class="accent">get MAVLink connected.</span></h1>
     <p class="lead">A complete walkthrough of every panel in the editor, plus the full field-tested MAVLink setup and troubleshooting guide — wiring, baud rate gotchas, stream rates, and the diagnostic steps that actually isolate a problem.</p>
     <div class="ledrow">
       <div class="ledchip"><span class="dot red"></span> Red — no MAVLink data received</div>
@@ -371,7 +371,7 @@ footer{padding:40px 60px;color:var(--muted);font-size:12px;font-family:'JetBrain
         </div>
       </div>
     </div>
-    <div class="shot-caption">Live reconstruction of the editor layout — not an actual screenshot, but built from the tool's own component styles for accuracy.</div>
+    <div class="shot-caption">Main window mockup</div>
 
     <ul class="callouts">
       <li><span class="badge">1</span><div><strong>Top bar</strong> — display resolution, orientation, zoom, connection status, and the Setup / Export actions. Wraps to a second row automatically on narrow windows.</div></li>
@@ -511,7 +511,6 @@ footer{padding:40px 60px;color:var(--muted);font-size:12px;font-family:'JetBrain
   <!-- ============================================================ -->
   <section id="wiring">
     <h2><span class="num">07</span> MAVLink Setup</h2>
-    <p class="intro">This is the section most worth reading carefully — nearly every real-world connection problem traces back to one of the items below.</p>
 
     <h3>Wiring</h3>
     <ul>
@@ -661,8 +660,7 @@ void loop() {
   <!-- ============================================================ -->
   <section id="telemetrycontrol">
     <h2><span class="num">10</span> Telemetry Control</h2>
-    <p class="intro">The top bar's telemetry indicator is now a real button, not a static label — it starts and stops the editor's own animated preview.</p>
-
+    
     <div class="shot" style="max-width:420px">
       <div class="titlebar"><span class="tb-dot" style="background:#ff5f57"></span><span class="tb-dot" style="background:#febc2e"></span><span class="tb-dot" style="background:#28c840"></span></div>
       <div class="mockapp" style="padding:24px;display:flex;gap:16px;justify-content:center">
@@ -683,11 +681,8 @@ void loop() {
   <!-- ============================================================ -->
   <section id="rotation">
     <h2><span class="num">11</span> Instrument Rotation</h2>
-    <p class="intro">Rotation is a plain <strong>0° / 90° / 180° / 270°</strong> selector, not a free-form angle — and for good reason.</p>
-
-    <p>This is a hardware constraint, not an editor limitation: Adafruit GFX and U8g2 have no built-in support for rotating arbitrary drawn content at non-90°-multiple angles without a full software rasterizer, so anything finer wouldn't actually work once compiled — even if a live preview could show it happily.</p>
-
-    <p>Support varies by instrument. Rather than leave in a control that would silently do nothing on real hardware, it's simply <strong>hidden</strong> for types where rotation genuinely has no effect:</p>
+    
+    <p>Support varies by instrument.</p>
 
     <table>
       <tr><th>Category</th><th>Instruments</th><th>Rotation</th></tr>
@@ -698,7 +693,6 @@ void loop() {
     </table>
 
     <div class="callout">
-      <div class="ctitle">One exception</div>
       The <a href="#template">Background Template</a> image gets a full unrestricted 0–359° rotation — it's editor-only and never has to be drawn by real hardware, so the usual constraint doesn't apply.
     </div>
   </section>
@@ -706,9 +700,7 @@ void loop() {
   <!-- ============================================================ -->
   <section id="transparency">
     <h2><span class="num">12</span> Transparent Colors</h2>
-    <p class="intro">Setting any color field to <strong>transparent</strong> now genuinely skips that draw call — across every instrument, every color-configurable part.</p>
-
-    <p>This was audited comprehensively across borders, ticks, needles, hubs, labels, and fills. Previously, "transparent" silently resolved to the instrument's own background color instead of skipping the draw entirely — harmless-looking on a simple solid background, but capable of visibly painting over content underneath on overlapping or layered instrument designs.</p>
+    <p class="intro">Setting any color field to <strong>transparent</strong> skips that draw call.</p>
 
     <div class="mock-swatches" style="margin:16px 0">
       <div class="sw" style="background:#3a6db5"></div>
@@ -716,7 +708,6 @@ void loop() {
       <div class="sw" style="background:#5fe88a"></div>
       <div class="sw" style="background:repeating-conic-gradient(#232b38 0% 25%, transparent 0% 50%) 0 0/8px 8px;border:1.5px dashed var(--red);position:relative" title="transparent"></div>
     </div>
-    <p style="margin-top:-10px;font-size:12.5px;color:var(--muted)">The dashed swatch above is "transparent" — selecting it now means <em>nothing gets drawn there</em>, not "drawn in whatever the background happens to be."</p>
   </section>
 
   <!-- ============================================================ -->
@@ -794,10 +785,7 @@ void loop() {
 
     <h3>Movement snapping</h3>
     <p>Dragging an instrument moves it freely by default, including off the edge of the screen for intentional overhangs. Hold <strong>Ctrl</strong> (<strong>Cmd</strong> on Mac) while dragging to snap it back to staying fully within the screen bounds.</p>
-
-    <h3>ST7796S uses a different display library</h3>
-    <p>Every other color panel in this tool is driven by an Adafruit display library. ST7796S (320×480) is the one exception — it uses <strong>Arduino_GFX_Library</strong> (moononournation) instead, confirmed working through real hardware testing on RP2040 + ST7796S. It presents the same drawing API, so every instrument's generated code looks identical either way. Install it first: Library Manager → search "GFX Library for Arduino". A full 16-bit framebuffer at this resolution would need ~300KB — more than an RP2040's 264KB of SRAM — so double buffering here uses <code>Arduino_Canvas_Indexed</code> instead, an 8-bit buffered canvas (~150KB, fits comfortably). You still draw with normal RGB565 colors exactly like every other panel; the canvas builds its own 256-color palette automatically and only reduces precision if a design genuinely exceeds that, which a typical instrument cluster's limited palette is unlikely to do.</p>
-  </section>
+ </section>
 
   <!-- ============================================================ -->
   <section id="blackbox">
@@ -858,7 +846,7 @@ void loop() {
     </table>
   </section>
 
-  <footer>AvionixForge User Manual — mockups reconstructed from the editor's own component styles for accuracy.</footer>
+  <footer>AvionixForge User Manual — 2026. 08. 19.</footer>
 
 </main>
 </div>
