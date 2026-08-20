@@ -1359,11 +1359,10 @@ function startMoveDrag(e,inst){
 }
 
 function minInstSize(type){
-  // A simple on/off lamp only needs a couple of pixels of colour to read
-  // correctly, so it can shrink much further than a real gauge (which
-  // needs room for ticks, a needle, and readable text to stay meaningful).
-  if(type==='indicator') return 6;
-  return 30;
+  // No enforced minimum by instrument type - just a small technical floor
+  // to avoid zero/negative sizes, which would break rendering math rather
+  // than being a meaningful "minimum useful size" for any given type.
+  return 4;
 }
 function startResizeDrag(e,inst,corner){
   e.stopPropagation();
@@ -1615,16 +1614,13 @@ function onDragMove(e){
       scaleX=(d.groupStartW-dx)/d.groupStartW;
       scaleY=(d.groupStartH-dy)/d.groupStartH;
     }
-    // Never let the group shrink so far any single member would drop below
-    // its own type's minimum - using the MOST restrictive member's own
-    // ratio for the whole group's scale factor keeps every member
-    // shrinking together, rather than some hitting their floor first while
-    // others keep going, which would silently break "relative sizes and
-    // distances stay relative" for the group as a whole.
-    const minAllowedScaleX=Math.max(0.05, ...d.members.map(m=>minInstSize(m.inst.type)/m.startW));
-    const minAllowedScaleY=Math.max(0.05, ...d.members.map(m=>minInstSize(m.inst.type)/m.startH));
-    scaleX=Math.max(scaleX,minAllowedScaleX);
-    scaleY=Math.max(scaleY,minAllowedScaleY);
+    // No enforced minimum by instrument size or type - just a simple,
+    // universal floor on the scale factor itself, to keep the group from
+    // collapsing to zero or negative size. Not tied to any member's own
+    // current size, so it can never surprise-block a shrink the way a
+    // per-instrument minimum could.
+    scaleX=Math.max(scaleX,0.05);
+    scaleY=Math.max(scaleY,0.05);
     d.members.forEach(m=>{
       const newW=Math.round(m.startW*scaleX);
       const newH=Math.round(m.startH*scaleY);
@@ -1788,9 +1784,10 @@ function renderProperties(){
           // instead of a live drag delta.
           const scaleX=prop==='w'?Math.max(0.05,v/bNow.w):1;
           const scaleY=prop==='h'?Math.max(0.05,v/bNow.h):1;
-          const minAllowedScaleX=Math.max(0.05, ...state.selectedIds.map(id=>{const m=state.instruments.find(i=>i.id===id); return m?minInstSize(m.type)/m.w:0.05;}));
-          const minAllowedScaleY=Math.max(0.05, ...state.selectedIds.map(id=>{const m=state.instruments.find(i=>i.id===id); return m?minInstSize(m.type)/m.h:0.05;}));
-          const finalScaleX=Math.max(scaleX,minAllowedScaleX), finalScaleY=Math.max(scaleY,minAllowedScaleY);
+          // No enforced minimum by instrument size or type - scaleX/scaleY
+          // above already carry the simple, universal 0.05 floor, with no
+          // per-member constraint layered on top of it.
+          const finalScaleX=scaleX, finalScaleY=scaleY;
           state.selectedIds.forEach(id=>{
             const m=state.instruments.find(i=>i.id===id);
             if(!m) return;
