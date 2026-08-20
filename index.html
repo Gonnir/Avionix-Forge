@@ -274,15 +274,6 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
     </select>
   </div>
   <div class="header-divider"></div>
-  <div class="header-group">
-    <button class="btn btn-ghost btn-icon" id="zoomOut" title="Zoom out"><i class="fa fa-search-minus"></i></button>
-    <span style="font-family:'JetBrains Mono';font-size:11px;color:var(--muted);min-width:42px;text-align:center" id="zoomLabel">100%</span>
-    <button class="btn btn-ghost btn-icon" id="zoomIn" title="Zoom in"><i class="fa fa-search-plus"></i></button>
-    <button class="btn btn-ghost btn-icon" id="zoom100" title="Actual size (100%)">1:1</button>
-    <button class="btn btn-ghost btn-icon" id="zoomFit" title="Fit to view"><i class="fa fa-expand"></i></button>
-    <button class="btn btn-ghost btn-icon" id="overhangToggle" title="Show/hide instrument parts that hang off the edge of the screen"><i class="fa fa-eye"></i></button>
-    <button class="btn btn-ghost btn-icon" id="selectionBoxToggle" title="Show/hide the selection outline and name label on the selected instrument"><i class="fa fa-vector-square"></i></button>
-  </div>
   <div class="spacer"></div>
   <div id="telemetrySimArea" style="display:inline-flex;align-items:center;gap:6px">
     <button class="live-indicator" id="telemetryToggleBtn" title="Start/stop the simulated instrument animation in this editor">Telemetry On</button>
@@ -324,12 +315,17 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 
   <main class="editor">
     <div class="editor-toolbar">
-      <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700">Canvas</span>
-      <span style="font-family:'JetBrains Mono';font-size:12px;color:var(--text)" id="canvasInfo">320 × 240 px · 0°</span>
-      <div class="header-divider" style="height:18px;margin:0 4px"></div>
       <span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">BG</span>
       <div id="bgSwatchRow" style="display:flex;gap:5px;align-items:center"></div>
       <input type="color" id="bgColorPicker" style="width:28px;height:24px;border:1px solid var(--border);border-radius:4px;background:none;cursor:pointer;padding:1px 2px" title="Custom background color">
+      <div class="header-divider" style="height:18px;margin:0 4px"></div>
+      <button class="btn btn-ghost btn-icon" id="zoomOut" title="Zoom out"><i class="fa fa-search-minus"></i></button>
+      <span style="font-family:'JetBrains Mono';font-size:11px;color:var(--muted);min-width:42px;text-align:center" id="zoomLabel">100%</span>
+      <button class="btn btn-ghost btn-icon" id="zoomIn" title="Zoom in"><i class="fa fa-search-plus"></i></button>
+      <button class="btn btn-ghost btn-icon" id="zoom100" title="Actual size (100%)">1:1</button>
+      <button class="btn btn-ghost btn-icon" id="zoomFit" title="Fit to view"><i class="fa fa-expand"></i></button>
+      <button class="btn btn-ghost btn-icon" id="overhangToggle" title="Show/hide instrument parts that hang off the edge of the screen"><i class="fa fa-eye"></i></button>
+      <button class="btn btn-ghost btn-icon" id="selectionBoxToggle" title="Show/hide the selection outline and name label on the selected instrument"><i class="fa fa-vector-square"></i></button>
       <div class="spacer"></div>
       <span style="font-size:11px;color:var(--muted);cursor:pointer;user-select:none" id="instrumentCount" title="Click to select instrument">0 instruments</span>
       <button class="btn btn-ghost" id="clearBtn"><i class="fa fa-trash"></i> Clear</button>
@@ -813,6 +809,16 @@ function enforceColorDepth(){
 // 1 = black & white, 8 = RGB332, 16 = RGB565. Mono panels are always 1-bit.
 function activeColorDepth(){
   if(isMonoPanelHW()) return 1;
+  // Arduino_GFX_Library's Arduino_Canvas_Indexed (ST7796S's buffering
+  // mechanism) always wants full RGB565 color input, no matter what - its
+  // own internal 8-bit storage is a completely separate, transparent
+  // mechanism handled internally by the canvas itself. Unlike
+  // Adafruit_GFX's GFXcanvas8, which genuinely does expect a pre-packed
+  // RGB332 byte as its "color" argument, treating this panel's colorDepth
+  // setting as meaning "emit RGB332" would corrupt every color: an RGB332
+  // byte is always under 256, so misread as a 16-bit RGB565 value its
+  // entire top byte - RGB565's red channel - would permanently read zero.
+  if(getPanelConfig().include==='#include <Arduino_GFX_Library.h>') return 16;
   const d=parseInt((state.hw&&state.hw.colorDepth)||'16');
   return (d===1||d===8)?d:16;
 }
@@ -1021,8 +1027,17 @@ function setupResolutionControls(){
       showToast('Switched to '+name+' \u2014 a higher depth will not fit this panel','info');
     }
   });
-  document.getElementById('screenW').addEventListener('input',e=>{setResolution(parseInt(e.target.value)||320,state.screenH)});
-  document.getElementById('screenH').addEventListener('input',e=>{setResolution(state.screenW,parseInt(e.target.value)||240)});
+  document.getElementById('screenW').addEventListener('input',e=>{setResolution(parseInt(e.target.value)||320,state.screenH,'screenW')});
+  document.getElementById('screenH').addEventListener('input',e=>{setResolution(state.screenW,parseInt(e.target.value)||240,'screenH')});
+  // Clamping/sync-back on every keystroke (the 'input' listeners above)
+  // would otherwise make it near-impossible to type a new value at all -
+  // e.g. typing "320" one digit at a time, with each intermediate digit
+  // ("3", "32") immediately snapped up to the minimum before the next
+  // digit can be typed. These fire once editing actually finishes
+  // instead, applying the final clamp and re-syncing the field's own
+  // displayed value only then.
+  document.getElementById('screenW').addEventListener('change',e=>{setResolution(parseInt(e.target.value)||320,state.screenH)});
+  document.getElementById('screenH').addEventListener('change',e=>{setResolution(state.screenW,parseInt(e.target.value)||240)});
   document.getElementById('orientationSelect').addEventListener('change',e=>{
     setOrientation(parseInt(e.target.value)||0);
   });
@@ -1050,16 +1065,15 @@ function setOrientation(o){
 }
 
 // Refresh every UI surface that mirrors the current screen size & orientation.
-function applyResolution(){
-  document.getElementById('screenW').value=state.screenW;
-  document.getElementById('screenH').value=state.screenH;
+function applyResolution(skipField){
+  if(skipField!=='screenW') document.getElementById('screenW').value=state.screenW;
+  if(skipField!=='screenH') document.getElementById('screenH').value=state.screenH;
   const screen=document.getElementById('screen');
   screen.style.width=state.screenW+'px';
   screen.style.height=state.screenH+'px';
   document.getElementById('orientationSelect').value=state.orientation.toString();
   const badge=document.getElementById('orientationBadge');
   if(badge) badge.textContent=state.orientation+'°';
-  document.getElementById('canvasInfo').textContent=`${state.screenW} × ${state.screenH} px · ${state.orientation}°`;
   document.getElementById('statusResolution').textContent=`${state.screenW}×${state.screenH}`;
   // Match the dropdown against native (un-swapped) panel dimensions
   const sel=document.getElementById('resolutionPreset');
@@ -1078,10 +1092,10 @@ function applyResolution(){
   updateMonoScreenAppearance();
 }
 
-function setResolution(w,h){
+function setResolution(w,h,skipField){
   state.screenW=Math.max(16,Math.min(2000,w));
   state.screenH=Math.max(16,Math.min(2000,h));
-  applyResolution();
+  applyResolution(skipField);
   applyZoom();
 }
 
@@ -3536,19 +3550,40 @@ function drawAI(ctx,w,h,roll,pitch,c){
       const bx=cx+lx1*crA+ly*srA, by=cy-lx1*srA+ly*crA;
       const dx3=cx+lx2*crA+ly*srA, dy3=cy-lx2*srA+ly*crA;
       const ex=cx+lx3*crA+ly*srA, ey=cy-lx3*srA+ly*crA;
-      const inCircle=(ax-cx)*(ax-cx)+(ay-cy)*(ay-cy)<=r*r;
-      if(isRect||inCircle){
+      const fontPx = gSize(c,'ladder',Math.max(7,r*0.12));
+      const aOk = isRect ? (ax>=0 && ax<=w-1 && ay>=0 && ay<=h-1) : ((ax-cx)*(ax-cx)+(ay-cy)*(ay-cy)<=r*r);
+      const eOk = isRect ? (ex>=0 && ex<=w-1 && ey>=0 && ey<=h-1) : ((ex-cx)*(ex-cx)+(ey-cy)*(ey-cy)<=r*r);
+      const inCircle = aOk && eOk;
+      if(inCircle){
         bresenhamLine(ctx,ax,ay,bx,by,rungColor);
         bresenhamLine(ctx,dx3,dy3,ex,ey,rungColor);
       }
-      if(showPitchLabels && (isRect||inCircle)){
+      if(showPitchLabels){
         const gap=Math.max(5,r*0.09);
         const odx=gDX(c,'ladder'), ody=gDY(c,'ladder');
         const lax=cx+(-len-gap)*crA+ly*srA, lay=cy-(-len-gap)*srA+ly*crA;
         const rax=cx+(len+gap)*crA+ly*srA,  ray=cy-(len+gap)*srA+ly*crA;
+        // Bounds-checked against the LABEL's own text footprint, not just
+        // the tick endpoint - same reasoning as the C++ side: the label
+        // sits further out than the tick (+gap), so checking only the
+        // tick's own point let text clip past the edge. 0.6x font size
+        // approximates a monospace character's width, matching how the
+        // C++ side's fixed-width gfxCharW() metric is used here too.
+        const txtHalfW = fontPx*0.6 + 2, txtHalfH = fontPx/2 + 2;
+        let leftOk, rightOk;
+        if(isRect){
+          leftOk  = (lax-txtHalfW>=0 && lax+txtHalfW<=w-1 && lay-txtHalfH>=0 && lay+txtHalfH<=h-1);
+          rightOk = (rax-txtHalfW>=0 && rax+txtHalfW<=w-1 && ray-txtHalfH>=0 && ray+txtHalfH<=h-1);
+        } else {
+          const safeR = Math.max(0, r - Math.max(txtHalfW, txtHalfH));
+          const distL = Math.sqrt((lax-cx)*(lax-cx)+(lay-cy)*(lay-cy));
+          const distR = Math.sqrt((rax-cx)*(rax-cx)+(ray-cy)*(ray-cy));
+          leftOk  = (distL <= safeR);
+          rightOk = (distR <= safeR);
+        }
         ctx.fillStyle=labelColor2;
-        ctx.fillText(Math.abs(p), lax-odx, lay+ody);
-        ctx.fillText(Math.abs(p), rax+odx, ray+ody);
+        if(leftOk)  ctx.fillText(Math.abs(p), lax-odx, lay+ody);
+        if(rightOk) ctx.fillText(Math.abs(p), rax+odx, ray+ody);
       }
     }
   }
@@ -4856,7 +4891,45 @@ function getPanelConfig(){
   if(dimKey==='240x240'||(nw===170&&nh===320)||(nw===320&&nh===170)){
     return {name:'ST7789',gfx:'#include <Adafruit_GFX.h>',include:'#include <Adafruit_ST7789.h>',ctor:'Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);',note:'// ST7789 uses init(w,h) — begin() is protected in Adafruit_ST77xx.',mono:false,setupExtra:'  tft.init('+nw+', '+nh+');  // NATIVE panel resolution, not SCREEN_W/H (those are post-rotation)\n  tft.setSPISpeed(SPI_HZ);\n  tft.setRotation(SCREEN_ROT);',colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
   }
-  if(dimKey==='320x480'){
+  // ST7796S (320x480) and HX8357 (480x320) are exact dimension swaps of
+  // each other - without this check, rotating an ST7796S design to
+  // landscape (or an HX8357 design to portrait) makes dimKey match the
+  // OTHER panel's branch entirely, silently generating code for a
+  // different display controller with a different library, a different
+  // init sequence, and no actual relationship to the wiring in use.
+  // panelId is set once, when the resolution dropdown itself changes, and
+  // is never touched by orientation - so it reliably disambiguates the
+  // two regardless of current rotation. Falls back to plain dimKey
+  // matching when panelId doesn't explicitly conflict, for backward
+  // compatibility with older saved projects or custom resolutions.
+  if((panelId==='320x480' || (dimKey==='320x480' && panelId!=='480x320')) && ((state.hw||HW_DEFAULTS).st7796Library==='adafruit_kbv')){
+    // EXPERIMENTAL alternate to the Arduino_GFX_Library path below - a
+    // community driver (Adafruit_ST7796S_kbv) built specifically to
+    // "behave exactly like Adafruit's own Adafruit_ILI9341", inheriting
+    // from the same Adafruit_GFX/Adafruit_SPITFT base every other panel
+    // in this tool already uses. That means this needs NONE of the
+    // dedicated per-instrument-canvas/pointer-indirection machinery the
+    // Arduino_GFX_Library path required - the existing, proven
+    // useFB/GFXcanvas8 framebuffer mechanism already used by every other
+    // color panel applies here automatically, unmodified.
+    //
+    // The real appeal: Earle Philhower's arduino-pico core (the RP2040
+    // core this tool already targets) officially recommends a specific
+    // RP2040-optimised fork of Adafruit_GFX for exactly this board,
+    // documented at 2-20x faster than the standard version - and since
+    // that fork is API-compatible by design, this driver should work
+    // with it unmodified.
+    //
+    // Neither library is in the Arduino Library Manager - both need a
+    // manual GitHub download/zip install. Installing the RP2040-optimised
+    // fork REPLACES your system's regular Adafruit GFX Library install,
+    // which affects every sketch using it, not just this one - it's
+    // designed as a compatible drop-in replacement, but this has not
+    // been verified against this tool's own real hardware, unlike the
+    // Arduino_GFX_Library path below.
+    return {name:'ST7796S (Adafruit-style)',gfx:'#include <Adafruit_GFX.h>',include:'#include <Adafruit_ST7796S_kbv.h>',ctor:'Adafruit_ST7796S_kbv tft = Adafruit_ST7796S_kbv(TFT_CS, TFT_DC, TFT_RST);',note:'// NOTE: ST7796S (Adafruit-style) needs TWO manual installs, neither in\n// the Library Manager:\n// 1. Adafruit_ST7796S_kbv - github.com/prenticedavid/Adafruit_ST7796S_kbv\n// 2. For the RP2040 speed benefit specifically, replace your regular\n//    Adafruit GFX Library with Bodmer\'s RP2040-optimised fork -\n//    github.com/Bodmer/Adafruit-GFX-Library (officially recommended by\n//    the arduino-pico core docs, ~2-20x faster on this board specifically\n//    - but this replaces the library for every sketch using it, not just\n//    this one). On other boards, the standard Adafruit GFX Library from\n//    the Library Manager works fine here too, just without that speedup.',mono:false,setupExtra:'  tft.begin();\n  tft.setSPISpeed(SPI_HZ);\n  tft.setRotation(SCREEN_ROT);',colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
+  }
+  if(panelId==='320x480' || (dimKey==='320x480' && panelId!=='480x320')){
     const hw2=state.hw||HW_DEFAULTS;
     // Arduino_GFX_Library instead of TFT_eSPI - confirmed working on this
     // exact hardware (RP2040 + ST7796, same pins) via a real working
@@ -4886,16 +4959,42 @@ function getPanelConfig(){
     // (~150KB of 264KB available) - recomputed here since getPanelConfig()
     // runs separately from where useIndexedCanvas is otherwise computed.
     const useIndexedCanvas2 = ((state.hw&&state.hw.useFramebuffer)||'auto')!=='off';
-    const realDisplayCtor = `Arduino_GFX *${useIndexedCanvas2?'outputDisplay':'tft'} = new Arduino_ST7796(bus, TFT_RST, 0, false);`;
+    const rot2 = orientationToRot();
+    // Rotation is handled differently depending on whether a canvas sits
+    // in between drawing code and the real panel:
+    //
+    // Non-buffered: rotation goes on the real display object, at
+    // construction - the library's own official example pattern.
+    //
+    // Buffered: the canvas's flush() writes its buffer directly onto the
+    // display's physical pixel grid, which does not itself change shape
+    // no matter what rotation value the display was constructed with - so
+    // outputDisplay stays at its native rotation (0) and native
+    // dimensions always, the canvas is sized to match that SAME native
+    // grid rather than the orientation-swapped SCREEN_W/SCREEN_H, and the
+    // logical rotation our instrument-drawing code actually needs goes on
+    // the CANVAS itself via setRotation() instead - this is what our
+    // drawing coordinates need to see, independent of the physical
+    // panel's own fixed hardware shape. Constructing the canvas at the
+    // swapped dimensions instead (this tool's first attempt at this) is
+    // exactly what produced a clipped/partial image: a 480-wide canvas
+    // buffer only has room for the first 320 columns of a native
+    // 320-wide physical panel, and a 320-tall canvas only fills the top
+    // 320 of 480 physically available rows.
+    const realDisplayCtor = useIndexedCanvas2
+      ? `Arduino_GFX *outputDisplay = new Arduino_ST7796(bus, TFT_RST, 0, false);`
+      : `Arduino_GFX *tft = new Arduino_ST7796(bus, TFT_RST, ${rot2}, false);`;
     const canvasCtor = useIndexedCanvas2
-      ? `\n// Buffered drawing: all instrument code draws into this in-RAM canvas,\n// then flush() pushes the whole finished frame to outputDisplay in one\n// batch of SPI transactions instead of one per primitive - removes\n// flicker entirely and is dramatically faster than drawing straight to\n// the panel. Colours are plain RGB565 exactly like every other panel -\n// the canvas builds its own 256-entry palette automatically as colours\n// are actually used, only reducing precision if a design uses more than\n// 256 distinct colours at once (rare for an instrument cluster's\n// deliberately limited palette). mask_level starts at 0 (full precision)\n// per the library's own documented pattern, and is only raised\n// automatically, internally, if that 256-colour budget is exceeded.\nArduino_GFX *tft = new Arduino_Canvas_Indexed(SCREEN_W, SCREEN_H, outputDisplay, 0, 0, 0);`
+      ? '' // Per-instrument canvases are constructed separately, in
+        // buildArduinoCode() (Section 6b) - getPanelConfig() has no
+        // access to the instrument list to size/place them here.
       : '';
     const setupExtra2 = useIndexedCanvas2
-      ? `  // Explicit frequency on the REAL display object, not left to the\n  // canvas's own begin() to forward correctly - unverified pass-through\n  // behaviour isn't a risk worth taking twice in the same sketch.\n  outputDisplay->begin(${spiHz2});\n  tft->begin();\n  tft->setRotation(SCREEN_ROT);`
-      : `  tft->begin(${spiHz2});\n  tft->setRotation(SCREEN_ROT);`;
+      ? `  // Explicit frequency on the REAL display object, not left to any\n  // canvas's own begin() to forward correctly - unverified pass-through\n  // behaviour isn't a risk worth taking twice in the same sketch.\n  // Per-instrument canvases are begin()'d and rotated in Section 6b below,\n  // once they exist - nothing else to do for outputDisplay itself here.\n  outputDisplay->begin(${spiHz2});`
+      : `  // Rotation is already set above at construction, matching the\n  // library's own official example pattern.\n  tft->begin(${spiHz2});`;
     return {name:'ST7796S',gfx:'',include:'#include <Arduino_GFX_Library.h>',ctor:`${busCtor}\n${realDisplayCtor}${canvasCtor}`,note:'// NOTE: ST7796S uses the Arduino_GFX_Library (moononournation), not\n// Adafruit or TFT_eSPI - install it first: Sketch > Include Library >\n// Manage Libraries, search "GFX Library for Arduino", Install.',mono:false,setupExtra:setupExtra2,colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
   }
-  if(dimKey==='480x320'){
+  if(panelId==='480x320' || (dimKey==='480x320' && panelId!=='320x480')){
     return {name:'HX8357',gfx:'#include <Adafruit_GFX.h>',include:'#include <Adafruit_HX8357.h>',ctor:'Adafruit_HX8357 tft = Adafruit_HX8357(TFT_CS, TFT_DC, TFT_RST);',note:'',mono:false,setupExtra:'  tft.begin();\n  tft.setSPISpeed(SPI_HZ);  // big win: default is only 24 MHz\n  tft.setRotation(SCREEN_ROT);',colorConst:'#define C_BG      0x0000\n#define C_DGREY   0x4208'};
   }
   if(dimKey==='320x240'){
@@ -5035,6 +5134,67 @@ function bgFillLine(c, shape){
 function circularBgFill(c){
   return `  ${bgFillLine(c,'circle').trim()}`;
 }
+// Groups instruments whose bounding boxes overlap into connected
+// components (standard union-find over pairwise AABB intersection).
+// Instruments that don't overlap anything get their own singleton group.
+// This exists specifically for the per-instrument-canvas ST7796S path:
+// if two overlapping instruments had separate canvases and only one
+// redrew when its own value changed, its flush() would silently overwrite
+// whatever the other had drawn in the shared region - since they redraw
+// at different times, the overlap area would flicker between "correct for
+// A" and "correct for B". Sharing one canvas (and always redrawing every
+// member together whenever any one of them needs to) makes that
+// impossible by construction.
+function computeInstrumentGroups(insts, screenW, screenH){
+  const n=insts.length;
+  const parent=Array.from({length:n},(_,i)=>i);
+  function find(x){ while(parent[x]!==x){ parent[x]=parent[parent[x]]; x=parent[x]; } return x; }
+  function union(a,b){ const ra=find(a), rb=find(b); if(ra!==rb) parent[ra]=rb; }
+  function overlaps(a,b){
+    return !(a.x+a.w<=b.x || b.x+b.w<=a.x || a.y+a.h<=b.y || b.y+b.h<=a.y);
+  }
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    if(overlaps(insts[i],insts[j])) union(i,j);
+  }
+  const groupsByRoot={};
+  for(let i=0;i<n;i++){
+    const root=find(i);
+    (groupsByRoot[root]=groupsByRoot[root]||[]).push(i);
+  }
+  const groups = Object.values(groupsByRoot); // array of arrays of instrument indices
+  // Overlap merging is transitive: if A overlaps B and B overlaps C, all
+  // three merge into one group even if A and C never touch directly,
+  // since B's own canvas must contain the full extent of anything it
+  // overlaps. In a dense layout this can collapse most instruments into
+  // one large group - and unlike a genuinely separate small canvas, a
+  // large group still redraws AND FLUSHES ITS ENTIRE AREA every time ANY
+  // ONE of its many members changes, which happens far more often than a
+  // simple fixed-interval whole-screen redraw would. Once the largest
+  // group already covers most of the screen, that overhead has become
+  // strictly worse than just treating the whole screen as one canvas the
+  // old way - so past this point, stop trying to split at all.
+  if(screenW && screenH && n>0){
+    const screenArea = screenW*screenH;
+    const largest = groups.reduce((max,g)=>{
+      const b = groupBounds(g, insts);
+      return Math.max(max, b.w*b.h);
+    }, 0);
+    if(largest / screenArea > 0.5){
+      return [insts.map((_,i)=>i)]; // one group containing every instrument
+    }
+  }
+  return groups;
+}
+function groupBounds(group, insts){
+  let minX=Infinity, minY=Infinity, maxX=-Infinity, maxY=-Infinity;
+  group.forEach(i=>{
+    const inst=insts[i];
+    minX=Math.min(minX, inst.x); minY=Math.min(minY, inst.y);
+    maxX=Math.max(maxX, inst.x+inst.w); maxY=Math.max(maxY, inst.y+inst.h);
+  });
+  return {x:minX, y:minY, w:maxX-minX, h:maxY-minY};
+}
+
 function buildArduinoCode(){
   // template-image instruments are editor-only reference/tracing aids with
   // no real-hardware equivalent - excluded here, at the single source array
@@ -5043,6 +5203,24 @@ function buildArduinoCode(){
   // function generation loop), rather than needing separate exclusion
   // checks scattered through each of those steps individually.
   const insts=state.instruments.filter(i=>i.type!=='template-image');
+  const [effScreenW,effScreenH]=orientationSwapped()?[state.screenH,state.screenW]:[state.screenW,state.screenH];
+  const groups=computeInstrumentGroups(insts, effScreenW, effScreenH);
+  // Auto-detect whether a full-screen clear every frame is actually
+  // needed, rather than leaving this as a manual #define the user has to
+  // discover and edit themselves. Instruments whose geometry rotates
+  // continuously with live telemetry redraw at a very slightly different
+  // sub-pixel position each frame as sin/cos round to different actual
+  // pixels - a background fill scoped only to that instrument's own
+  // circle/rect can't fully guarantee covering wherever the previous
+  // frame's edge happened to land, which is what produces a slow visible
+  // smear over time on exactly this kind of instrument. A static
+  // (non-live) rotation set once has the same issue for the same reason,
+  // and overlapping instruments have a related but distinct issue: one's
+  // own background fill can leave a neighbour's previously-drawn content
+  // uncovered in the shared region.
+  const LIVE_ROTATING_TYPES = new Set(['artificial-horizon','turn-coordinator','compass','altimeter-dial','groundspeed-dial','arc-gauge','heading-arc']);
+  const hasOverlap = groups.some(g=>g.length>1);
+  const needsFullClear = hasOverlap || insts.some(i=>LIVE_ROTATING_TYPES.has(i.type) || (i.config&&i.config.rotation));
   const panelId=state.panelId;
   const panel=getPanelConfig();
   const rot=orientationToRot();
@@ -5055,8 +5233,9 @@ function buildArduinoCode(){
   // macro already accounts for this for instrument-drawing code, but a
   // few other places (the DISPLAY_TEST colour-cycle block, the splash
   // screen) reference tft directly rather than through that macro, so they
-  // need the same distinction applied by hand.
-  const tftAccess = isTftESPI ? 'tft->' : 'tft.';
+  // need the same distinction applied by hand. (tftAccess itself is
+  // defined further below, once useIndexedCanvas is available - it needs
+  // to know whether tft exists as a single object at all.)
   // U8g2's rotation constants (U8G2_R0..R3) are the display-driver equivalent
   // of tft.setRotation() for the Adafruit-GFX panels - both use the same
   // 0/1/2/3 = 0/90/180/270deg convention, so `rot` maps directly across.
@@ -5077,6 +5256,15 @@ function buildArduinoCode(){
   // and simply doesn't fit at all - so this doesn't need a size-fit check
   // the way useFB does, just the same on/off/auto Hardware Setup toggle.
   const useIndexedCanvas = isTftESPI && !isMonoPanelHW() && fbMode!=='off';
+  // tft no longer exists as a single object once useIndexedCanvas splits
+  // drawing across per-instrument canvases - the splash screen and
+  // DISPLAY_TEST draw directly to outputDisplay instead, which always
+  // exists. outputDisplay stays at native (unrotated) orientation always
+  // in that mode, so this splash text will appear in native orientation
+  // on a rotated screen - a minor, accepted trade-off for a briefly-shown
+  // startup screen, rather than building a dedicated rotated canvas just
+  // for this one-time use.
+  const tftAccess = isTftESPI ? (useIndexedCanvas ? 'outputDisplay->' : 'tft->') : 'tft.';
   const canvasClass = depth===1?'GFXcanvas1':depth===8?'GFXcanvas8':'GFXcanvas16';
   // Two buffers let core1 push the finished frame while core0 draws the next,
   // so frame time becomes max(render, transfer) instead of their sum.
@@ -5157,7 +5345,7 @@ function buildArduinoCode(){
     ? `  // Route hardware SPI to the configured pins (RP2040 core)\n`+
       `  SPI.setSCK(${hw.sck});\n  SPI.setTX(${hw.mosi});\n  // NB: no SPI.begin() here - the display library calls it during init.`
     : (isTftESPI && hw.board==='rp2040')
-    ? `  // Arduino_GFX_Library's RP2040-specific bus (Arduino_RPiPicoSPI) takes\n  // CS/DC/SCK/MOSI/MISO as direct constructor arguments (see the bus/tft\n  // object construction below) rather than reading them from the global\n  // SPI object, so there is nothing to pre-configure here at all.`
+    ? `  // Arduino_GFX_Library's RP2040-specific bus (Arduino_RPiPicoSPI) takes\n  // CS/DC/SCK/MOSI/MISO as direct constructor arguments (see the bus/\n  // display object construction below) rather than reading them from the\n  // global SPI object, so there is nothing to pre-configure here at all.`
     : (!isI2CPanel() && !isU8g2 && (hw.board==='esp32'||hw.board==='esp32s3'))
     ? `  // The display library's own begin() calls SPI.begin() with no args,\n`+
       `  // which silently falls back to this board's DEFAULT hardware SPI pins\n`+
@@ -5296,13 +5484,13 @@ volatile bool fbPending = false;           // set by core0, cleared by core1
 ${isMonoPanelHW() ? '// The mono driver keeps its own buffer, so this is already buffered.'
   : fbFits ? '// Framebuffer disabled in Hardware Setup.'
   : `// A ${depth}bpp framebuffer would need ${(fbBytes/1024).toFixed(0)} KB, which exceeds available SRAM.\n// Lower the colour depth in Hardware Setup to enable double buffering.`}
-${isTftESPI ? '#define GFX (*tft)      // Arduino_GFX_Library: tft is a pointer (polymorphic bus/display construction)' : '#define GFX tft'}
+${isTftESPI ? (useIndexedCanvas ? 'Arduino_GFX *_activeCanvas;   // reassigned before each instrument\'s draw call, see Section 8\n#define GFX (*_activeCanvas)' : '#define GFX (*tft)      // Arduino_GFX_Library: tft is a pointer (polymorphic bus/display construction)') : '#define GFX tft'}
 `}
 
 // ------------------------------------------------------------
 // Section 2 : Screen & palette constants
 // ------------------------------------------------------------
-#define SCREEN_ROT ${rot}\n\n// Set to 1 if instruments overlap or use rotation, so stale pixels outside\n// an instrument's own rectangle would otherwise linger. Costs a full-screen\n// repaint every frame.\n#define FULL_CLEAR 0\n// Set to 1 to bypass instruments and cycle solid colours - proves the panel\n// and wiring work independently of any drawing code.\n#define DISPLAY_TEST 0\n// Redraw interval in ms. Lower = smoother, but a full colour repaint is\n// bandwidth-bound, so going below the panel's transfer time gains nothing.\n#define DRAW_INTERVAL_MS ${isMono?'100':'33'}
+#define SCREEN_ROT ${rot}\n\n// Set to 1 if instruments overlap or use rotation, so stale pixels outside\n// an instrument's own rectangle would otherwise linger. Costs a full-screen\n// repaint every frame. Auto-detected from this design: ${needsFullClear?'this design has a rotating and/or overlapping instrument, so this is ON by default.':'no rotating or overlapping instruments were found, so this is OFF by default - flip to 1 if you see smearing anyway.'}\n#define FULL_CLEAR ${needsFullClear?1:0}\n// Set to 1 to bypass instruments and cycle solid colours - proves the panel\n// and wiring work independently of any drawing code.\n#define DISPLAY_TEST 0\n// Redraw interval in ms. Lower = smoother, but a full colour repaint is\n// bandwidth-bound, so going below the panel's transfer time gains nothing.\n#define DRAW_INTERVAL_MS ${isMono?'100':'33'}
 
 ${isMono
   ? (isU8g2
@@ -5595,7 +5783,7 @@ ${isU8g2 ? `int gfxSizeF(float pxHeight) {
   if (pxHeight < 7.0f) { _u8g2.setFont(u8g2_font_tom_thumb_4x6_tf); _gfxCompact = true; return 1; }
   _u8g2.setFont(u8g2_font_6x10_tf);
   _gfxCompact = false;
-  int s = (int)roundf(pxHeight / 8.0f);
+  int s = (int)floorf(pxHeight / 8.0f);   // round DOWN only - setTextSize()'s integer-only steps mean rounding up can overshoot the intended size by double-digit percentages (a 100% jump from 1x to 2x), which read as noticeably oversized text; never overshooting is the safer default
   return s < 1 ? 1 : s;
 }
 // U8g2 fonts are fixed bitmaps with no runtime multiplier (the shim's
@@ -5616,7 +5804,7 @@ int gfxCenterOffset(int sz) { return 0; }` : isTftESPI ? `int gfxSizeF(float pxH
   // on real hardware, so this stays on the safe, already-proven path:
   // the standard built-in font, just scaled by size, no font switching.
   // Small instruments render a little larger as a result.
-  int s = (int)roundf(pxHeight / 8.0f);
+  int s = (int)floorf(pxHeight / 8.0f);   // round DOWN only - setTextSize()'s integer-only steps mean rounding up can overshoot the intended size by double-digit percentages (a 100% jump from 1x to 2x), which read as noticeably oversized text; never overshooting is the safer default
   return s < 1 ? 1 : s;
 }
 int gfxCharW(int sz) { return 6*sz; }
@@ -5625,7 +5813,7 @@ int gfxCenterOffset(int sz) { return -(gfxCharH(sz)/2); }` : `int gfxSizeF(float
   if (pxHeight < 7.0f) { GFX.setFont(&TomThumb); _gfxCompact = true; return 1; }
   GFX.setFont();  // back to the built-in default font
   _gfxCompact = false;
-  int s = (int)roundf(pxHeight / 8.0f);
+  int s = (int)floorf(pxHeight / 8.0f);   // round DOWN only - setTextSize()'s integer-only steps mean rounding up can overshoot the intended size by double-digit percentages (a 100% jump from 1x to 2x), which read as noticeably oversized text; never overshooting is the safer default
   return s < 1 ? 1 : s;
 }
 // Per-character advance width and full cell height for whichever font is
@@ -6013,6 +6201,52 @@ float homeBearingDeg() {
     });
   }
 
+  if(useIndexedCanvas){
+    code+=`
+// ------------------------------------------------------------
+// Section 6b : Per-group canvases (buffered ST7796S)
+// ------------------------------------------------------------
+// Splitting the screen into several small canvases, instead of one canvas
+// for the whole screen, is what makes partial updates possible at all -
+// flush() always pushes an entire canvas's buffer with no partial option,
+// so the only way to redraw less than the whole screen is for "the whole
+// screen" to mean something smaller to begin with. Canvases are grouped
+// by instrument OVERLAP rather than one per instrument: if two
+// overlapping instruments had separate canvases, whichever redrew most
+// recently would silently overwrite the other's content in the shared
+// region, since they change (and so redraw) at different times -
+// visible as flickering. Overlapping instruments share one canvas and
+// always redraw together instead, which makes that impossible.
+${groups.length===insts.length?'// No overlapping instruments in this design - one canvas per instrument.':groups.length===1&&insts.length>1?`// ${insts.length} instruments collapsed into ONE shared canvas - either\n// they are all chained together by overlap, or splitting them further\n// stopped being worthwhile once the largest overlapping cluster already\n// covered most of the screen (redrawing a large shared group on every\n// single member's change becomes worse than one simple whole-screen\n// redraw at that point, so this falls back to exactly that instead).`:`// ${insts.length} instruments grouped into ${groups.length} canvas(es) by overlap.`}
+`;
+    const STATIC_TYPES = new Set(['static-text','shape-rectangle','shape-circle','shape-triangle','shape-line','template-image']);
+    let totalCanvasBytes = 0;
+    groups.forEach((group,g)=>{
+      const b = groupBounds(group, insts);
+      totalCanvasBytes += b.w*b.h + 512;
+      code+=`Arduino_GFX *instCanvasG${g} = new Arduino_Canvas_Indexed(${b.w}, ${b.h}, outputDisplay, ${b.x}, ${b.y}, MAXMASKLEVEL);\n`;
+    });
+    code+=`// Estimated RAM for the above: ${(totalCanvasBytes/1024).toFixed(1)} KB (widths*heights + a 512B palette\n// each) - watch for out-of-memory symptoms (crashes, resets, garbled\n// output) if this design has many large instruments; lowering resolution\n// or instrument count are the ways to bring it down.\n`;
+    if(totalCanvasBytes > 180*1024){
+      code+=`#warning Estimated per-group canvas RAM (${(totalCanvasBytes/1024).toFixed(1)} KB) is close to or over the RP2040's 264 KB SRAM once stack/MAVLink buffers/other globals are counted too. Large, overlapping instruments cost more this way than one full-screen canvas would (that always capped at ~150 KB regardless of instrument count) - consider shrinking or reducing overlap between the largest instruments if the panel crashes, resets, or shows garbled output.\n`;
+    }
+    code+=`\n// Cached values from each instrument's last actual redraw, and whether it\n// has been drawn at all yet - drives the change detection in drawAll()\n// below. NAN as the initial cached value guarantees the very first frame\n// always draws (NAN != any real reading), with no separate "ever drawn"\n// bookkeeping needed for the value-driven instruments.\n`;
+    insts.forEach((inst,i)=>{
+      const c=inst.config;
+      const srcKeys=Object.keys(c).filter(k=>k.startsWith('mavSource')&&c[k]&&c[k]!=='');
+      if(srcKeys.length>0){
+        srcKeys.forEach((k,si)=>{ code+=`float _lastVal${i}_${si} = NAN;\n`; });
+      } else if(!STATIC_TYPES.has(inst.type)){
+        // No mavSource-like field found, and not a known-static type (e.g.
+        // Home Arrow/Distance, which read GPS internally rather than
+        // through a config field) - redraw every frame rather than risk a
+        // silently stale instrument for a type this scan cannot see into.
+      } else {
+        code+=`bool _everDrawn${i} = false;\n`;
+      }
+    });
+  }
+
   // ------------------------------------------------------------
   // Section 7 : setup() / loop()
   // ------------------------------------------------------------
@@ -6085,6 +6319,7 @@ ${spiPinSetup}
 ${i2cPinSetup}
 ${blSetup}
 ${panel.setupExtra||('  tft.begin();\n  tft.setRotation(SCREEN_ROT);')}
+${useIndexedCanvas ? groups.map((group,g)=>`  instCanvasG${g}->begin();\n  instCanvasG${g}->setRotation(${rot});\n  instCanvasG${g}->fillScreen(C_BG);   // clear raw, uninitialised memory before first use`).join('\n') : ''}
 ${contrastSetup}
   memset(&mav, 0, sizeof(mav));
 
@@ -6110,10 +6345,10 @@ ${isU8g2 ? `  // Mono panel: no RGB to cycle. First sweep contrast with a filled
     _u8g2.drawBox(0, 0, SCREEN_W, SCREEN_H); _u8g2.sendBuffer(); delay(600);   // all on
     _u8g2.clearBuffer(); _u8g2.sendBuffer(); delay(600);                       // all off
   }` : `  for (;;) {
-    ${tftAccess}fillScreen(0xF800); delay(600);   // red${useIndexedCanvas?'\n    tft->flush();':''}
-    ${tftAccess}fillScreen(0x07E0); delay(600);   // green${useIndexedCanvas?'\n    tft->flush();':''}
-    ${tftAccess}fillScreen(0x001F); delay(600);   // blue${useIndexedCanvas?'\n    tft->flush();':''}
-    ${tftAccess}fillScreen(0xFFFF); delay(600);   // white${useIndexedCanvas?'\n    tft->flush();':''}
+    ${tftAccess}fillScreen(0xF800); delay(600);   // red
+    ${tftAccess}fillScreen(0x07E0); delay(600);   // green
+    ${tftAccess}fillScreen(0x001F); delay(600);   // blue
+    ${tftAccess}fillScreen(0xFFFF); delay(600);   // white
   }`}
 #endif
 
@@ -6122,9 +6357,9 @@ ${isU8g2 ? `  // Mono panel: no RGB to cycle. First sweep contrast with a filled
   // fits even on the smallest supported screens.
   ${isU8g2
     ? `_u8g2.clearBuffer();\n  _u8g2.setFont(u8g2_font_6x10_tf);\n  _u8g2.setDrawColor(C_FG);\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("AVIONIX"))/2, SCREEN_H/2 - 6, "AVIONIX");\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("FORGE"))/2, SCREEN_H/2 + 8, "FORGE");\n  _u8g2.sendBuffer();`
-    : `${tftAccess}fillScreen(C_BG);\n  ${tftAccess}setTextColor(${splashColor}); ${tftAccess}setTextSize(1);\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("AVIONIX")*6)/2, SCREEN_H/2 - 10);\n  ${tftAccess}print("AVIONIX");\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("FORGE")*6)/2, SCREEN_H/2 + 2);\n  ${tftAccess}print("FORGE");${useIndexedCanvas?'\n  tft->flush();':''}${displayRefresh}`}
+    : `${tftAccess}fillScreen(C_BG);\n  ${tftAccess}setTextColor(${splashColor}); ${tftAccess}setTextSize(1);\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("AVIONIX")*6)/2, SCREEN_H/2 - 10);\n  ${tftAccess}print("AVIONIX");\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("FORGE")*6)/2, SCREEN_H/2 + 2);\n  ${tftAccess}print("FORGE");${displayRefresh}`}
   delay(1500);
-  ${isU8g2?'_u8g2.clearBuffer(); _u8g2.sendBuffer();':tftAccess+'fillScreen(C_BG);'}${useIndexedCanvas?'\n  tft->flush();':''}
+  ${isU8g2?'_u8g2.clearBuffer(); _u8g2.sendBuffer();':tftAccess+'fillScreen(C_BG);'}
 ${useFB ? `  // GFXcanvas allocates with malloc and fails SILENTLY - getBuffer() just
   // returns null and the screen stays blank with no error. Check it.
 ${pingPong ? `  if (!fbA.getBuffer() || !fbB.getBuffer()) {
@@ -6235,17 +6470,72 @@ ${hw.board!=='rp2040' ? '  receiveMavlink();\n' : '  // receiveMavlink() now run
 // Section 8 : Master draw dispatch
 // ------------------------------------------------------------
 void drawAll() {
-${(blMode==='rc'||((isU8g2||isAdafruitMonoContrast)&&contrastMode==='rc'))?`  // Brightness/contrast set from an RC channel can change in flight, so\n  // it is re-applied every frame here rather than once in setup().\n${blMode==='rc'?`  analogWrite(TFT_BL, constrain(map((int)getMavlinkValue("${hw.blRcSource||'RC_CHANNELS.chan7_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isU8g2&&contrastMode==='rc')?`  _u8g2.setContrast(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isAdafruitMonoContrast&&contrastMode==='rc')?`  tft.ssd1306_command(SSD1306_SETCONTRAST);\n  tft.ssd1306_command(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}`:''}${fillScreen}
+${(blMode==='rc'||((isU8g2||isAdafruitMonoContrast)&&contrastMode==='rc'))?`  // Brightness/contrast set from an RC channel can change in flight, so\n  // it is re-applied every frame here rather than once in setup().\n${blMode==='rc'?`  analogWrite(TFT_BL, constrain(map((int)getMavlinkValue("${hw.blRcSource||'RC_CHANNELS.chan7_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isU8g2&&contrastMode==='rc')?`  _u8g2.setContrast(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isAdafruitMonoContrast&&contrastMode==='rc')?`  tft.ssd1306_command(SSD1306_SETCONTRAST);\n  tft.ssd1306_command(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}`:''}${useIndexedCanvas ? '' : fillScreen}
 `;
-  if(insts.length===0){
-    code+=`  // (nothing to draw)\n`;
+  if(useIndexedCanvas){
+    const STATIC_TYPES = new Set(['static-text','shape-rectangle','shape-circle','shape-triangle','shape-line','template-image']);
+    if(insts.length===0){
+      code+=`  // (nothing to draw)\n`;
+    } else {
+      groups.forEach((group,g)=>{
+        const b = groupBounds(group, insts);
+        const memberConditions = group.map(i=>{
+          const c=insts[i].config;
+          const srcKeys=Object.keys(c).filter(k=>k.startsWith('mavSource')&&c[k]&&c[k]!=='');
+          if(srcKeys.length>0){
+            return srcKeys.map((k,si)=>`fabsf(getMavlinkValue("${c[k]}") - _lastVal${i}_${si}) > 0.01f || isnan(_lastVal${i}_${si})`).join(' || ');
+          } else if(STATIC_TYPES.has(insts[i].type)){
+            return `!_everDrawn${i}`;
+          } else {
+            // No trackable source found for a non-static type (e.g. Home
+            // Arrow/Distance, which read GPS internally) - always redraw
+            // rather than risk this instrument going silently stale.
+            return 'true';
+          }
+        });
+        const condition = memberConditions.join(' || ');
+        code+=`  if (${condition}) {\n`;
+        code+=`    _activeCanvas = instCanvasG${g};\n`;
+        // Cleared every time this group redraws, not just once at setup -
+        // members sharing this canvas may use a transparent fill that
+        // deliberately skips painting some area, and a stale previous
+        // frame (or another member's leftover content) would otherwise
+        // still be sitting in that area rather than the correct
+        // background colour.
+        code+=`    instCanvasG${g}->fillScreen(C_BG);\n`;
+        // Every member redraws together, not just whichever one actually
+        // triggered this redraw - otherwise a member that DIDN'T change
+        // would vanish from a canvas that was just cleared out from
+        // under it.
+        group.forEach(i=>{
+          const inst=insts[i];
+          const fn='draw_'+inst.type.replace(/-/g,'_')+'_'+i;
+          code+=`    ${fn}(${inst.x-b.x}, ${inst.y-b.y}, INST${i}_W, INST${i}_H);\n`;
+        });
+        code+=`    instCanvasG${g}->flush();\n`;
+        group.forEach(i=>{
+          const c=insts[i].config;
+          const srcKeys=Object.keys(c).filter(k=>k.startsWith('mavSource')&&c[k]&&c[k]!=='');
+          if(srcKeys.length>0){
+            srcKeys.forEach((k,si)=>{ code+=`    _lastVal${i}_${si} = getMavlinkValue("${c[k]}");\n`; });
+          } else if(STATIC_TYPES.has(insts[i].type)){
+            code+=`    _everDrawn${i} = true;\n`;
+          }
+        });
+        code+=`  }\n`;
+      });
+    }
   } else {
-    insts.forEach((inst,i)=>{
-      const fn='draw_'+inst.type.replace(/-/g,'_')+'_'+i;
-      code+=`  ${fn}(INST${i}_X, INST${i}_Y, INST${i}_W, INST${i}_H);\n`;
-    });
+    if(insts.length===0){
+      code+=`  // (nothing to draw)\n`;
+    } else {
+      insts.forEach((inst,i)=>{
+        const fn='draw_'+inst.type.replace(/-/g,'_')+'_'+i;
+        code+=`  ${fn}(INST${i}_X, INST${i}_Y, INST${i}_W, INST${i}_H);\n`;
+      });
+    }
+    if(flushBuf) code+=flushBuf+`\n`;
   }
-  if(flushBuf) code+=flushBuf+`\n`;
   code+=`}\n`;
 
   // ------------------------------------------------------------
@@ -6298,6 +6588,7 @@ function buildMultiPageArduinoCode(pages, rcSource) {
   const savedInstruments = state.instruments;
   let sharedHead = null, sharedLoop = null;
   const pageBlocks = [];
+  const pageCanvasInits = [];
 
   try {
     pages.forEach((page, idx) => {
@@ -6314,6 +6605,18 @@ function buildMultiPageArduinoCode(pages, rcSource) {
         sharedLoop = full.slice(s7i, s8i);        // Section 7 (setup/loop), unmodified for now
       }
 
+      // Per-instrument canvas init calls (instCanvasN->begin()/setRotation())
+      // live inside setup(), not the Section 6/8/9 block below - extracted
+      // and renamed separately from EVERY page's own sketch (not just page
+      // 0's), since each page's canvases need their own begin() call, and
+      // page 0's setup() only ever contained page 0's own, un-renamed
+      // version of these lines.
+      const setupSection = full.slice(s7i, s8i);
+      const canvasInitMatches = [...setupSection.matchAll(/  instCanvasG\d+->begin\(\);\n  instCanvasG\d+->setRotation\(\d+\);\n  instCanvasG\d+->fillScreen\(C_BG\);[^\n]*/g)];
+      canvasInitMatches.forEach(m => {
+        pageCanvasInits.push(m[0].replace(/\binstCanvasG(\d+)\b/g, `instCanvasG${idx}_$1`));
+      });
+
       // Page-specific: Section 6 (defines) + Section 8 (dispatch) + Section 9 (draw fns)
       let block = full.slice(s6i, s7i) + full.slice(s8i, endi);
       // Namespace every per-page identifier so 3 pages can coexist in one
@@ -6324,10 +6627,25 @@ function buildMultiPageArduinoCode(pages, rcSource) {
       block = block.replace(/\bINST(\d+)_/g, `P${idx}_INST$1_`);
       block = block.replace(/\bdraw_([a-z_]+?)_(\d+)\b/g, `draw_$1_$2_p${idx}`);
       block = block.replace(/\bdrawAll\b/g, `drawPage${idx}`);
+      // Per-instrument canvas identifiers (added by a later feature than
+      // the three patterns above) also need namespacing per page, or two
+      // pages both declaring e.g. "instCanvas0" collide as a duplicate
+      // global declaration.
+      block = block.replace(/\binstCanvasG(\d+)\b/g, `instCanvasG${idx}_$1`);
+      block = block.replace(/\b_lastVal(\d+)_(\d+)\b/g, `_lastVal${idx}_$1_$2`);
+      block = block.replace(/\b_everDrawn(\d+)\b/g, `_everDrawn${idx}_$1`);
       pageBlocks.push(block);
     });
   } finally {
     state.instruments = savedInstruments;   // always restore, even on error
+  }
+
+  // Page 0's setup() contains only its OWN, un-renamed canvas-init calls -
+  // replace that whole consecutive block with every page's own, correctly
+  // renamed version collected above, so every page's canvases actually get
+  // begin()'d and rotated, not just page 0's.
+  if (pageCanvasInits.length > 0) {
+    sharedLoop = sharedLoop.replace(/(  instCanvasG\d+->begin\(\);\n  instCanvasG\d+->setRotation\(\d+\);\n  instCanvasG\d+->fillScreen\(C_BG\);[^\n]*\n?)+/, pageCanvasInits.join('\n') + '\n');
   }
 
   // Replace the single "drawAll(); lastDraw = millis();" call site in
@@ -6588,8 +6906,11 @@ function generateInstrumentCode(inst, i) {
     L.push(`      int bx=cx+(int)(lx1*crA+ly*srA), by=cy+(int)(-lx1*srA+ly*crA);`);
     L.push(`      int dx3=cx+(int)(lx2*crA+ly*srA), dy3=cy+(int)(-lx2*srA+ly*crA);`);
     L.push(`      int ex=cx+(int)(lx3*crA+ly*srA), ey=cy+(int)(-lx3*srA+ly*crA);`);
-    L.push(`      bool inCircle = (ax-cx)*(ax-cx)+(ay-cy)*(ay-cy) <= r*r;`);
-    L.push(`      if ((isRect || inCircle) && rungColor != C_BG) { GFX.drawLine(ax,ay,bx,by,rungColor); GFX.drawLine(dx3,dy3,ex,ey,rungColor); }`);
+    L.push(`      // isRect had no bounds check at all before (isRect ||\n      // short-circuited past it unconditionally) - checking both outer\n      // endpoints of the tick's full span against the rectangle's actual\n      // bounds here, the same way the label footprint check below already\n      // does, rather than only ever validating the circular case.`);
+    L.push(`      bool aOk = isRect ? (ax>=x && ax<=x+w-1 && ay>=y && ay<=y+h-1) : ((ax-cx)*(ax-cx)+(ay-cy)*(ay-cy) <= r*r);`);
+    L.push(`      bool eOk = isRect ? (ex>=x && ex<=x+w-1 && ey>=y && ey<=y+h-1) : ((ex-cx)*(ex-cx)+(ey-cy)*(ey-cy) <= r*r);`);
+    L.push(`      bool inCircle = aOk && eOk;`);
+    L.push(`      if (inCircle && rungColor != C_BG) { GFX.drawLine(ax,ay,bx,by,rungColor); GFX.drawLine(dx3,dy3,ex,ey,rungColor); }`);
     L.push(`      if (${b(c.showPitchLabels)} && lblColor != C_BG) {`);
     L.push(`        float gap = max(5.0f, r*0.09f);`);
     L.push(`        int lax=cx+(int)((-len-gap)*crA+ly*srA), lay=cy+(int)(-(-len-gap)*srA+ly*crA);`);
@@ -8573,6 +8894,20 @@ window.addEventListener('load',init);
         </div>
       </div>
 
+      <div class="setup-section" id="hw_st7796LibSection" style="display:none">
+        <div class="setup-section-title"><i class="fa fa-bolt"></i> ST7796S Display Library</div>
+        <div class="setup-row">
+          <div class="setup-field">
+            <label>Library</label>
+            <select id="hw_st7796Library">
+              <option value="arduino_gfx">Arduino_GFX_Library (proven, current default)</option>
+              <option value="adafruit_kbv">Adafruit_ST7796S_kbv (experimental, faster on RP2040)</option>
+            </select>
+            <span class="field-hint">Experimental option needs two manual GitHub installs (not in Library Manager) - see the comment above the generated sketch's includes for details. Untested on real hardware by this tool - try it, but keep the proven option as a fallback.</span>
+          </div>
+        </div>
+      </div>
+
       <div class="setup-section">
         <div class="setup-section-title"><i class="fa fa-sun"></i> Display Brightness &amp; Contrast</div>
         <div class="setup-row">
@@ -8720,7 +9055,8 @@ const HW_DEFAULTS = {
   colorDepth:'16', useFramebuffer:'auto',
   sda:'4', scl:'5', i2cAddr:'0x3C',
   blMode:'on', blFixedValue:100, blRcSource:'RC_CHANNELS.chan7_raw',
-  contrastMode:'default', contrastFixedValue:50, contrastRcSource:'RC_CHANNELS.chan8_raw'
+  contrastMode:'default', contrastFixedValue:50, contrastRcSource:'RC_CHANNELS.chan8_raw',
+  st7796Library:'arduino_gfx'
 };
 state.hw = {...HW_DEFAULTS};
 
@@ -8785,6 +9121,10 @@ function openSetupModal(){
   document.getElementById('spiPinsSection').style.display = isSPIPanel()?'':'none';
   document.getElementById('i2cPinsSection').style.display = isI2CPanel()?'':'none';
 
+  // ST7796S library choice - only meaningful for this specific panel
+  document.getElementById('hw_st7796LibSection').style.display = (state.panelId==='320x480') ? '' : 'none';
+  document.getElementById('hw_st7796Library').value = hw.st7796Library||'arduino_gfx';
+
   // Backlight / contrast
   {
     const rcOpts=Array.from({length:16},(_,i)=>`<option value="RC_CHANNELS.chan${i+1}_raw">RC Channel ${i+1}</option>`).join('');
@@ -8843,6 +9183,7 @@ function applySetupModal(){
     contrastMode: document.getElementById('hw_contrastMode').value,
     contrastFixedValue: parseFloat(document.getElementById('hw_contrastFixedValue').value)||0,
     contrastRcSource: document.getElementById('hw_contrastRcSource').value,
+    st7796Library: document.getElementById('hw_st7796Library').value,
   };
   closeSetupModal();
   // Colour depth changes the palette, the swatches and how the preview renders,
