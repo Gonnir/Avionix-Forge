@@ -71,7 +71,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .palette-footer{padding:10px;border-top:1px solid var(--border)}
 
 .editor{background:var(--bg-2);position:relative;overflow:hidden;display:flex;flex-direction:column}
-.editor-toolbar{height:42px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.6);display:flex;align-items:center;padding:0 16px;gap:12px}
+.editor-toolbar{min-height:42px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.6);display:flex;flex-wrap:wrap;align-items:center;padding:8px 16px;gap:8px 12px}
 .editor-viewport{flex:1;overflow:auto;padding:40px;display:flex;position:relative;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:24px 24px;cursor:grab}
 .editor-viewport.panning{cursor:grabbing}
 #screen{position:relative;background:#040810;border:1px solid var(--border-bright);box-shadow:0 0 0 8px #1a212c,0 0 0 9px #2a3340,0 25px 70px rgba(0,0,0,.7);flex-shrink:0;transform-origin:center center;margin:auto}
@@ -8980,6 +8980,8 @@ window.addEventListener('load',init);
 
     </div>
     <div class="modal-footer">
+      <a class="btn btn-ghost" href="https://gonnir.github.io/Avionix-Forge/manual.html" target="_blank" rel="noopener"><i class="fa fa-book"></i> User Manual</a>
+      <div class="spacer"></div>
       <button class="btn btn-ghost" id="setupModalCancel">Cancel</button>
       <button class="btn btn-primary" id="setupModalApply"><i class="fa fa-check"></i> Apply</button>
     </div>
