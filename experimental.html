@@ -334,6 +334,13 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
       <div id="screen">
         <div id="orientationBadge">0°</div>
         <div id="monoBadge" class="mono-badge" style="display:none">⬛ B/W MONO</div>
+        <div id="marqueeBox" style="display:none;position:absolute;border:1px dashed var(--accent);background:rgba(255,157,58,.08);pointer-events:none;z-index:50"></div>
+        <div id="snapGuideV" style="display:none;position:absolute;top:0;height:100%;width:1px;background:var(--accent);pointer-events:none;z-index:55"></div>
+        <div id="snapGuideH" style="display:none;position:absolute;left:0;width:100%;height:1px;background:var(--accent);pointer-events:none;z-index:55"></div>
+        <div id="groupSelectionBox" style="display:none;position:absolute;outline:1px dashed var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 24px rgba(255,157,58,.25);z-index:40">
+          <div id="groupHandleTl" class="group-handle" style="position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:var(--accent);border:1px solid #1a1004;cursor:nwse-resize;border-radius:2px;z-index:41"></div>
+          <div id="groupHandleBr" class="group-handle" style="position:absolute;right:-5px;bottom:-5px;width:10px;height:10px;background:var(--accent);border:1px solid #1a1004;cursor:nwse-resize;border-radius:2px;z-index:41"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -561,7 +568,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 // ============================================================
 const state = {
   screenW:320, screenH:240, zoom:1,
-  instruments:[], selectedId:null, nextId:1,
+  instruments:[], selectedId:null, selectedIds:[], nextId:1,
   customTemplates:[],
   mavlinkValues:{},
   telemetryRunning:true,
@@ -1155,6 +1162,10 @@ function createInstrumentElement(inst){
 
 function selectInstrument(id){
   state.selectedId=id;
+  if(state.selectedIds.length>0){
+    state.selectedIds=[];
+    document.getElementById('groupSelectionBox').style.display='none';
+  }
   document.querySelectorAll('.instrument').forEach(el=>{el.classList.toggle('selected',parseInt(el.dataset.id)===id)});
   renderProperties();
   updateStatusBar();
@@ -1305,6 +1316,42 @@ function startPaletteDrag(e){
 function startMoveDrag(e,inst){
   if(e.target!==inst.element&&!e.target.classList.contains('instrument-canvas')) return;
   e.stopPropagation();
+  if(e.shiftKey){
+    // Toggle membership only - no drag starts from this same click, so the
+    // user can keep shift-clicking more instruments before dragging any of
+    // them, same convention as most design tools' additive selection.
+    const idx=state.selectedIds.indexOf(inst.id);
+    if(idx>=0){
+      state.selectedIds.splice(idx,1);
+    } else {
+      // Bring the current single selection along as the group's first
+      // member, if there is one, so shift-clicking a second instrument
+      // starting from an ordinary single selection behaves as "add to
+      // selection" rather than silently discarding what was selected.
+      if(state.selectedIds.length===0 && state.selectedId && state.selectedId!==inst.id){
+        state.selectedIds=[state.selectedId];
+      }
+      state.selectedIds.push(inst.id);
+    }
+    if(state.selectedIds.length>=2){
+      state.selectedId=null;
+      document.querySelectorAll('.instrument').forEach(el=>{
+        el.classList.toggle('selected',state.selectedIds.includes(parseInt(el.dataset.id)));
+      });
+      updateGroupSelectionBox();
+      renderProperties();
+      updateStatusBar();
+    } else if(state.selectedIds.length===1){
+      const onlyId=state.selectedIds[0];
+      clearMultiSelect();
+      selectInstrument(onlyId);
+    } else {
+      clearMultiSelect();
+      selectInstrument(null);
+    }
+    return;
+  }
+  clearMultiSelect();
   selectInstrument(inst.id);
   dragState={mode:'move',inst,startMx:e.clientX,startMy:e.clientY,startIx:inst.x,startIy:inst.y};
   document.addEventListener('mousemove',onDragMove);
@@ -1330,6 +1377,142 @@ function startResizeDrag(e,inst,corner){
   document.addEventListener('mouseup',onDragEnd);
 }
 
+// ---- Multi-select: marquee selection, group move, group scale ----------
+
+function computeGroupBounds(ids){
+  const members=ids.map(id=>state.instruments.find(i=>i.id===id)).filter(Boolean);
+  if(members.length===0) return null;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  members.forEach(inst=>{
+    const rot=(inst.config&&inst.config.rotation)||0;
+    if(rot%360===0){
+      // Common, unrotated case - the stored (x,y,w,h) IS the true bounds.
+      minX=Math.min(minX,inst.x); minY=Math.min(minY,inst.y);
+      maxX=Math.max(maxX,inst.x+inst.w); maxY=Math.max(maxY,inst.y+inst.h);
+    } else {
+      // A rotated rectangle's true, axis-aligned bounding box is larger
+      // than its own w/h (except at multiples of 90°) - using the raw,
+      // unrotated box here instead would make the group's own visual
+      // outline (and the handle positions on it) not actually match what
+      // a rotated instrument looks like on screen, which is exactly what
+      // made scaling feel disconnected from the shape being dragged.
+      const rad=rot*Math.PI/180;
+      const cx=inst.x+inst.w/2, cy=inst.y+inst.h/2;
+      const halfW=(Math.abs(inst.w*Math.cos(rad))+Math.abs(inst.h*Math.sin(rad)))/2;
+      const halfH=(Math.abs(inst.w*Math.sin(rad))+Math.abs(inst.h*Math.cos(rad)))/2;
+      minX=Math.min(minX,cx-halfW); minY=Math.min(minY,cy-halfH);
+      maxX=Math.max(maxX,cx+halfW); maxY=Math.max(maxY,cy+halfH);
+    }
+  });
+  return {x:minX,y:minY,w:maxX-minX,h:maxY-minY};
+}
+
+function updateGroupSelectionBox(){
+  const box=document.getElementById('groupSelectionBox');
+  if(state.selectedIds.length<2){ box.style.display='none'; return; }
+  const b=computeGroupBounds(state.selectedIds);
+  if(!b){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.style.left=b.x+'px'; box.style.top=b.y+'px';
+  box.style.width=b.w+'px'; box.style.height=b.h+'px';
+}
+
+// Drops back to ordinary single-selection (or none) - called whenever a
+// plain click lands on the canvas, so the group box/multi-select state
+// never lingers once the user has moved on to something else.
+function clearMultiSelect(){
+  state.selectedIds=[];
+  document.getElementById('groupSelectionBox').style.display='none';
+}
+
+function startMarqueeSelect(e){
+  e.preventDefault();
+  const screenEl=document.getElementById('screen');
+  const rect=screenEl.getBoundingClientRect();
+  const startX=(e.clientX-rect.left)/state.zoom, startY=(e.clientY-rect.top)/state.zoom;
+  dragState={mode:'marquee',startMx:e.clientX,startMy:e.clientY,startX,startY};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+function startGroupMoveDrag(e){
+  if(e.target.classList.contains('group-handle')) return; // handles start a resize instead, see below
+  e.stopPropagation();
+  e.preventDefault();
+  const members=state.selectedIds.map(id=>{
+    const inst=state.instruments.find(i=>i.id===id);
+    return inst?{inst,startX:inst.x,startY:inst.y}:null;
+  }).filter(Boolean);
+  dragState={mode:'groupMove',startMx:e.clientX,startMy:e.clientY,members};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+function startGroupResizeDrag(e,corner){
+  e.stopPropagation();
+  e.preventDefault();
+  const b=computeGroupBounds(state.selectedIds);
+  if(!b) return;
+  const members=state.selectedIds.map(id=>{
+    const inst=state.instruments.find(i=>i.id===id);
+    return inst?{inst,startX:inst.x,startY:inst.y,startW:inst.w,startH:inst.h}:null;
+  }).filter(Boolean);
+  dragState={mode:'groupResize',corner,startMx:e.clientX,startMy:e.clientY,
+    groupStartX:b.x,groupStartY:b.y,groupStartW:b.w,groupStartH:b.h,members};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+// Finds the closest edge-to-edge (or center-to-center) alignment between
+// the dragged instrument and any other instrument, within a screen-pixel
+// threshold - independently per axis, so a drag can snap horizontally to
+// one instrument and vertically to a completely different one. Checking
+// left/center/right (and top/center/bottom) against the same three edges
+// of every other instrument is the standard "smart guides" approach used
+// by most design tools, not just outer-edge-to-outer-edge.
+function computeInstrumentSnap(inst,nx,ny,thresholdScreenPx){
+  const threshold=thresholdScreenPx/state.zoom;
+  const w=inst.w,h=inst.h;
+  const candidatesX=[nx,nx+w/2,nx+w];
+  const candidatesY=[ny,ny+h/2,ny+h];
+  let bestDx=null,bestDy=null,snapLineX=null,snapLineY=null;
+  state.instruments.forEach(other=>{
+    if(other.id===inst.id) return;
+    const oxEdges=[other.x,other.x+other.w/2,other.x+other.w];
+    const oyEdges=[other.y,other.y+other.h/2,other.y+other.h];
+    candidatesX.forEach(cx=>{
+      oxEdges.forEach(ox=>{
+        const diff=ox-cx;
+        if(Math.abs(diff)<=threshold && (bestDx===null||Math.abs(diff)<Math.abs(bestDx))){
+          bestDx=diff; snapLineX=ox;
+        }
+      });
+    });
+    candidatesY.forEach(cy=>{
+      oyEdges.forEach(oy=>{
+        const diff=oy-cy;
+        if(Math.abs(diff)<=threshold && (bestDy===null||Math.abs(diff)<Math.abs(bestDy))){
+          bestDy=diff; snapLineY=oy;
+        }
+      });
+    });
+  });
+  return {
+    nx:bestDx!==null?nx+bestDx:nx,
+    ny:bestDy!==null?ny+bestDy:ny,
+    snapLineX,snapLineY,
+    snappedX:bestDx!==null, snappedY:bestDy!==null
+  };
+}
+
+function updateSnapGuides(snap){
+  const vEl=document.getElementById('snapGuideV'), hEl=document.getElementById('snapGuideH');
+  if(snap.snappedX){ vEl.style.display='block'; vEl.style.left=snap.snapLineX+'px'; }
+  else vEl.style.display='none';
+  if(snap.snappedY){ hEl.style.display='block'; hEl.style.top=snap.snapLineY+'px'; }
+  else hEl.style.display='none';
+}
+
 function onDragMove(e){
   if(!dragState) return;
   if(dragState.mode==='palette'){
@@ -1339,13 +1522,23 @@ function onDragMove(e){
     const dy=(e.clientY-dragState.startMy)/state.zoom;
     let nx=dragState.startIx+dx;
     let ny=dragState.startIy+dy;
-    // Clamping to the screen bounds is opt-in via Ctrl/Cmd, not the
-    // default - a plain drag is free to leave an instrument overhanging
-    // the edge on purpose (e.g. a gauge that's meant to bleed off-panel),
-    // and holding the modifier snaps it back to staying fully on-screen.
+    // Both the screen-edge clamp and instrument-to-instrument snapping are
+    // opt-in via Ctrl/Cmd, not the default - a plain drag is free to leave
+    // an instrument overhanging the edge or sitting at any arbitrary offset
+    // from its neighbours on purpose. Snapping is applied first (so it can
+    // be seen and felt as the more precise, "line up with this other
+    // instrument" behaviour); the screen-bounds clamp runs after, as the
+    // final, always-true guarantee that holding the modifier keeps the
+    // instrument fully on-screen even if a snap target happened to sit
+    // right at the edge.
     if(e.ctrlKey||e.metaKey){
+      const snap=computeInstrumentSnap(dragState.inst,nx,ny,8);
+      nx=snap.nx; ny=snap.ny;
+      updateSnapGuides(snap);
       nx=Math.max(0,Math.min(state.screenW-dragState.inst.w,nx));
       ny=Math.max(0,Math.min(state.screenH-dragState.inst.h,ny));
+    } else {
+      updateSnapGuides({snappedX:false,snappedY:false});
     }
     dragState.inst.x=Math.round(nx);
     dragState.inst.y=Math.round(ny);
@@ -1386,11 +1579,73 @@ function onDragMove(e){
     redrawInstrumentCanvases(); // width/height reset above clears the canvas - see refreshAllInstruments for why this matters while paused
     updateStatusBar();
     updatePositionFields(inst);
+  } else if(dragState.mode==='marquee'){
+    const screenEl=document.getElementById('screen');
+    const rect=screenEl.getBoundingClientRect();
+    const curX=(e.clientX-rect.left)/state.zoom, curY=(e.clientY-rect.top)/state.zoom;
+    const x0=Math.min(dragState.startX,curX), y0=Math.min(dragState.startY,curY);
+    const x1=Math.max(dragState.startX,curX), y1=Math.max(dragState.startY,curY);
+    const box=document.getElementById('marqueeBox');
+    box.style.display='block';
+    box.style.left=x0+'px'; box.style.top=y0+'px';
+    box.style.width=(x1-x0)+'px'; box.style.height=(y1-y0)+'px';
+  } else if(dragState.mode==='groupMove'){
+    const dx=(e.clientX-dragState.startMx)/state.zoom;
+    const dy=(e.clientY-dragState.startMy)/state.zoom;
+    dragState.members.forEach(m=>{
+      m.inst.x=Math.round(m.startX+dx);
+      m.inst.y=Math.round(m.startY+dy);
+      m.inst.element.style.left=m.inst.x+'px';
+      m.inst.element.style.top=m.inst.y+'px';
+    });
+    updateGroupSelectionBox();
+    updateStatusBar();
+    updateGroupPositionFields();
+  } else if(dragState.mode==='groupResize'){
+    const d=dragState;
+    const dx=(e.clientX-d.startMx)/state.zoom;
+    const dy=(e.clientY-d.startMy)/state.zoom;
+    let scaleX,scaleY,anchorX,anchorY;
+    if(d.corner==='br'){
+      anchorX=d.groupStartX; anchorY=d.groupStartY;
+      scaleX=(d.groupStartW+dx)/d.groupStartW;
+      scaleY=(d.groupStartH+dy)/d.groupStartH;
+    } else { // 'tl' - opposite (bottom-right) corner stays fixed as the anchor
+      anchorX=d.groupStartX+d.groupStartW; anchorY=d.groupStartY+d.groupStartH;
+      scaleX=(d.groupStartW-dx)/d.groupStartW;
+      scaleY=(d.groupStartH-dy)/d.groupStartH;
+    }
+    // Never let the group shrink so far any single member would drop below
+    // its own type's minimum - using the MOST restrictive member's own
+    // ratio for the whole group's scale factor keeps every member
+    // shrinking together, rather than some hitting their floor first while
+    // others keep going, which would silently break "relative sizes and
+    // distances stay relative" for the group as a whole.
+    const minAllowedScaleX=Math.max(0.05, ...d.members.map(m=>minInstSize(m.inst.type)/m.startW));
+    const minAllowedScaleY=Math.max(0.05, ...d.members.map(m=>minInstSize(m.inst.type)/m.startH));
+    scaleX=Math.max(scaleX,minAllowedScaleX);
+    scaleY=Math.max(scaleY,minAllowedScaleY);
+    d.members.forEach(m=>{
+      const newW=Math.round(m.startW*scaleX);
+      const newH=Math.round(m.startH*scaleY);
+      const newX=Math.round(anchorX+(m.startX-anchorX)*scaleX);
+      const newY=Math.round(anchorY+(m.startY-anchorY)*scaleY);
+      m.inst.w=newW; m.inst.h=newH; m.inst.x=newX; m.inst.y=newY;
+      m.inst.element.style.left=newX+'px'; m.inst.element.style.top=newY+'px';
+      m.inst.element.style.width=newW+'px'; m.inst.element.style.height=newH+'px';
+      m.inst.canvas.width=newW; m.inst.canvas.height=newH;
+    });
+    redrawInstrumentCanvases();
+    updateGroupSelectionBox();
+    updateStatusBar();
+    updateGroupPositionFields();
   }
 }
 
 function onDragEnd(e){
   if(!dragState) return;
+  document.getElementById('snapGuideV').style.display='none';
+  document.getElementById('snapGuideH').style.display='none';
   if(dragState.mode==='palette'){
     const screen=document.getElementById('screen');
     const rect=screen.getBoundingClientRect();
@@ -1410,6 +1665,34 @@ function onDragEnd(e){
     }
     dragState.ghost.remove();
   } else if(dragState.mode==='move'||dragState.mode==='resize'){
+    generateCode();
+  } else if(dragState.mode==='marquee'){
+    const screen=document.getElementById('screen');
+    const rect=screen.getBoundingClientRect();
+    const curX=(e.clientX-rect.left)/state.zoom, curY=(e.clientY-rect.top)/state.zoom;
+    const mx0=Math.min(dragState.startX,curX), my0=Math.min(dragState.startY,curY);
+    const mx1=Math.max(dragState.startX,curX), my1=Math.max(dragState.startY,curY);
+    const hits=state.instruments.filter(inst=>
+      !(inst.x+inst.w<=mx0 || mx1<=inst.x || inst.y+inst.h<=my0 || my1<=inst.y)
+    );
+    document.getElementById('marqueeBox').style.display='none';
+    if(hits.length>=2){
+      state.selectedId=null;
+      state.selectedIds=hits.map(i=>i.id);
+      document.querySelectorAll('.instrument').forEach(el=>{
+        el.classList.toggle('selected',state.selectedIds.includes(parseInt(el.dataset.id)));
+      });
+      updateGroupSelectionBox();
+      renderProperties();
+      updateStatusBar();
+    } else if(hits.length===1){
+      clearMultiSelect();
+      selectInstrument(hits[0].id);
+    } else {
+      clearMultiSelect();
+      selectInstrument(null);
+    }
+  } else if(dragState.mode==='groupMove'||dragState.mode==='groupResize'){
     generateCode();
   }
   dragState=null;
@@ -1448,8 +1731,85 @@ function updatePositionFields(inst){
   if(hInp && document.activeElement!==hInp) hInp.value=inst.h;
 }
 
+function updateGroupPositionFields(){
+  // Same reasoning as updatePositionFields() above - a full renderProperties()
+  // rebuild on every mousemove during a group drag would visibly lag behind
+  // the actual movement.
+  if(state.selectedIds.length<2) return;
+  const b=computeGroupBounds(state.selectedIds);
+  if(!b) return;
+  const content=document.getElementById('propertiesContent');
+  if(!content) return;
+  const xInp=content.querySelector('input[data-group-prop="x"]');
+  const yInp=content.querySelector('input[data-group-prop="y"]');
+  const wInp=content.querySelector('input[data-group-prop="w"]');
+  const hInp=content.querySelector('input[data-group-prop="h"]');
+  if(xInp && document.activeElement!==xInp) xInp.value=b.x;
+  if(yInp && document.activeElement!==yInp) yInp.value=b.y;
+  if(wInp && document.activeElement!==wInp) wInp.value=b.w;
+  if(hInp && document.activeElement!==hInp) hInp.value=b.h;
+}
+
 function renderProperties(){
   const content=document.getElementById('propertiesContent');
+  if(state.selectedIds.length>=2){
+    const b=computeGroupBounds(state.selectedIds);
+    content.innerHTML=`
+    <div class="prop-section">
+      <div class="prop-section-title"><i class="fa fa-object-group"></i> ${state.selectedIds.length} Instruments Selected</div>
+      <div class="field-row">
+        <div class="field"><label class="field-label">X</label><input type="number" data-group-prop="x" value="${b.x}"></div>
+        <div class="field"><label class="field-label">Y</label><input type="number" data-group-prop="y" value="${b.y}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label class="field-label">Width</label><input type="number" data-group-prop="w" value="${b.w}"></div>
+        <div class="field"><label class="field-label">Height</label><input type="number" data-group-prop="h" value="${b.h}"></div>
+      </div>
+      <span class="field-hint">Mixed instrument types show only position and overall size here - drag the bounding box on the canvas (corner handles to scale, anywhere else to move) for the same effect, or edit these fields directly. Click empty canvas, or a single instrument without Shift, to return to individual properties.</span>
+    </div>`;
+    content.querySelectorAll('input[data-group-prop]').forEach(inp=>{
+      inp.addEventListener('input',e=>{
+        const bNow=computeGroupBounds(state.selectedIds);
+        if(!bNow) return;
+        const v=parseFloat(e.target.value)||0;
+        const prop=inp.dataset.groupProp;
+        if(prop==='x'||prop==='y'){
+          const dx=prop==='x'?v-bNow.x:0, dy=prop==='y'?v-bNow.y:0;
+          state.selectedIds.forEach(id=>{
+            const m=state.instruments.find(i=>i.id===id);
+            if(!m) return;
+            m.x=Math.round(m.x+dx); m.y=Math.round(m.y+dy);
+            m.element.style.left=m.x+'px'; m.element.style.top=m.y+'px';
+          });
+        } else {
+          // Width/height fields scale the group anchored at its own
+          // current top-left, same maths as the bounding-box corner
+          // handles (that "br" case), just driven by a typed value
+          // instead of a live drag delta.
+          const scaleX=prop==='w'?Math.max(0.05,v/bNow.w):1;
+          const scaleY=prop==='h'?Math.max(0.05,v/bNow.h):1;
+          const minAllowedScaleX=Math.max(0.05, ...state.selectedIds.map(id=>{const m=state.instruments.find(i=>i.id===id); return m?minInstSize(m.type)/m.w:0.05;}));
+          const minAllowedScaleY=Math.max(0.05, ...state.selectedIds.map(id=>{const m=state.instruments.find(i=>i.id===id); return m?minInstSize(m.type)/m.h:0.05;}));
+          const finalScaleX=Math.max(scaleX,minAllowedScaleX), finalScaleY=Math.max(scaleY,minAllowedScaleY);
+          state.selectedIds.forEach(id=>{
+            const m=state.instruments.find(i=>i.id===id);
+            if(!m) return;
+            const newW=Math.round(m.w*finalScaleX), newH=Math.round(m.h*finalScaleY);
+            const newX=Math.round(bNow.x+(m.x-bNow.x)*finalScaleX), newY=Math.round(bNow.y+(m.y-bNow.y)*finalScaleY);
+            m.w=newW; m.h=newH; m.x=newX; m.y=newY;
+            m.element.style.left=newX+'px'; m.element.style.top=newY+'px';
+            m.element.style.width=newW+'px'; m.element.style.height=newH+'px';
+            m.canvas.width=newW; m.canvas.height=newH;
+          });
+          redrawInstrumentCanvases();
+        }
+        updateGroupSelectionBox();
+        updateStatusBar();
+        generateCode();
+      });
+    });
+    return;
+  }
   if(!state.selectedId){
     content.innerHTML=`<div class="empty-properties"><i class="fa fa-hand-pointer"></i>Select an instrument on the canvas<br>to edit its properties</div>`;
     return;
@@ -8049,15 +8409,24 @@ function highlightCode(code){
 function setupEventListeners(){
   // Deselect when clicking empty space — either the screen background or the viewport around it
   document.getElementById('screen').addEventListener('mousedown',e=>{
-    if(e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge') selectInstrument(null);
+    if(e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge'){
+      clearMultiSelect();
+      selectInstrument(null);
+    }
   });
   document.getElementById('editorViewport').addEventListener('mousedown',e=>{
-    if(e.target.id==='editorViewport') selectInstrument(null);
+    if(e.target.id==='editorViewport'){
+      clearMultiSelect();
+      selectInstrument(null);
+    }
   });
   // Drag-to-pan: only starts from a background click (viewport, screen, or
   // its badges), never from an instrument - and only once the mouse has
   // actually moved a few pixels, so a plain click still just deselects
   // (above) instead of every click flagging itself as a tiny pan.
+  // Holding Shift on that same background click starts a marquee
+  // selection instead - checked first, so the two gestures never both
+  // fire from one mousedown.
   (function(){
     const vp=document.getElementById('editorViewport');
     let panning=false, startX=0, startY=0, startScrollL=0, startScrollT=0, moved=false;
@@ -8065,6 +8434,7 @@ function setupEventListeners(){
     vp.addEventListener('mousedown',e=>{
       const bg=e.target.id==='editorViewport'||e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge';
       if(!bg) return;
+      if(e.shiftKey){ startMarqueeSelect(e); return; }
       panning=true; moved=false;
       startX=e.clientX; startY=e.clientY;
       startScrollL=vp.scrollLeft; startScrollT=vp.scrollTop;
@@ -8086,6 +8456,9 @@ function setupEventListeners(){
       vp.classList.remove('panning');
     });
   })();
+  document.getElementById('groupSelectionBox').addEventListener('mousedown',e=>startGroupMoveDrag(e));
+  document.getElementById('groupHandleTl').addEventListener('mousedown',e=>startGroupResizeDrag(e,'tl'));
+  document.getElementById('groupHandleBr').addEventListener('mousedown',e=>startGroupResizeDrag(e,'br'));
   document.getElementById('paletteSearch').addEventListener('input',renderPalette);
   document.getElementById('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(3,state.zoom*1.2);applyZoom()});
   document.getElementById('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(0.2,state.zoom/1.2);applyZoom()});
@@ -8521,9 +8894,33 @@ function setupKeyboardShortcuts(){
   document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
     if(e.key==='Delete'||e.key==='Backspace'){
-      if(state.selectedId){e.preventDefault();deleteInstrument(state.selectedId)}
+      if(state.selectedIds.length>=2){
+        e.preventDefault();
+        const ids=[...state.selectedIds];
+        clearMultiSelect();
+        ids.forEach(id=>deleteInstrument(id));
+      } else if(state.selectedId){e.preventDefault();deleteInstrument(state.selectedId)}
     } else if(e.key==='Escape'){
+      clearMultiSelect();
       selectInstrument(null);
+    } else if(state.selectedIds.length>=2&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+      e.preventDefault();
+      const members=state.selectedIds.map(id=>state.instruments.find(i=>i.id===id)).filter(Boolean);
+      if(members.length===0) return;
+      const b=computeGroupBounds(state.selectedIds);
+      const step=e.shiftKey?10:1;
+      let dx=0,dy=0;
+      if(e.key==='ArrowUp') dy=-Math.min(step,b.y);
+      if(e.key==='ArrowDown') dy=Math.min(step,state.screenH-(b.y+b.h));
+      if(e.key==='ArrowLeft') dx=-Math.min(step,b.x);
+      if(e.key==='ArrowRight') dx=Math.min(step,state.screenW-(b.x+b.w));
+      members.forEach(inst=>{
+        inst.x+=dx; inst.y+=dy;
+        inst.element.style.left=inst.x+'px';
+        inst.element.style.top=inst.y+'px';
+      });
+      updateGroupSelectionBox();
+      updateStatusBar(); renderProperties(); generateCode();
     } else if(state.selectedId&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
       e.preventDefault();
       const inst=state.instruments.find(i=>i.id===state.selectedId);
