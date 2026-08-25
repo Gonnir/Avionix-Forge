@@ -71,7 +71,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 .palette-footer{padding:10px;border-top:1px solid var(--border)}
 
 .editor{background:var(--bg-2);position:relative;overflow:hidden;display:flex;flex-direction:column}
-.editor-toolbar{height:42px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.6);display:flex;align-items:center;padding:0 16px;gap:12px}
+.editor-toolbar{min-height:42px;border-bottom:1px solid var(--border);background:rgba(19,24,32,.6);display:flex;flex-wrap:wrap;align-items:center;padding:8px 16px;gap:8px 12px}
 .editor-viewport{flex:1;overflow:auto;padding:40px;display:flex;position:relative;background-image:linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px);background-size:24px 24px;cursor:grab}
 .editor-viewport.panning{cursor:grabbing}
 #screen{position:relative;background:#040810;border:1px solid var(--border-bright);box-shadow:0 0 0 8px #1a212c,0 0 0 9px #2a3340,0 25px 70px rgba(0,0,0,.7);flex-shrink:0;transform-origin:center center;margin:auto}
@@ -334,6 +334,13 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
       <div id="screen">
         <div id="orientationBadge">0°</div>
         <div id="monoBadge" class="mono-badge" style="display:none">⬛ B/W MONO</div>
+        <div id="marqueeBox" style="display:none;position:absolute;border:1px dashed var(--accent);background:rgba(255,157,58,.08);pointer-events:none;z-index:50"></div>
+        <div id="snapGuideV" style="display:none;position:absolute;top:0;height:100%;width:1px;background:var(--accent);pointer-events:none;z-index:55"></div>
+        <div id="snapGuideH" style="display:none;position:absolute;left:0;width:100%;height:1px;background:var(--accent);pointer-events:none;z-index:55"></div>
+        <div id="groupSelectionBox" style="display:none;position:absolute;outline:1px dashed var(--accent);box-shadow:0 0 0 1px var(--accent),0 0 24px rgba(255,157,58,.25);z-index:40">
+          <div id="groupHandleTl" class="group-handle" style="position:absolute;left:-5px;top:-5px;width:10px;height:10px;background:var(--accent);border:1px solid #1a1004;cursor:nwse-resize;border-radius:2px;z-index:41"></div>
+          <div id="groupHandleBr" class="group-handle" style="position:absolute;right:-5px;bottom:-5px;width:10px;height:10px;background:var(--accent);border:1px solid #1a1004;cursor:nwse-resize;border-radius:2px;z-index:41"></div>
+        </div>
       </div>
     </div>
   </main>
@@ -561,7 +568,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
 // ============================================================
 const state = {
   screenW:320, screenH:240, zoom:1,
-  instruments:[], selectedId:null, nextId:1,
+  instruments:[], selectedId:null, selectedIds:[], nextId:1,
   customTemplates:[],
   mavlinkValues:{},
   telemetryRunning:true,
@@ -1155,6 +1162,10 @@ function createInstrumentElement(inst){
 
 function selectInstrument(id){
   state.selectedId=id;
+  if(state.selectedIds.length>0){
+    state.selectedIds=[];
+    document.getElementById('groupSelectionBox').style.display='none';
+  }
   document.querySelectorAll('.instrument').forEach(el=>{el.classList.toggle('selected',parseInt(el.dataset.id)===id)});
   renderProperties();
   updateStatusBar();
@@ -1305,6 +1316,42 @@ function startPaletteDrag(e){
 function startMoveDrag(e,inst){
   if(e.target!==inst.element&&!e.target.classList.contains('instrument-canvas')) return;
   e.stopPropagation();
+  if(e.shiftKey){
+    // Toggle membership only - no drag starts from this same click, so the
+    // user can keep shift-clicking more instruments before dragging any of
+    // them, same convention as most design tools' additive selection.
+    const idx=state.selectedIds.indexOf(inst.id);
+    if(idx>=0){
+      state.selectedIds.splice(idx,1);
+    } else {
+      // Bring the current single selection along as the group's first
+      // member, if there is one, so shift-clicking a second instrument
+      // starting from an ordinary single selection behaves as "add to
+      // selection" rather than silently discarding what was selected.
+      if(state.selectedIds.length===0 && state.selectedId && state.selectedId!==inst.id){
+        state.selectedIds=[state.selectedId];
+      }
+      state.selectedIds.push(inst.id);
+    }
+    if(state.selectedIds.length>=2){
+      state.selectedId=null;
+      document.querySelectorAll('.instrument').forEach(el=>{
+        el.classList.toggle('selected',state.selectedIds.includes(parseInt(el.dataset.id)));
+      });
+      updateGroupSelectionBox();
+      renderProperties();
+      updateStatusBar();
+    } else if(state.selectedIds.length===1){
+      const onlyId=state.selectedIds[0];
+      clearMultiSelect();
+      selectInstrument(onlyId);
+    } else {
+      clearMultiSelect();
+      selectInstrument(null);
+    }
+    return;
+  }
+  clearMultiSelect();
   selectInstrument(inst.id);
   dragState={mode:'move',inst,startMx:e.clientX,startMy:e.clientY,startIx:inst.x,startIy:inst.y};
   document.addEventListener('mousemove',onDragMove);
@@ -1312,11 +1359,10 @@ function startMoveDrag(e,inst){
 }
 
 function minInstSize(type){
-  // A simple on/off lamp only needs a couple of pixels of colour to read
-  // correctly, so it can shrink much further than a real gauge (which
-  // needs room for ticks, a needle, and readable text to stay meaningful).
-  if(type==='indicator') return 6;
-  return 30;
+  // No enforced minimum by instrument type - just a small technical floor
+  // to avoid zero/negative sizes, which would break rendering math rather
+  // than being a meaningful "minimum useful size" for any given type.
+  return 4;
 }
 function startResizeDrag(e,inst,corner){
   e.stopPropagation();
@@ -1330,6 +1376,142 @@ function startResizeDrag(e,inst,corner){
   document.addEventListener('mouseup',onDragEnd);
 }
 
+// ---- Multi-select: marquee selection, group move, group scale ----------
+
+function computeGroupBounds(ids){
+  const members=ids.map(id=>state.instruments.find(i=>i.id===id)).filter(Boolean);
+  if(members.length===0) return null;
+  let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity;
+  members.forEach(inst=>{
+    const rot=(inst.config&&inst.config.rotation)||0;
+    if(rot%360===0){
+      // Common, unrotated case - the stored (x,y,w,h) IS the true bounds.
+      minX=Math.min(minX,inst.x); minY=Math.min(minY,inst.y);
+      maxX=Math.max(maxX,inst.x+inst.w); maxY=Math.max(maxY,inst.y+inst.h);
+    } else {
+      // A rotated rectangle's true, axis-aligned bounding box is larger
+      // than its own w/h (except at multiples of 90°) - using the raw,
+      // unrotated box here instead would make the group's own visual
+      // outline (and the handle positions on it) not actually match what
+      // a rotated instrument looks like on screen, which is exactly what
+      // made scaling feel disconnected from the shape being dragged.
+      const rad=rot*Math.PI/180;
+      const cx=inst.x+inst.w/2, cy=inst.y+inst.h/2;
+      const halfW=(Math.abs(inst.w*Math.cos(rad))+Math.abs(inst.h*Math.sin(rad)))/2;
+      const halfH=(Math.abs(inst.w*Math.sin(rad))+Math.abs(inst.h*Math.cos(rad)))/2;
+      minX=Math.min(minX,cx-halfW); minY=Math.min(minY,cy-halfH);
+      maxX=Math.max(maxX,cx+halfW); maxY=Math.max(maxY,cy+halfH);
+    }
+  });
+  return {x:minX,y:minY,w:maxX-minX,h:maxY-minY};
+}
+
+function updateGroupSelectionBox(){
+  const box=document.getElementById('groupSelectionBox');
+  if(state.selectedIds.length<2){ box.style.display='none'; return; }
+  const b=computeGroupBounds(state.selectedIds);
+  if(!b){ box.style.display='none'; return; }
+  box.style.display='block';
+  box.style.left=b.x+'px'; box.style.top=b.y+'px';
+  box.style.width=b.w+'px'; box.style.height=b.h+'px';
+}
+
+// Drops back to ordinary single-selection (or none) - called whenever a
+// plain click lands on the canvas, so the group box/multi-select state
+// never lingers once the user has moved on to something else.
+function clearMultiSelect(){
+  state.selectedIds=[];
+  document.getElementById('groupSelectionBox').style.display='none';
+}
+
+function startMarqueeSelect(e){
+  e.preventDefault();
+  const screenEl=document.getElementById('screen');
+  const rect=screenEl.getBoundingClientRect();
+  const startX=(e.clientX-rect.left)/state.zoom, startY=(e.clientY-rect.top)/state.zoom;
+  dragState={mode:'marquee',startMx:e.clientX,startMy:e.clientY,startX,startY};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+function startGroupMoveDrag(e){
+  if(e.target.classList.contains('group-handle')) return; // handles start a resize instead, see below
+  e.stopPropagation();
+  e.preventDefault();
+  const members=state.selectedIds.map(id=>{
+    const inst=state.instruments.find(i=>i.id===id);
+    return inst?{inst,startX:inst.x,startY:inst.y}:null;
+  }).filter(Boolean);
+  dragState={mode:'groupMove',startMx:e.clientX,startMy:e.clientY,members};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+function startGroupResizeDrag(e,corner){
+  e.stopPropagation();
+  e.preventDefault();
+  const b=computeGroupBounds(state.selectedIds);
+  if(!b) return;
+  const members=state.selectedIds.map(id=>{
+    const inst=state.instruments.find(i=>i.id===id);
+    return inst?{inst,startX:inst.x,startY:inst.y,startW:inst.w,startH:inst.h}:null;
+  }).filter(Boolean);
+  dragState={mode:'groupResize',corner,startMx:e.clientX,startMy:e.clientY,
+    groupStartX:b.x,groupStartY:b.y,groupStartW:b.w,groupStartH:b.h,members};
+  document.addEventListener('mousemove',onDragMove);
+  document.addEventListener('mouseup',onDragEnd);
+}
+
+// Finds the closest edge-to-edge (or center-to-center) alignment between
+// the dragged instrument and any other instrument, within a screen-pixel
+// threshold - independently per axis, so a drag can snap horizontally to
+// one instrument and vertically to a completely different one. Checking
+// left/center/right (and top/center/bottom) against the same three edges
+// of every other instrument is the standard "smart guides" approach used
+// by most design tools, not just outer-edge-to-outer-edge.
+function computeInstrumentSnap(inst,nx,ny,thresholdScreenPx){
+  const threshold=thresholdScreenPx/state.zoom;
+  const w=inst.w,h=inst.h;
+  const candidatesX=[nx,nx+w/2,nx+w];
+  const candidatesY=[ny,ny+h/2,ny+h];
+  let bestDx=null,bestDy=null,snapLineX=null,snapLineY=null;
+  state.instruments.forEach(other=>{
+    if(other.id===inst.id) return;
+    const oxEdges=[other.x,other.x+other.w/2,other.x+other.w];
+    const oyEdges=[other.y,other.y+other.h/2,other.y+other.h];
+    candidatesX.forEach(cx=>{
+      oxEdges.forEach(ox=>{
+        const diff=ox-cx;
+        if(Math.abs(diff)<=threshold && (bestDx===null||Math.abs(diff)<Math.abs(bestDx))){
+          bestDx=diff; snapLineX=ox;
+        }
+      });
+    });
+    candidatesY.forEach(cy=>{
+      oyEdges.forEach(oy=>{
+        const diff=oy-cy;
+        if(Math.abs(diff)<=threshold && (bestDy===null||Math.abs(diff)<Math.abs(bestDy))){
+          bestDy=diff; snapLineY=oy;
+        }
+      });
+    });
+  });
+  return {
+    nx:bestDx!==null?nx+bestDx:nx,
+    ny:bestDy!==null?ny+bestDy:ny,
+    snapLineX,snapLineY,
+    snappedX:bestDx!==null, snappedY:bestDy!==null
+  };
+}
+
+function updateSnapGuides(snap){
+  const vEl=document.getElementById('snapGuideV'), hEl=document.getElementById('snapGuideH');
+  if(snap.snappedX){ vEl.style.display='block'; vEl.style.left=snap.snapLineX+'px'; }
+  else vEl.style.display='none';
+  if(snap.snappedY){ hEl.style.display='block'; hEl.style.top=snap.snapLineY+'px'; }
+  else hEl.style.display='none';
+}
+
 function onDragMove(e){
   if(!dragState) return;
   if(dragState.mode==='palette'){
@@ -1339,13 +1521,23 @@ function onDragMove(e){
     const dy=(e.clientY-dragState.startMy)/state.zoom;
     let nx=dragState.startIx+dx;
     let ny=dragState.startIy+dy;
-    // Clamping to the screen bounds is opt-in via Ctrl/Cmd, not the
-    // default - a plain drag is free to leave an instrument overhanging
-    // the edge on purpose (e.g. a gauge that's meant to bleed off-panel),
-    // and holding the modifier snaps it back to staying fully on-screen.
+    // Both the screen-edge clamp and instrument-to-instrument snapping are
+    // opt-in via Ctrl/Cmd, not the default - a plain drag is free to leave
+    // an instrument overhanging the edge or sitting at any arbitrary offset
+    // from its neighbours on purpose. Snapping is applied first (so it can
+    // be seen and felt as the more precise, "line up with this other
+    // instrument" behaviour); the screen-bounds clamp runs after, as the
+    // final, always-true guarantee that holding the modifier keeps the
+    // instrument fully on-screen even if a snap target happened to sit
+    // right at the edge.
     if(e.ctrlKey||e.metaKey){
+      const snap=computeInstrumentSnap(dragState.inst,nx,ny,8);
+      nx=snap.nx; ny=snap.ny;
+      updateSnapGuides(snap);
       nx=Math.max(0,Math.min(state.screenW-dragState.inst.w,nx));
       ny=Math.max(0,Math.min(state.screenH-dragState.inst.h,ny));
+    } else {
+      updateSnapGuides({snappedX:false,snappedY:false});
     }
     dragState.inst.x=Math.round(nx);
     dragState.inst.y=Math.round(ny);
@@ -1386,11 +1578,70 @@ function onDragMove(e){
     redrawInstrumentCanvases(); // width/height reset above clears the canvas - see refreshAllInstruments for why this matters while paused
     updateStatusBar();
     updatePositionFields(inst);
+  } else if(dragState.mode==='marquee'){
+    const screenEl=document.getElementById('screen');
+    const rect=screenEl.getBoundingClientRect();
+    const curX=(e.clientX-rect.left)/state.zoom, curY=(e.clientY-rect.top)/state.zoom;
+    const x0=Math.min(dragState.startX,curX), y0=Math.min(dragState.startY,curY);
+    const x1=Math.max(dragState.startX,curX), y1=Math.max(dragState.startY,curY);
+    const box=document.getElementById('marqueeBox');
+    box.style.display='block';
+    box.style.left=x0+'px'; box.style.top=y0+'px';
+    box.style.width=(x1-x0)+'px'; box.style.height=(y1-y0)+'px';
+  } else if(dragState.mode==='groupMove'){
+    const dx=(e.clientX-dragState.startMx)/state.zoom;
+    const dy=(e.clientY-dragState.startMy)/state.zoom;
+    dragState.members.forEach(m=>{
+      m.inst.x=Math.round(m.startX+dx);
+      m.inst.y=Math.round(m.startY+dy);
+      m.inst.element.style.left=m.inst.x+'px';
+      m.inst.element.style.top=m.inst.y+'px';
+    });
+    updateGroupSelectionBox();
+    updateStatusBar();
+    updateGroupPositionFields();
+  } else if(dragState.mode==='groupResize'){
+    const d=dragState;
+    const dx=(e.clientX-d.startMx)/state.zoom;
+    const dy=(e.clientY-d.startMy)/state.zoom;
+    let scaleX,scaleY,anchorX,anchorY;
+    if(d.corner==='br'){
+      anchorX=d.groupStartX; anchorY=d.groupStartY;
+      scaleX=(d.groupStartW+dx)/d.groupStartW;
+      scaleY=(d.groupStartH+dy)/d.groupStartH;
+    } else { // 'tl' - opposite (bottom-right) corner stays fixed as the anchor
+      anchorX=d.groupStartX+d.groupStartW; anchorY=d.groupStartY+d.groupStartH;
+      scaleX=(d.groupStartW-dx)/d.groupStartW;
+      scaleY=(d.groupStartH-dy)/d.groupStartH;
+    }
+    // No enforced minimum by instrument size or type - just a simple,
+    // universal floor on the scale factor itself, to keep the group from
+    // collapsing to zero or negative size. Not tied to any member's own
+    // current size, so it can never surprise-block a shrink the way a
+    // per-instrument minimum could.
+    scaleX=Math.max(scaleX,0.05);
+    scaleY=Math.max(scaleY,0.05);
+    d.members.forEach(m=>{
+      const newW=Math.round(m.startW*scaleX);
+      const newH=Math.round(m.startH*scaleY);
+      const newX=Math.round(anchorX+(m.startX-anchorX)*scaleX);
+      const newY=Math.round(anchorY+(m.startY-anchorY)*scaleY);
+      m.inst.w=newW; m.inst.h=newH; m.inst.x=newX; m.inst.y=newY;
+      m.inst.element.style.left=newX+'px'; m.inst.element.style.top=newY+'px';
+      m.inst.element.style.width=newW+'px'; m.inst.element.style.height=newH+'px';
+      m.inst.canvas.width=newW; m.inst.canvas.height=newH;
+    });
+    redrawInstrumentCanvases();
+    updateGroupSelectionBox();
+    updateStatusBar();
+    updateGroupPositionFields();
   }
 }
 
 function onDragEnd(e){
   if(!dragState) return;
+  document.getElementById('snapGuideV').style.display='none';
+  document.getElementById('snapGuideH').style.display='none';
   if(dragState.mode==='palette'){
     const screen=document.getElementById('screen');
     const rect=screen.getBoundingClientRect();
@@ -1410,6 +1661,34 @@ function onDragEnd(e){
     }
     dragState.ghost.remove();
   } else if(dragState.mode==='move'||dragState.mode==='resize'){
+    generateCode();
+  } else if(dragState.mode==='marquee'){
+    const screen=document.getElementById('screen');
+    const rect=screen.getBoundingClientRect();
+    const curX=(e.clientX-rect.left)/state.zoom, curY=(e.clientY-rect.top)/state.zoom;
+    const mx0=Math.min(dragState.startX,curX), my0=Math.min(dragState.startY,curY);
+    const mx1=Math.max(dragState.startX,curX), my1=Math.max(dragState.startY,curY);
+    const hits=state.instruments.filter(inst=>
+      !(inst.x+inst.w<=mx0 || mx1<=inst.x || inst.y+inst.h<=my0 || my1<=inst.y)
+    );
+    document.getElementById('marqueeBox').style.display='none';
+    if(hits.length>=2){
+      state.selectedId=null;
+      state.selectedIds=hits.map(i=>i.id);
+      document.querySelectorAll('.instrument').forEach(el=>{
+        el.classList.toggle('selected',state.selectedIds.includes(parseInt(el.dataset.id)));
+      });
+      updateGroupSelectionBox();
+      renderProperties();
+      updateStatusBar();
+    } else if(hits.length===1){
+      clearMultiSelect();
+      selectInstrument(hits[0].id);
+    } else {
+      clearMultiSelect();
+      selectInstrument(null);
+    }
+  } else if(dragState.mode==='groupMove'||dragState.mode==='groupResize'){
     generateCode();
   }
   dragState=null;
@@ -1448,8 +1727,86 @@ function updatePositionFields(inst){
   if(hInp && document.activeElement!==hInp) hInp.value=inst.h;
 }
 
+function updateGroupPositionFields(){
+  // Same reasoning as updatePositionFields() above - a full renderProperties()
+  // rebuild on every mousemove during a group drag would visibly lag behind
+  // the actual movement.
+  if(state.selectedIds.length<2) return;
+  const b=computeGroupBounds(state.selectedIds);
+  if(!b) return;
+  const content=document.getElementById('propertiesContent');
+  if(!content) return;
+  const xInp=content.querySelector('input[data-group-prop="x"]');
+  const yInp=content.querySelector('input[data-group-prop="y"]');
+  const wInp=content.querySelector('input[data-group-prop="w"]');
+  const hInp=content.querySelector('input[data-group-prop="h"]');
+  if(xInp && document.activeElement!==xInp) xInp.value=b.x;
+  if(yInp && document.activeElement!==yInp) yInp.value=b.y;
+  if(wInp && document.activeElement!==wInp) wInp.value=b.w;
+  if(hInp && document.activeElement!==hInp) hInp.value=b.h;
+}
+
 function renderProperties(){
   const content=document.getElementById('propertiesContent');
+  if(state.selectedIds.length>=2){
+    const b=computeGroupBounds(state.selectedIds);
+    content.innerHTML=`
+    <div class="prop-section">
+      <div class="prop-section-title"><i class="fa fa-object-group"></i> ${state.selectedIds.length} Instruments Selected</div>
+      <div class="field-row">
+        <div class="field"><label class="field-label">X</label><input type="number" data-group-prop="x" value="${b.x}"></div>
+        <div class="field"><label class="field-label">Y</label><input type="number" data-group-prop="y" value="${b.y}"></div>
+      </div>
+      <div class="field-row">
+        <div class="field"><label class="field-label">Width</label><input type="number" data-group-prop="w" value="${b.w}"></div>
+        <div class="field"><label class="field-label">Height</label><input type="number" data-group-prop="h" value="${b.h}"></div>
+      </div>
+      <span class="field-hint">Mixed instrument types show only position and overall size here - drag the bounding box on the canvas (corner handles to scale, anywhere else to move) for the same effect, or edit these fields directly. Click empty canvas, or a single instrument without Shift, to return to individual properties.</span>
+    </div>`;
+    content.querySelectorAll('input[data-group-prop]').forEach(inp=>{
+      inp.addEventListener('input',e=>{
+        const bNow=computeGroupBounds(state.selectedIds);
+        if(!bNow) return;
+        const v=parseFloat(e.target.value)||0;
+        const prop=inp.dataset.groupProp;
+        if(prop==='x'||prop==='y'){
+          const dx=prop==='x'?v-bNow.x:0, dy=prop==='y'?v-bNow.y:0;
+          state.selectedIds.forEach(id=>{
+            const m=state.instruments.find(i=>i.id===id);
+            if(!m) return;
+            m.x=Math.round(m.x+dx); m.y=Math.round(m.y+dy);
+            m.element.style.left=m.x+'px'; m.element.style.top=m.y+'px';
+          });
+        } else {
+          // Width/height fields scale the group anchored at its own
+          // current top-left, same maths as the bounding-box corner
+          // handles (that "br" case), just driven by a typed value
+          // instead of a live drag delta.
+          const scaleX=prop==='w'?Math.max(0.05,v/bNow.w):1;
+          const scaleY=prop==='h'?Math.max(0.05,v/bNow.h):1;
+          // No enforced minimum by instrument size or type - scaleX/scaleY
+          // above already carry the simple, universal 0.05 floor, with no
+          // per-member constraint layered on top of it.
+          const finalScaleX=scaleX, finalScaleY=scaleY;
+          state.selectedIds.forEach(id=>{
+            const m=state.instruments.find(i=>i.id===id);
+            if(!m) return;
+            const newW=Math.round(m.w*finalScaleX), newH=Math.round(m.h*finalScaleY);
+            const newX=Math.round(bNow.x+(m.x-bNow.x)*finalScaleX), newY=Math.round(bNow.y+(m.y-bNow.y)*finalScaleY);
+            m.w=newW; m.h=newH; m.x=newX; m.y=newY;
+            m.element.style.left=newX+'px'; m.element.style.top=newY+'px';
+            m.element.style.width=newW+'px'; m.element.style.height=newH+'px';
+            m.canvas.width=newW; m.canvas.height=newH;
+          });
+          redrawInstrumentCanvases();
+        }
+        updateGroupSelectionBox();
+        updateStatusBar();
+        generateCode();
+      });
+    });
+    return;
+  }
   if(!state.selectedId){
     content.innerHTML=`<div class="empty-properties"><i class="fa fa-hand-pointer"></i>Select an instrument on the canvas<br>to edit its properties</div>`;
     return;
@@ -1592,6 +1949,8 @@ function renderProperties(){
     html+=colorField('Ground Color','groundColor',c.groundColor||'#6b4226');
     html+=colorField('Line Color','lineColor',c.lineColor||'#ffffff');
     html+=colorField('Reference Color','refColor',c.refColor||'#ff9d3a');
+    html+=colorField('Outline Color A','refOutlineColorA',c.refOutlineColorA||'#000000');
+    html+=colorField('Outline Color B','refOutlineColorB',c.refOutlineColorB||'#ffffff');
     html+=colorField('Ladder Label Color','ladderLabelColor',c.ladderLabelColor||c.lineColor||'#ffffff');
     html+=colorField('Ladder Rung Color (Pitch Up)','ladderLineColorUp',c.ladderLineColorUp||c.lineColor||'#ffffff');
     html+=colorField('Ladder Rung Color (Pitch Down)','ladderLineColorDown',c.ladderLineColorDown||c.lineColor||'#ffffff');
@@ -1602,6 +1961,7 @@ function renderProperties(){
     html+=checkboxField('showPitchLabels','Show Pitch Ladder Numbers',c.showPitchLabels!==false);
     html+=checkboxField('showRollTicks','Show Roll Angle Ticks',c.showRollTicks!==false);
     html+=checkboxField('showRollTriangle','Show Roll Triangle Marker',c.showRollTriangle!==false);
+    html+=checkboxField('refShowOutline','Show Outline on Reference Symbol (contrasting halo, visible on any background)',!!c.refShowOutline);
     html+=`${propGroupLabel('geom','Sizing & Geometry')}<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
     html+=`<div class="field-row"><div class="field"><label class="field-label">Major Tick Length</label><input type="number" data-cfg="majorTickLen" value="${c.majorTickLen!==undefined?c.majorTickLen:8}" min="1" max="40"></div><div class="field"><label class="field-label">Minor Tick Length</label><input type="number" data-cfg="minorTickLen" value="${c.minorTickLen!==undefined?c.minorTickLen:4}" min="1" max="40"></div></div>`;
     html+=`<div class="field"><label class="field-label">Pitch Ladder Range (°, up and down)</label><input type="number" data-cfg="pitchLadderRange" value="${c.pitchLadderRange>0?c.pitchLadderRange:''}" placeholder="auto (30°)" min="10" max="90" step="10"><span class="field-hint">How far the pitch ladder extends above and below level - e.g. 90 to show the full range up to straight up/down.</span></div>`;
@@ -2031,6 +2391,13 @@ function renderProperties(){
         }
         if(key==='tickSweep' || key==='arcSweep') renderProperties();
         if(key==='mavSource'||key==='mavSource2') renderProperties(); // show/hide CELL_VOLTAGE cell count / Custom Value fields
+        // Repaint immediately rather than relying on the continuous
+        // animation loop's next tick to pick this up - that loop stops
+        // scheduling itself entirely once telemetry simulation is paused,
+        // so a colour (or any other config) change would otherwise sit
+        // invisible until something unrelated (e.g. a resize) happened to
+        // force a redraw of its own.
+        redrawInstrumentCanvases();
       }
       generateCode();
     });
@@ -3355,6 +3722,58 @@ function bresenhamFillTriangle(ctx,x0,y0,x1,y1,x2,y2,color){
   }
 }
 
+// JS-preview equivalents of the C++ checker/outline helpers (checkerLine,
+// checkerCircleOutline, outlinedLine, outlinedCircleOutline,
+// outlinedFillTriangle, outlinedFillCircle in the generated sketch) - kept
+// in exact lockstep with that C++ logic so the editor's own live preview
+// matches what the device will actually draw, rather than only ever
+// implementing this for the generated code and leaving the preview showing
+// the old, plain single-colour rendering.
+function checkerLineJS(ctx,x1,y1,x2,y2,colorA,colorB,segLen=3){
+  const dx=x2-x1, dy=y2-y1;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  const steps=Math.max(1,Math.round(len/segLen));
+  for(let i=0;i<steps;i++){
+    const t0=i/steps, t1=(i+1)/steps;
+    bresenhamLine(ctx, x1+dx*t0, y1+dy*t0, x1+dx*t1, y1+dy*t1, i%2===0?colorA:colorB);
+  }
+}
+function checkerCircleOutlineJS(ctx,cx,cy,r,colorA,colorB,segDeg=15){
+  const steps=Math.max(1,Math.round(360/segDeg));
+  for(let i=0;i<steps;i++){
+    const a0=i*segDeg*Math.PI/180, a1=(i+1)*segDeg*Math.PI/180;
+    bresenhamLine(ctx, cx+Math.cos(a0)*r, cy+Math.sin(a0)*r, cx+Math.cos(a1)*r, cy+Math.sin(a1)*r, i%2===0?colorA:colorB);
+  }
+}
+function outlinedLineJS(ctx,x1,y1,x2,y2,mainColor,blackC,whiteC){
+  const dx=x2-x1, dy=y2-y1;
+  const len=Math.sqrt(dx*dx+dy*dy);
+  const px=len>0?-dy/len:0, py=len>0?dx/len:1;
+  for(let i=-1;i<=1;i++){
+    checkerLineJS(ctx, x1+px*i, y1+py*i, x2+px*i, y2+py*i, blackC, whiteC);
+  }
+  bresenhamLine(ctx,x1,y1,x2,y2,mainColor);
+}
+function outlinedCircleOutlineJS(ctx,cx,cy,r,mainColor,blackC,whiteC){
+  checkerCircleOutlineJS(ctx,cx,cy,r-1,blackC,whiteC);
+  checkerCircleOutlineJS(ctx,cx,cy,r+1,whiteC,blackC);
+  bresenhamCircle(ctx,cx,cy,r,mainColor);
+}
+function outlinedFillTriangleJS(ctx,x0,y0,x1,y1,x2,y2,mainColor,blackC,whiteC){
+  bresenhamFillTriangle(ctx,x0,y0,x1,y1,x2,y2,blackC);
+  const cx=(x0+x1+x2)/3, cy=(y0+y1+y2)/3;
+  const inset=(x,y)=>[x+(cx>x?1:cx<x?-1:0), y+(cy>y?1:cy<y?-1:0)];
+  const [wx0,wy0]=inset(x0,y0), [wx1,wy1]=inset(x1,y1), [wx2,wy2]=inset(x2,y2);
+  bresenhamFillTriangle(ctx,wx0,wy0,wx1,wy1,wx2,wy2,whiteC);
+  const [mx0,my0]=inset(wx0,wy0), [mx1,my1]=inset(wx1,wy1), [mx2,my2]=inset(wx2,wy2);
+  bresenhamFillTriangle(ctx,mx0,my0,mx1,my1,mx2,my2,mainColor);
+}
+function outlinedFillCircleJS(ctx,cx,cy,r,mainColor,blackC,whiteC){
+  bresenhamFillCircle(ctx,cx,cy,r+1,blackC);
+  bresenhamFillCircle(ctx,cx,cy,Math.max(0,r),whiteC);
+  bresenhamFillCircle(ctx,cx,cy,Math.max(0,r-1),mainColor);
+}
+
 // Arc stroke via a polyline of Bresenham line segments (~3px per segment,
 // same stepping formula as the generated drawArc() helper), since GFX has
 // no native arc primitive - it approximates one the same way. Thickness
@@ -3502,31 +3921,29 @@ function drawAI(ctx,w,h,roll,pitch,c){
       rowL=Math.ceil(-halfW); rowR=Math.floor(halfW);
       if(rowL>rowR) continue;
     }
-    // Near roll=0, 0.8/|srA| blows up toward infinity (srA -> 0) and the
-    // only thing stopping it is the row-width clamp below - which means
-    // right at that transition, the "line" briefly claims the ENTIRE row
-    // width for one frame, flashing as a solid band before roll moves on.
-    // Widening this threshold keeps roll angles anywhere near level on the
-    // well-behaved constant-thickness branch instead of the diverging one.
-    if(Math.abs(srA)<0.02){
-      const lineDyCenter=pitchPx/crA;
-      const lineDyHalfThick=0.8/Math.abs(crA);
-      const isLineRow=Math.abs(dy-lineDyCenter)<=lineDyHalfThick;
-      if(isLineRow) hSpan(ctx,cx+rowL,cx+rowR,py,lineColor);
-      else if(dy*crA>=pitchPx) hSpan(ctx,cx+rowL,cx+rowR,py,gndColor); // sky rows: nothing to draw
-    } else {
-      const crossDx=(pitchPx-dy*crA)/srA;
-      // Defensive cap (pxPerDeg*4) in addition to the row-width clamp, so
-      // even right at the edge of the branch above, the line can only ever
-      // get moderately thick - never spanning most/all of the instrument.
-      const halfThick=Math.min(0.8/Math.abs(srA), rowR-rowL+1, pxPerDeg*4);
-      const hlL=Math.ceil(crossDx-halfThick), hlR=Math.floor(crossDx+halfThick);
-      let gndL,gndR;
-      if(srA>0){ gndL=hlR+1; gndR=rowR; }
-      else { gndL=rowL; gndR=hlL-1; }
-      if(gndR>=gndL){ const a=Math.max(gndL,rowL), b=Math.min(gndR,rowR); if(b>=a) hSpan(ctx,cx+a,cx+b,py,gndColor); }
-      if(hlR>=hlL){ const a=Math.max(hlL,rowL), b=Math.min(hlR,rowR); if(b>=a) hSpan(ctx,cx+a,cx+b,py,lineColor); }
-    }
+    // A two-branch version of this (a dx-independent formula near roll=0,
+    // a dx-dependent one elsewhere) still left a residual, visible jump
+    // right at the switchover: the two branches are genuinely different
+    // approximations of the same line, not equivalent forms of the same
+    // formula, so they don't actually agree at any finite boundary - only
+    // in the mathematical limit at roll=0 exactly. A single formula used
+    // everywhere, with only a tiny epsilon guard against literal division
+    // by zero (not a "which formula" threshold), removes the mismatch
+    // instead of just narrowing it.
+    const srASafe=Math.abs(srA)<1e-9 ? (srA>=0?1e-9:-1e-9) : srA;
+    const crossDx=(pitchPx-dy*crA)/srASafe;
+    const halfThick=0.8/Math.abs(srASafe);
+    let hlL=Math.ceil(crossDx-halfThick), hlR=Math.floor(crossDx+halfThick);
+    // Clamping the ENDPOINTS to just beyond the row (not the width) is what
+    // keeps this correct as srA->0: the crossing point drifts arbitrarily
+    // far from the row, and a width clamped around a far-away point misses
+    // the row's actual position entirely rather than converging on it.
+    hlL=Math.max(hlL,rowL-1); hlR=Math.min(hlR,rowR+1);
+    let gndL,gndR;
+    if(srASafe>0){ gndL=hlR+1; gndR=rowR; }
+    else { gndL=rowL; gndR=hlL-1; }
+    if(gndR>=gndL){ const a=Math.max(gndL,rowL), b=Math.min(gndR,rowR); if(b>=a) hSpan(ctx,cx+a,cx+b,py,gndColor); }
+    if(hlR>=hlL){ const a=Math.max(hlL,rowL), b=Math.min(hlR,rowR); if(b>=a) hSpan(ctx,cx+a,cx+b,py,lineColor); }
   }
 
   // Pitch ladder - same forward-transform used on the Arduino side.
@@ -3601,6 +4018,16 @@ function drawAI(ctx,w,h,roll,pitch,c){
     }
   }
 
+  // refColor can be a plain colour, the fixed black/white 'checker' value,
+  // or have the separate showOutline option set - same three modes and
+  // same colour rules as the generated C++ code, so this preview actually
+  // matches what the device will draw.
+  const refBase = parseColorValue(c.refColor).base;
+  const refIsCheckerJS = refBase==='checker';
+  const refWantsOutlineJS = !!c.refShowOutline;
+  const refBlkJS = refIsCheckerJS ? '#000000' : (c.refOutlineColorA||'#000000');
+  const refWhtJS = refIsCheckerJS ? '#ffffff' : (c.refOutlineColorB||'#ffffff');
+
   // Roll triangle marker - rotates with roll around the fixed bezel.
   if(c.showRollTriangle!==false){
     const triH=c.rollTriHeight>0?c.rollTriHeight:Math.max(4,r*0.18), triW=c.rollTriWidth>0?c.rollTriWidth:Math.max(3,r*0.1);
@@ -3608,7 +4035,21 @@ function drawAI(ctx,w,h,roll,pitch,c){
     const ttx=cx+tlx*crA+tly*srA, tty=cy-tlx*srA+tly*crA;
     const tbx=cx+blx*crA+bly*srA, tby=cy-blx*srA+bly*crA;
     const tcx=cx+brx*crA+bry*srA, tcy=cy-brx*srA+bry*crA;
-    bresenhamFillTriangle(ctx,ttx,tty,tbx,tby,tcx,tcy,refColor);
+    if(refIsCheckerJS){
+      bresenhamFillTriangle(ctx,ttx,tty,tbx,tby,tcx,tcy,refBlkJS);
+      // No JS ditherFillTriangle equivalent needed here (unlike the C++
+      // side) - the 2D canvas can just use a real, semi-transparent
+      // pattern fill instead, which is simpler and looks the same.
+      const pat=cachedPattern(ctx,refWhtJS,refBlkJS);
+      ctx.save(); ctx.beginPath();
+      ctx.moveTo(ttx,tty); ctx.lineTo(tbx,tby); ctx.lineTo(tcx,tcy); ctx.closePath();
+      ctx.clip(); ctx.fillStyle=pat; ctx.fillRect(Math.min(ttx,tbx,tcx)-1,Math.min(tty,tby,tcy)-1,Math.abs(Math.max(ttx,tbx,tcx)-Math.min(ttx,tbx,tcx))+2,Math.abs(Math.max(tty,tby,tcy)-Math.min(tty,tby,tcy))+2);
+      ctx.restore();
+    } else if(refWantsOutlineJS){
+      outlinedFillTriangleJS(ctx,ttx,tty,tbx,tby,tcx,tcy,refColor,refBlkJS,refWhtJS);
+    } else {
+      bresenhamFillTriangle(ctx,ttx,tty,tbx,tby,tcx,tcy,refColor);
+    }
   }
 
   // Center reference (aircraft symbol) - fixed relative to the instrument
@@ -3622,10 +4063,25 @@ function drawAI(ctx,w,h,roll,pitch,c){
     const tf = (lx,ly) => [cx+lx*r*cRr+ly*r*sRr, cy-lx*r*sRr+ly*r*cRr];
     for(const [x1,y1,x2,y2] of style.lines){
       const [ax,ay] = tf(x1,y1), [bx,by] = tf(x2,y2);
-      bresenhamLine(ctx,ax,ay,bx,by,refColor);
+      if(refIsCheckerJS) checkerLineJS(ctx,ax,ay,bx,by,refBlkJS,refWhtJS);
+      else if(refWantsOutlineJS) outlinedLineJS(ctx,ax,ay,bx,by,refColor,refBlkJS,refWhtJS);
+      else bresenhamLine(ctx,ax,ay,bx,by,refColor);
     }
-    if(style.circle>0) bresenhamCircle(ctx,cx,cy,style.circle*r,refColor);
-    if(style.dot>0) bresenhamFillCircle(ctx,cx,cy,style.dot,refColor);
+    if(style.circle>0){
+      if(refIsCheckerJS) checkerCircleOutlineJS(ctx,cx,cy,style.circle*r,refBlkJS,refWhtJS);
+      else if(refWantsOutlineJS) outlinedCircleOutlineJS(ctx,cx,cy,style.circle*r,refColor,refBlkJS,refWhtJS);
+      else bresenhamCircle(ctx,cx,cy,style.circle*r,refColor);
+    }
+    if(style.dot>0){
+      if(refIsCheckerJS){
+        bresenhamFillCircle(ctx,cx,cy,style.dot,refBlkJS);
+        ctx.save(); ctx.beginPath(); ctx.arc(cx,cy,style.dot,0,Math.PI*2); ctx.clip();
+        ctx.fillStyle=cachedPattern(ctx,refWhtJS,refBlkJS);
+        ctx.fillRect(cx-style.dot-1,cy-style.dot-1,style.dot*2+2,style.dot*2+2);
+        ctx.restore();
+      } else if(refWantsOutlineJS) outlinedFillCircleJS(ctx,cx,cy,style.dot,refColor,refBlkJS,refWhtJS);
+      else bresenhamFillCircle(ctx,cx,cy,style.dot,refColor);
+    }
   }
 
   // Border - concentric 1px rings for width>1, matching how GFX (which has
@@ -5044,7 +5500,7 @@ function applyMavTransformCpp(expr, c, suffix){
   return e;
 }
 function hexTo565Const(hex){
-  if (!hex || hex === 'transparent') return 'C_BG';
+  if (!hex || hex === 'transparent') return 'C_TRANSPARENT';
   const {base, hex:col}=parseColorValue(hex);
   if (base === 'checker')    return isMonoPanel()?'C_WHITE':'0xFFFF';
   if (base === 'checker-bw') return isMonoPanel()?'C_BLACK':hexTo565Const(col||'#000000');
@@ -5111,6 +5567,22 @@ function bgFillLine(c, shape){
   if(base==='dither'){
     const col=hexTo565Const(c.bgColor);
     return shape==='rect' ? `  ditherFillRect(x, y, w, h, ${col});` : `  ditherFillCircle(cx, cy, r, ${col});`;
+  }
+  if(base==='checker'){
+    // Fixed white/black pattern, matching the editor's own preview
+    // (cachedPattern with a hardcoded #ffffff/#000000 pair) - unlike
+    // 'dither', 'checker' has no user-configurable colour component, so
+    // there's no per-instance colour to extract here the way hexTo565Const
+    // does for dither. A solid black fill first, then a white dither
+    // overlay, guarantees a genuine two-colour checker regardless of
+    // whatever the screen's own background happens to be - ditherFillRect
+    // alone only draws its colour at 50% of pixels, leaving the other 50%
+    // as whatever was already there, which would silently look like solid
+    // white again on a white background.
+    const blk=isMonoPanel()?'C_BLACK':'0x0000', wht=isMonoPanel()?'C_WHITE':'0xFFFF';
+    return shape==='rect'
+      ? `  GFX.fillRect(x, y, w, h, ${blk}); ditherFillRect(x, y, w, h, ${wht});`
+      : `  GFX.fillCircle(cx, cy, r, ${blk}); ditherFillCircle(cx, cy, r, ${wht});`;
   }
   return shape==='rect'
     ? `  GFX.fillRect(x, y, w, h, bgColor);`
@@ -5497,9 +5969,18 @@ ${isMono
       ? (()=>{
           // 72x40 variants are emissive OLED (pixel ON = lit/white). The
           // ST7567 is a reflective LCD (pixel ON = dark ink, pixel OFF =
-          // light glass) - the opposite physical relationship. Using the
-          // OLED's ON=white mapping for the LCD is exactly backwards and
-          // is what previously made ST7567 output look colour-inverted.
+          // light glass) - the opposite physical relationship. This flip
+          // is about visual APPEARANCE, not electrical behaviour - U8g2's
+          // "I" (inverse) constructor variant already normalises the
+          // ST7567's electrical polarity so setDrawColor(1) reliably means
+          // "activated" the same way it does on any U8g2 panel, but what
+          // an activated pixel actually LOOKS like (dark ink vs lit/white)
+          // is a separate, physical property of the display technology
+          // that no constructor changes. Using the OLED's ON=white mapping
+          // for this LCD would make bgColor="#ffffff" (an instrument's
+          // intended light background) render as a solid dark mass, with
+          // its black detail (ground/lines/ticks) rendering as the "off"
+          // state instead - indistinguishable from empty space.
           const emissive = panelId!=='128x64-st7567';
           const onWhite = emissive ? 1 : 0;  // draw-color value that looks white/lit
           const onBlack = emissive ? 0 : 1;  // draw-color value that looks black/dark
@@ -5509,18 +5990,18 @@ ${isMono
           return (emissive
             ? '// OLED (emissive): pixel ON = lit/white, pixel OFF = dark.'
             : '// Reflective LCD: pixel ON = dark ink, pixel OFF = light glass.')
-            +`\n#define C_WHITE  ${onWhite}\n#define C_BLACK  ${onBlack}\n#define C_BG     ${bg}  // ${wantWhiteBg?'light':'dark'} background (as chosen in the editor)\n#define C_FG     ${fg}`;
+            +`\n#define C_WHITE  ${onWhite}\n#define C_BLACK  ${onBlack}\n#define C_BG     ${bg}  // ${wantWhiteBg?'light':'dark'} background (as chosen in the editor)\n#define C_FG     ${fg}\n// Dedicated "skip drawing" sentinel, distinct from any real 0/1 draw\n// value - a mono panel only has two real colours, so any element\n// legitimately set to the same colour as the background (extremely\n// common - e.g. a black ground fill on a black-background design) would\n// otherwise numerically collide with C_BG and get silently skipped as if\n// it were transparent, even though the user never asked for that.\n#define C_TRANSPARENT 2`;
         })()
       : (state.screenBgColor==='#ffffff'
-          ? '#define C_BG     SSD1306_WHITE  // canvas background\n#define C_FG     SSD1306_BLACK\n#define C_WHITE  SSD1306_WHITE\n#define C_BLACK  SSD1306_BLACK'
-          : '#define C_BG     SSD1306_BLACK  // canvas background\n#define C_FG     SSD1306_WHITE\n#define C_WHITE  SSD1306_WHITE\n#define C_BLACK  SSD1306_BLACK'))
+          ? '#define C_BG     SSD1306_WHITE  // canvas background\n#define C_FG     SSD1306_BLACK\n#define C_WHITE  SSD1306_WHITE\n#define C_BLACK  SSD1306_BLACK\n#define C_TRANSPARENT 2'
+          : '#define C_BG     SSD1306_BLACK  // canvas background\n#define C_FG     SSD1306_WHITE\n#define C_WHITE  SSD1306_WHITE\n#define C_BLACK  SSD1306_BLACK\n#define C_TRANSPARENT 2'))
   : (depth===1
       // 1-bit on a colour panel: the canvas stores 0/1, and the blit maps
       // those onto real panel colours via FB_FG_565 / FB_BG_565.
-      ? '#define C_BLACK  0\n#define C_WHITE  1\n#define C_BG     0  // canvas background\n#define C_FG     1\n'+
+      ? '#define C_BLACK  0\n#define C_WHITE  1\n#define C_BG     0  // canvas background\n#define C_FG     1\n#define C_TRANSPARENT 2\n'+
         '#define FB_BG_565 '+((state.screenBgColor==='#ffffff')?'0xFFFF':'0x0000')+'  // colour shown for canvas 0\n'+
         '#define FB_FG_565 '+((state.screenBgColor==='#ffffff')?'0x0000':'0xFFFF')+'  // colour shown for canvas 1'
-      : '#define C_BG      '+hexTo565Const(state.screenBgColor)+'  // canvas background ('+state.screenBgColor+')')
+      : '#define C_BG      '+hexTo565Const(state.screenBgColor)+'  // canvas background ('+state.screenBgColor+')\n#define C_TRANSPARENT C_BG')
 }
 
 // ------------------------------------------------------------
@@ -5848,6 +6329,77 @@ int gfxCenterOffset(int sz) { return _gfxCompact ? (gfxCharH(sz)/2) : -(gfxCharH
 // open startWrite() block - TFT_eSPI supports startWrite()/endWrite() but
 // has no writePixel() method at all, so using it here would compile fine
 // on Adafruit_GFX panels while failing outright on TFT_eSPI ones.
+// Alternating two-colour line segments, so the line stays visible against
+// light OR dark backgrounds - unlike a single solid colour (and unlike a
+// dither/checker fill, which only works as an AREA fill, not a stroke),
+// at least one of the two alternating colours will contrast with
+// whatever the line crosses.
+void checkerLine(int x1, int y1, int x2, int y2, uint16_t colorA, uint16_t colorB, int segLen=3) {
+  float dx = x2-x1, dy = y2-y1;
+  float len = sqrtf(dx*dx+dy*dy);
+  int steps = max(1, (int)(len/segLen));
+  for (int i=0;i<steps;i++) {
+    float t0 = (float)i/steps, t1 = (float)(i+1)/steps;
+    int sx = x1 + (int)(dx*t0), sy = y1 + (int)(dy*t0);
+    int ex = x1 + (int)(dx*t1), ey = y1 + (int)(dy*t1);
+    GFX.drawLine(sx, sy, ex, ey, (i%2==0) ? colorA : colorB);
+  }
+}
+// Same alternating technique, walked around a circle's circumference
+// instead of along a straight line - used for a checker-style circle
+// OUTLINE (stroke), not a filled circle (which ditherFillCircle already
+// covers correctly).
+void checkerCircleOutline(int cx, int cy, float r, uint16_t colorA, uint16_t colorB, int segDeg=15) {
+  int steps = max(1, (int)(360/segDeg));
+  for (int i=0;i<steps;i++) {
+    float a0 = i*segDeg*PI/180.0f, a1 = (i+1)*segDeg*PI/180.0f;
+    int sx = cx+(int)(cosf(a0)*r), sy = cy+(int)(sinf(a0)*r);
+    int ex = cx+(int)(cosf(a1)*r), ey = cy+(int)(sinf(a1)*r);
+    GFX.drawLine(sx, sy, ex, ey, (i%2==0) ? colorA : colorB);
+  }
+}
+// Draws a thicker alternating black/white halo first (three parallel
+// offset passes for real thickness, each an alternating checkerLine), then
+// the thinner mainColor line on top - the halo peeks out around the edges
+// with BOTH colours represented, so unlike a single fixed outline colour
+// (which only contrasts with one background extreme - a black outline
+// still vanishes against a black background), at least one part of the
+// halo contrasts with whatever background is actually underneath.
+void outlinedLine(int x1, int y1, int x2, int y2, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  float dx = x2-x1, dy = y2-y1;
+  float len = sqrtf(dx*dx+dy*dy);
+  float px = (len>0) ? -dy/len : 0, py = (len>0) ? dx/len : 1;
+  for (int i=-1;i<=1;i++) {
+    float off = i;
+    checkerLine((int)(x1+px*off), (int)(y1+py*off), (int)(x2+px*off), (int)(y2+py*off), blackC, whiteC);
+  }
+  GFX.drawLine(x1, y1, x2, y2, mainColor);
+}
+void outlinedCircleOutline(int cx, int cy, float r, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  checkerCircleOutline(cx, cy, r-1, blackC, whiteC);
+  checkerCircleOutline(cx, cy, r+1, whiteC, blackC);
+  GFX.drawCircle(cx, cy, r, mainColor);
+}
+void outlinedFillTriangle(int x0,int y0,int x1,int y1,int x2,int y2, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  GFX.fillTriangle(x0,y0,x1,y1,x2,y2, blackC);
+  int cx=(x0+x1+x2)/3, cy=(y0+y1+y2)/3;
+  // Two successive 1px insets toward the centroid: an outer black ring
+  // (the full-size fill above), a middle white ring, then the smaller
+  // main-colour fill on top - both halo colours get their own visible
+  // band instead of one being fully covered by the other.
+  int wx0=x0+(cx>x0?1:cx<x0?-1:0), wy0=y0+(cy>y0?1:cy<y0?-1:0);
+  int wx1=x1+(cx>x1?1:cx<x1?-1:0), wy1=y1+(cy>y1?1:cy<y1?-1:0);
+  int wx2=x2+(cx>x2?1:cx<x2?-1:0), wy2=y2+(cy>y2?1:cy<y2?-1:0);
+  GFX.fillTriangle(wx0,wy0,wx1,wy1,wx2,wy2, whiteC);
+  GFX.fillTriangle(wx0+(cx>wx0?1:cx<wx0?-1:0), wy0+(cy>wy0?1:cy<wy0?-1:0),
+                    wx1+(cx>wx1?1:cx<wx1?-1:0), wy1+(cy>wy1?1:cy<wy1?-1:0),
+                    wx2+(cx>wx2?1:cx<wx2?-1:0), wy2+(cy>wy2?1:cy<wy2?-1:0), mainColor);
+}
+void outlinedFillCircle(int cx, int cy, float r, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  GFX.fillCircle(cx, cy, r+1, blackC);
+  GFX.fillCircle(cx, cy, max(0.0f,r), whiteC);
+  GFX.fillCircle(cx, cy, max(0.0f,r-1), mainColor);
+}
 void ditherFillRect(int x, int y, int w, int h, uint16_t color) {
   GFX.startWrite();
   for (int py = y; py < y + h; py++)
@@ -5898,6 +6450,22 @@ bool _pointInTriangle(float px, float py, float x0,float y0,float x1,float y1,fl
   bool hasNeg = (d1<0)||(d2<0)||(d3<0);
   bool hasPos = (d1>0)||(d2>0)||(d3>0);
   return !(hasNeg && hasPos);
+}
+// General, arbitrary-vertex version - ditherFillRotatedTriangle below only
+// accepts the (cx,cy,w,h,rotDeg) parameterization used by shape
+// instruments, not raw vertex coordinates like a roll-triangle marker or
+// similar arbitrary triangle needs.
+void ditherFillTriangle(int x0,int y0,int x1,int y1,int x2,int y2, uint16_t color) {
+  int minX=min(x0,min(x1,x2)), maxX=max(x0,max(x1,x2));
+  int minY=min(y0,min(y1,y2)), maxY=max(y0,max(y1,y2));
+  GFX.startWrite();
+  for (int py = minY; py <= maxY; py++) {
+    for (int px = minX; px <= maxX; px++) {
+      if (!_pointInTriangle(px, py, x0,y0, x1,y1, x2,y2)) continue;
+      if (((px ^ py) & 1) == 0) GFX.drawPixel(px, py, color);
+    }
+  }
+  GFX.endWrite();
 }
 void ditherFillRotatedTriangle(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
   int rx[3], ry[3];
@@ -6356,10 +6924,10 @@ ${isU8g2 ? `  // Mono panel: no RGB to cycle. First sweep contrast with a filled
   // width, not a fixed guess) and split across two lines so it reliably
   // fits even on the smallest supported screens.
   ${isU8g2
-    ? `_u8g2.clearBuffer();\n  _u8g2.setFont(u8g2_font_6x10_tf);\n  _u8g2.setDrawColor(C_FG);\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("AVIONIX"))/2, SCREEN_H/2 - 6, "AVIONIX");\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("FORGE"))/2, SCREEN_H/2 + 8, "FORGE");\n  _u8g2.sendBuffer();`
+    ? `_u8g2.clearBuffer();\n  // Fill with C_BG explicitly rather than relying on clearBuffer() alone -\n  // clearBuffer() always produces buffer value 0, which is not necessarily\n  // what C_BG is actually configured as (e.g. a reflective LCD with a dark\n  // background chosen has C_BG=1). Skipping this and drawing C_FG text\n  // straight onto a plain clearBuffer() can leave text the exact same\n  // value as its own background - invisible - whenever C_FG happens to\n  // equal 0 too.\n  _u8g2.setDrawColor(C_BG);\n  _u8g2.drawBox(0, 0, SCREEN_W, SCREEN_H);\n  _u8g2.setFont(u8g2_font_6x10_tf);\n  _u8g2.setDrawColor(C_FG);\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("AVIONIX"))/2, SCREEN_H/2 - 6, "AVIONIX");\n  _u8g2.drawStr((SCREEN_W - _u8g2.getStrWidth("FORGE"))/2, SCREEN_H/2 + 8, "FORGE");\n  _u8g2.sendBuffer();`
     : `${tftAccess}fillScreen(C_BG);\n  ${tftAccess}setTextColor(${splashColor}); ${tftAccess}setTextSize(1);\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("AVIONIX")*6)/2, SCREEN_H/2 - 10);\n  ${tftAccess}print("AVIONIX");\n  ${tftAccess}setCursor(SCREEN_W/2 - (int)(strlen("FORGE")*6)/2, SCREEN_H/2 + 2);\n  ${tftAccess}print("FORGE");${displayRefresh}`}
   delay(1500);
-  ${isU8g2?'_u8g2.clearBuffer(); _u8g2.sendBuffer();':tftAccess+'fillScreen(C_BG);'}
+  ${isU8g2?'_u8g2.clearBuffer(); _u8g2.setDrawColor(C_BG); _u8g2.drawBox(0, 0, SCREEN_W, SCREEN_H); _u8g2.sendBuffer();':tftAccess+'fillScreen(C_BG);'}
 ${useFB ? `  // GFXcanvas allocates with malloc and fails SILENTLY - getBuffer() just
   // returns null and the screen stays blank with no error. Check it.
 ${pingPong ? `  if (!fbA.getBuffer() || !fbB.getBuffer()) {
@@ -6791,7 +7359,7 @@ function generateInstrumentCode(inst, i) {
   //    that border right after it was drawn - it would flash into view on
   //    the very first frame, then be gone for good, since _staticDone
   //    prevents it from ever being redrawn.
-  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line'];
+  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line','altimeter-tape','airspeed-tape','tape','groundspeed-tape','vsi-tape','heading-tape','heading-arc','mode-indicator','arc-gauge','bar-gauge','static-text','text-value','home-distance'];
   const isCircularShape = inst.type==='dial'
     || ((inst.type==='indicator'||inst.type==='home-arrow') && c.shape!=='rectangle');
   if(!OWN_BACKGROUND_TYPES.includes(inst.type)){
@@ -6843,7 +7411,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  int ahY0 = isRect ? y : cy - r, ahY1 = isRect ? y + h - 1 : cy + r;`);
     L.push(`  // Precomputed once, not re-checked per scanline - this loop runs per row`);
     L.push(`  // and is already one of the more performance-sensitive spots in the sketch.`);
-    L.push(`  bool ahDrawGnd = (gndColor != C_BG), ahDrawLine = (lineColor != C_BG);`);
+    L.push(`  bool ahDrawGnd = (gndColor != C_TRANSPARENT), ahDrawLine = (lineColor != C_TRANSPARENT);`);
     L.push(`  for (int py = ahY0; py <= ahY1; py++) {`);
     L.push(`    int dy = py - cy;`);
     L.push(`    int rowL, rowR;`);
@@ -6855,39 +7423,33 @@ function generateInstrumentCode(inst, i) {
     L.push(`      rowL = (int)ceilf(-halfW); rowR = (int)floorf(halfW);`);
     L.push(`      if (rowL > rowR) continue;`);
     L.push(`    }`);
-    L.push(`    // Near roll=0, 0.8/|srA| blows up toward infinity (srA -> 0) and the`);
-    L.push(`    // only thing stopping it was the row-width clamp - meaning right at that`);
-    L.push(`    // transition, the "line" would briefly claim the ENTIRE row width for`);
-    L.push(`    // one frame, flashing as a solid band before roll moves on. Widening`);
-    L.push(`    // this threshold keeps roll angles anywhere near level on the`);
-    L.push(`    // well-behaved constant-thickness branch instead of the diverging one.`);
-    L.push(`    if (fabsf(srA) < 0.02f) {`);
-    L.push(`      // Roll ~0 or ~180: the boundary is (near-)horizontal. Sky rows draw`);
-    L.push(`      // nothing at all - the background fill already covers them, and the`);
-    L.push(`      // instrument's own bgColor IS the sky colour now. Only ground and`);
-    L.push(`      // the horizon-line stroke need an actual draw call.`);
-    L.push(`      float lineDyCenter = pitchPx / crA;`);
-    L.push(`      float lineDyHalfThick = 0.8f / fabsf(crA);`);
-    L.push(`      bool isLineRow = fabsf((float)dy - lineDyCenter) <= lineDyHalfThick;`);
-    L.push(`      if (isLineRow) { if (ahDrawLine) GFX.drawFastHLine(cx+rowL, py, rowR-rowL+1, lineColor); }`);
-    L.push(`      else if (dy*crA >= pitchPx) { if (ahDrawGnd) GFX.drawFastHLine(cx+rowL, py, rowR-rowL+1, gndColor); }`);
-    L.push(`    } else {`);
-    L.push(`      float crossDx = (pitchPx - dy*crA) / srA;`);
-    L.push(`      // Defensive cap (pxPerDeg*4) in addition to the row-width clamp, so`);
-    L.push(`      // even right at the edge of the branch above, the line can only ever`);
-    L.push(`      // get moderately thick - never spanning most/all of the instrument.`);
-    L.push(`      float halfThick = fminf(fminf(0.8f/fabsf(srA), (float)(rowR-rowL+1)), pxPerDeg*4.0f);`);
-    L.push(`      // Tight exact bound matching the single-pixel |d0|<0.8 test: ceil the`);
-    L.push(`      // lower edge and floor the upper edge, not the other way round, or the`);
-    L.push(`      // line band ends up a pixel too wide on each side.`);
-    L.push(`      int hlL = (int)ceilf(crossDx - halfThick);`);
-    L.push(`      int hlR = (int)floorf(crossDx + halfThick);`);
-    L.push(`      int gndL, gndR;`);
-    L.push(`      if (srA > 0) { gndL=hlR+1; gndR=rowR; }`);
-    L.push(`      else         { gndL=rowL; gndR=hlL-1; }`);
-    L.push(`      if (ahDrawGnd && gndR >= gndL) { int a=max(gndL,rowL), b=min(gndR,rowR); if(b>=a) GFX.drawFastHLine(cx+a, py, b-a+1, gndColor); }`);
-    L.push(`      if (ahDrawLine && hlR >= hlL) { int a=max(hlL,rowL), b=min(hlR,rowR); if(b>=a) GFX.drawFastHLine(cx+a, py, b-a+1, lineColor); }`);
-    L.push(`    }`);
+    L.push(`    // A two-branch version of this (a dx-independent formula near roll=0, a`);
+    L.push(`    // dx-dependent one elsewhere) still left a residual, visible jump right`);
+    L.push(`    // at the switchover: the two branches are genuinely different`);
+    L.push(`    // approximations of the same line, not equivalent forms of the same`);
+    L.push(`    // formula, so they don't actually agree at any finite boundary - only`);
+    L.push(`    // in the mathematical limit at roll=0 exactly. A single formula used`);
+    L.push(`    // everywhere, with only a tiny epsilon guard against literal division by`);
+    L.push(`    // zero (not a "which formula" threshold), removes the mismatch instead`);
+    L.push(`    // of just narrowing it.`);
+    L.push(`    float srASafe = (fabsf(srA) < 1e-9f) ? (srA>=0?1e-9f:-1e-9f) : srA;`);
+    L.push(`    float crossDx = (pitchPx - dy*crA) / srASafe;`);
+    L.push(`    float halfThick = 0.8f/fabsf(srASafe);`);
+    L.push(`    // Tight exact bound matching the single-pixel |d0|<0.8 test: ceil the`);
+    L.push(`    // lower edge and floor the upper edge, not the other way round, or the`);
+    L.push(`    // line band ends up a pixel too wide on each side.`);
+    L.push(`    int hlL = (int)ceilf(crossDx - halfThick);`);
+    L.push(`    int hlR = (int)floorf(crossDx + halfThick);`);
+    L.push(`    // Clamping the ENDPOINTS to just beyond the row (not the width) is what`);
+    L.push(`    // keeps this correct as srA -> 0: the crossing point drifts arbitrarily`);
+    L.push(`    // far from the row, and a width clamped around a far-away point misses`);
+    L.push(`    // the row's actual position entirely rather than converging on it.`);
+    L.push(`    hlL = max(hlL, rowL-1); hlR = min(hlR, rowR+1);`);
+    L.push(`    int gndL, gndR;`);
+    L.push(`    if (srASafe > 0) { gndL=hlR+1; gndR=rowR; }`);
+    L.push(`    else              { gndL=rowL; gndR=hlL-1; }`);
+    L.push(`    if (ahDrawGnd && gndR >= gndL) { int a=max(gndL,rowL), b=min(gndR,rowR); if(b>=a) GFX.drawFastHLine(cx+a, py, b-a+1, gndColor); }`);
+    L.push(`    if (ahDrawLine && hlR >= hlL) { int a=max(hlL,rowL), b=min(hlR,rowR); if(b>=a) GFX.drawFastHLine(cx+a, py, b-a+1, lineColor); }`);
     L.push(`  }`);
     L.push(`  // Pitch ladder (rungs + numbers), rotated with roll and offset with pitch`);
     L.push(`  // exactly like the sky/ground fill above, so it stays aligned with the horizon.`);
@@ -6910,8 +7472,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`      bool aOk = isRect ? (ax>=x && ax<=x+w-1 && ay>=y && ay<=y+h-1) : ((ax-cx)*(ax-cx)+(ay-cy)*(ay-cy) <= r*r);`);
     L.push(`      bool eOk = isRect ? (ex>=x && ex<=x+w-1 && ey>=y && ey<=y+h-1) : ((ex-cx)*(ex-cx)+(ey-cy)*(ey-cy) <= r*r);`);
     L.push(`      bool inCircle = aOk && eOk;`);
-    L.push(`      if (inCircle && rungColor != C_BG) { GFX.drawLine(ax,ay,bx,by,rungColor); GFX.drawLine(dx3,dy3,ex,ey,rungColor); }`);
-    L.push(`      if (${b(c.showPitchLabels)} && lblColor != C_BG) {`);
+    L.push(`      if (inCircle && rungColor != C_TRANSPARENT) { GFX.drawLine(ax,ay,bx,by,rungColor); GFX.drawLine(dx3,dy3,ex,ey,rungColor); }`);
+    L.push(`      if (${b(c.showPitchLabels)} && lblColor != C_TRANSPARENT) {`);
     L.push(`        float gap = max(5.0f, r*0.09f);`);
     L.push(`        int lax=cx+(int)((-len-gap)*crA+ly*srA), lay=cy+(int)(-(-len-gap)*srA+ly*crA);`);
     L.push(`        int rax=cx+(int)((len+gap)*crA+ly*srA),  ray=cy+(int)(-(len+gap)*srA+ly*crA);`);
@@ -6961,33 +7523,66 @@ function generateInstrumentCode(inst, i) {
     L.push(`    }`);
     L.push(`    if (ahDrawLine) for (int idx = 0; idx < 13; idx++) GFX.drawLine(_rtx1[idx], _rty1[idx], _rtx2[idx], _rty2[idx], lineColor);`);
     L.push(`  }`);
+    // refColor can be a plain colour, the fixed black/white 'checker'
+    // value (no single colour can represent that, needs the alternating
+    // techniques below), or have the separate refShowOutline option set
+    // (a contrasting halo around an otherwise-solid colour, using its own
+    // two user-configurable colours rather than always black/white) -
+    // determined once here since every element of this instrument's
+    // reference symbol shares the same mode.
+    const refIsChecker = parseColorValue(c.refColor).base==='checker';
+    const refWantsOutline = !!c.refShowOutline;
+    // 'checker' itself has no user-configurable colour at all (it's
+    // always a fixed black/white pattern), but the separate outline
+    // option's two halo colours are configurable - reusing blkC/whtC as
+    // variable names for both cases here since checkerLine/etc. and
+    // outlinedLine/etc. share the same two-colour-parameter signature.
+    const blkC = hexTo565Const(refIsChecker?'#000000':(c.refOutlineColorA||'#000000'));
+    const whtC = hexTo565Const(refIsChecker?'#ffffff':(c.refOutlineColorB||'#ffffff'));
     L.push(`  // Roll triangle marker - rotates WITH roll around the fixed bezel`);
-    L.push(`  if (${b(c.showRollTriangle)} && refColor != C_BG) {`);
+    L.push(`  if (${b(c.showRollTriangle)} && refColor != C_TRANSPARENT) {`);
     L.push(`    float triH = ${c.rollTriHeight>0?`${Number(c.rollTriHeight).toFixed(2)}f`:'max(4.0f, r*0.18f)'}, triW = ${c.rollTriWidth>0?`${Number(c.rollTriWidth).toFixed(2)}f`:'max(3.0f, r*0.1f)'};`);
     L.push(`    float tlx=0, tly=-(r-1), blx=-triW, bly=-(r-1-triH), brx=triW, bry=-(r-1-triH);`);
     L.push(`    int ttx=cx+(int)(tlx*crA+tly*srA), tty=cy+(int)(-tlx*srA+tly*crA);`);
     L.push(`    int tbx=cx+(int)(blx*crA+bly*srA), tby=cy+(int)(-blx*srA+bly*crA);`);
     L.push(`    int tcx=cx+(int)(brx*crA+bry*srA), tcy=cy+(int)(-brx*srA+bry*crA);`);
-    L.push(`    GFX.fillTriangle(ttx,tty, tbx,tby, tcx,tcy, refColor);`);
+    if(refIsChecker){
+      L.push(`    GFX.fillTriangle(ttx,tty, tbx,tby, tcx,tcy, ${blkC}); ditherFillTriangle(ttx,tty, tbx,tby, tcx,tcy, ${whtC});`);
+    } else if(refWantsOutline){
+      L.push(`    outlinedFillTriangle(ttx,tty, tbx,tby, tcx,tcy, refColor, ${blkC}, ${whtC});`);
+    } else {
+      L.push(`    GFX.fillTriangle(ttx,tty, tbx,tby, tcx,tcy, refColor);`);
+    }
     L.push(`  }`);
     L.push(`  // Center reference (aircraft symbol) - fixed relative to the instrument`);
     L.push(`  // body (never rotates with live roll), but still needs to rotate along`);
     L.push(`  // with everything else when the instrument's own static rotation is set -`);
     L.push(`  // otherwise it stays screen-up while the horizon/ticks rotate around it.`);
-    L.push(`  if (refColor != C_BG) {`);
+    L.push(`  if (refColor != C_TRANSPARENT) {`);
     L.push(`  float refRad = rot * PI / 180.0f, crR = cosf(refRad), srR = sinf(refRad);`);
     {
       const refStyle = REF_SYMBOL_STYLES[c.refSymbolStyle] || REF_SYMBOL_STYLES['wings-dot'];
       refStyle.lines.forEach(([x1,y1,x2,y2])=>{
         L.push(`    { float lx1=${x1.toFixed(4)}f*r, ly1=${y1.toFixed(4)}f*r, lx2=${x2.toFixed(4)}f*r, ly2=${y2.toFixed(4)}f*r;`);
-        L.push(`      GFX.drawLine(cx+lx1*crR+ly1*srR, cy-lx1*srR+ly1*crR, cx+lx2*crR+ly2*srR, cy-lx2*srR+ly2*crR, refColor); }`);
+        const p1='cx+lx1*crR+ly1*srR, cy-lx1*srR+ly1*crR', p2='cx+lx2*crR+ly2*srR, cy-lx2*srR+ly2*crR';
+        if(refIsChecker) L.push(`      checkerLine(${p1}, ${p2}, ${blkC}, ${whtC}); }`);
+        else if(refWantsOutline) L.push(`      outlinedLine(${p1}, ${p2}, refColor, ${blkC}, ${whtC}); }`);
+        else L.push(`      GFX.drawLine(${p1}, ${p2}, refColor); }`);
       });
-      if(refStyle.circle>0) L.push(`    GFX.drawCircle(cx, cy, ${refStyle.circle.toFixed(4)}f*r, refColor);`);
-      if(refStyle.dot>0) L.push(`    GFX.fillCircle(cx, cy, ${refStyle.dot.toFixed(4)}f, refColor);`);
+      if(refStyle.circle>0){
+        if(refIsChecker) L.push(`    checkerCircleOutline(cx, cy, ${refStyle.circle.toFixed(4)}f*r, ${blkC}, ${whtC});`);
+        else if(refWantsOutline) L.push(`    outlinedCircleOutline(cx, cy, ${refStyle.circle.toFixed(4)}f*r, refColor, ${blkC}, ${whtC});`);
+        else L.push(`    GFX.drawCircle(cx, cy, ${refStyle.circle.toFixed(4)}f*r, refColor);`);
+      }
+      if(refStyle.dot>0){
+        if(refIsChecker) L.push(`    GFX.fillCircle(cx, cy, ${refStyle.dot.toFixed(4)}f, ${blkC}); ditherFillCircle(cx, cy, ${refStyle.dot.toFixed(4)}f, ${whtC});`);
+        else if(refWantsOutline) L.push(`    outlinedFillCircle(cx, cy, ${refStyle.dot.toFixed(4)}f, refColor, ${blkC}, ${whtC});`);
+        else L.push(`    GFX.fillCircle(cx, cy, ${refStyle.dot.toFixed(4)}f, refColor);`);
+      }
     }
     L.push(`  }`);
     L.push(`  // Border drawn LAST so the circular clip fill never paints over it`);
-    L.push(`  if (borderColor != C_BG) {`);
+    L.push(`  if (borderColor != C_TRANSPARENT) {`);
     L.push(`    if (isRect) { for (int bi=0;bi<${bw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
     L.push(`    else        { for (int bi=0;bi<${bw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor); }`);
     L.push(`  }`);
@@ -7012,10 +7607,10 @@ function generateInstrumentCode(inst, i) {
     L.push(`    float wp[4][2] = {{-r*0.8f,0},{-r*0.5f,0},{r*0.5f,0},{r*0.8f,0}};`);
     L.push(`    float wx[4], wy[4];`);
     L.push(`    for (int i=0;i<4;i++) { wx[i]=cx+wp[i][0]*wc+wp[i][1]*ws; wy[i]=cy-wp[i][0]*ws+wp[i][1]*wc; }`);
-    L.push(`    if (markColor != C_BG) { GFX.drawLine(wx[0],wy[0], wx[1],wy[1], markColor);`);
+    L.push(`    if (markColor != C_TRANSPARENT) { GFX.drawLine(wx[0],wy[0], wx[1],wy[1], markColor);`);
     L.push(`    GFX.drawLine(wx[2],wy[2], wx[3],wy[3], markColor); } }`);
     L.push(`  float rad = (roll + rot) * PI / 180;`);
-    L.push(`  if (ptrColor != C_BG) {`);
+    L.push(`  if (ptrColor != C_TRANSPARENT) {`);
     L.push(`    rotLine(cx, cy, cx-r*0.6*cosf(rad), cy-r*0.6*sinf(rad), cx-r*0.2*cosf(rad), cy-r*0.2*sinf(rad), 0, ptrColor);`);
     L.push(`    rotLine(cx, cy, cx+r*0.2*cosf(rad), cy+r*0.2*sinf(rad), cx+r*0.6*cosf(rad), cy+r*0.6*sinf(rad), 0, ptrColor);`);
     L.push(`    rotLine(cx, cy, cx-r*0.2*sinf(rad), cy+r*0.2*cosf(rad), cx+r*0.2*sinf(rad), cy-r*0.2*cosf(rad), 0, ptrColor);`);
@@ -7026,12 +7621,12 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // always literally below centre on screen regardless of rotation.`);
     L.push(`  { float ttr = rot * PI / 180.0f, ttc = cosf(ttr), tts = sinf(ttr);`);
     L.push(`    float tubeCx = cx + (r*0.65f)*tts, tubeCy = cy + (r*0.65f)*ttc;`);
-    L.push(`    if (tubeColor != C_BG) fillRotatedRect(tubeCx, tubeCy, tubeW, tubeH*1.4f, rot, tubeColor);`);
-    L.push(`    if (markColor != C_BG) drawRotatedRectOutline(tubeCx, tubeCy, tubeW, tubeH, rot, markColor);`);
+    L.push(`    if (tubeColor != C_TRANSPARENT) fillRotatedRect(tubeCx, tubeCy, tubeW, tubeH*1.4f, rot, tubeColor);`);
+    L.push(`    if (markColor != C_TRANSPARENT) drawRotatedRectOutline(tubeCx, tubeCy, tubeW, tubeH, rot, markColor);`);
     L.push(`    float slipLocal = slip * (tubeW/2 - tubeH);`);
     L.push(`    int slipX = tubeCx + slipLocal*ttc, slipY = tubeCy - slipLocal*tts;`);
-    L.push(`    if (ballColor != C_BG) GFX.fillCircle(slipX, slipY, tubeH*0.7f, ballColor); }`);
-    L.push(`  if (borderColor != C_BG) for (int bi=0;bi<${tcbw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
+    L.push(`    if (ballColor != C_TRANSPARENT) GFX.fillCircle(slipX, slipY, tubeH*0.7f, ballColor); }`);
+    L.push(`  if (borderColor != C_TRANSPARENT) for (int bi=0;bi<${tcbw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
   }
   else if (inst.type === 'compass') {
     const cMajLen = c.majorTickLen!==undefined?c.majorTickLen:10;
@@ -7071,7 +7666,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  float hdgCos = cosf(hdgRad), hdgSin = sinf(hdgRad);`);
     L.push(`  // Full 360 degree tick ring, rotated by heading so the correct side always`);
     L.push(`  // faces up - NOT limited to a front arc, or the back half goes missing.`);
-    L.push(`  if (showTicks && tickColor != C_BG) {`);
+    L.push(`  if (showTicks && tickColor != C_TRANSPARENT) {`);
     L.push(`    for (int i = 0; i < 36; i++) {`);
     L.push(`      int a = i * 10;`);
     L.push(`      float baseCos = _ringCS[i][0], baseSin = _ringCS[i][1];`);
@@ -7093,7 +7688,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    // The 4 cardinal base angles are just 0/90/180/270 offsets from the`);
     L.push(`    // same start, i.e. ring indices 0, 9, 18, 27 - reuse the same table.`);
     L.push(`    for (int i = 0; i < 4; i++) {`);
-    L.push(`      if (colors[i] == C_BG) continue;`);
+    L.push(`      if (colors[i] == C_TRANSPARENT) continue;`);
     L.push(`      float baseCos = _ringCS[i*9][0], baseSin = _ringCS[i*9][1];`);
     L.push(`      float rc = baseCos*hdgCos - baseSin*hdgSin;`);
     L.push(`      float rs = baseSin*hdgCos + baseCos*hdgSin;`);
@@ -7103,11 +7698,11 @@ function generateInstrumentCode(inst, i) {
     L.push(`    }`);
     L.push(`  }`);
     L.push(`  // Border drawn before the fixed overlay so the pointer/hub/text sit on top`);
-    L.push(`  if (borderColor != C_BG) for (int bi=0;bi<${cbw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) for (int bi=0;bi<${cbw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
     L.push(`  // Fixed pointer at top - does not rotate with heading (the ring`);
     L.push(`  // does), but still needs to rotate with the instrument's own static`);
     L.push(`  // rotation setting, same as everything else non-textual here.`);
-    L.push(`  if (ptrColor != C_BG) {`);
+    L.push(`  if (ptrColor != C_TRANSPARENT) {`);
     L.push(`    float pr = rot * PI / 180.0f, pc = cosf(pr), ps = sinf(pr);`);
     L.push(`    float ptrW = max(3.0f, r*0.1f), ptrH = max(5.0f, r*0.15f);`);
     L.push(`    float pp[3][2] = {{0,-r+1},{-ptrW,-r+1+ptrH},{ptrW,-r+1+ptrH}};`);
@@ -7115,7 +7710,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    for (int i=0;i<3;i++) { px[i]=cx+pp[i][0]*pc+pp[i][1]*ps; py[i]=cy-pp[i][0]*ps+pp[i][1]*pc; }`);
     L.push(`    GFX.fillTriangle(px[0],py[0], px[1],py[1], px[2],py[2], ptrColor);`);
     L.push(`  }`);
-    L.push(`  if (showHub) { float hubR=max(3.0f,r*0.07f); if (hubColor != C_BG) GFX.fillCircle(cx, cy, hubR, hubColor); if (ptrColor != C_BG) GFX.drawCircle(cx, cy, hubR, ptrColor); }`);
+    L.push(`  if (showHub) { float hubR=max(3.0f,r*0.07f); if (hubColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, hubR, hubColor); if (ptrColor != C_TRANSPARENT) GFX.drawCircle(cx, cy, hubR, ptrColor); }`);
     L.push(`  // Digital heading readout`);
     L.push(`  if (showHeadingText) {`);
     L.push(`    int hSz=gfxSizeF(r*0.2f); GFX.setTextSize(hSz);`);
@@ -7142,7 +7737,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // approach was removed. A fresh background naturally covers the`);
     L.push(`  // previous frame's hand positions with no separate erase step needed.`);
     L.push(circularBgFill(c));
-    L.push(`  if (borderColor != C_BG) GFX.drawCircle(cx, cy, r, borderColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawCircle(cx, cy, r, borderColor);`);
     L.push(`  // Tick coordinates precomputed once - the trig behind each tick's`);
     L.push(`  // position never changes at runtime, only whether they get redrawn`);
     L.push(`  // (every frame, unconditionally, since the background above is fresh).`);
@@ -7161,20 +7756,20 @@ function generateInstrumentCode(inst, i) {
     L.push(`    _ticksComputed = true;`);
     L.push(`  }`);
     L.push(`  uint16_t minorTickColor = ${hexTo565Const(c.minorTickColor||'#5a6878')};`);
-    L.push(`  for (int i = 0; i < 50; i++) { uint16_t tc = (i % 5 == 0) ? tickColor : minorTickColor; if (tc != C_BG) GFX.drawLine(_tx1[i], _ty1[i], _tx2[i], _ty2[i], tc); }`);
+    L.push(`  for (int i = 0; i < 50; i++) { uint16_t tc = (i % 5 == 0) ? tickColor : minorTickColor; if (tc != C_TRANSPARENT) GFX.drawLine(_tx1[i], _ty1[i], _tx2[i], _ty2[i], tc); }`);
     { const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
-    L.push(`  if (showLabels && labelColor != C_BG) { int tickSz=gfxSizeF(${sizeExpr(c,'scale','r*0.16f')}); GFX.setTextSize(tickSz); int tOffX=gfxCharW(tickSz)/2, tOffY=-gfxCenterOffset(tickSz); for (int i = 0; i < 10; i++) { GFX.setCursor(_lx[i] - tOffX + (${scaleDX}), _ly[i] - tOffY + (${scaleDY})); GFX.setTextColor(labelColor); GFX.print(i); } }`); }
+    L.push(`  if (showLabels && labelColor != C_TRANSPARENT) { int tickSz=gfxSizeF(${sizeExpr(c,'scale','r*0.16f')}); GFX.setTextSize(tickSz); int tOffX=gfxCharW(tickSz)/2, tOffY=-gfxCenterOffset(tickSz); for (int i = 0; i < 10; i++) { GFX.setCursor(_lx[i] - tOffX + (${scaleDX}), _ly[i] - tOffY + (${scaleDY})); GFX.setTextColor(labelColor); GFX.print(i); } }`); }
     L.push(`  float alt100 = ((int)altitude) % 1000;`);
     L.push(`  float ang100 = (-90 + (alt100 / 1000.0) * 360 + rot) * PI / 180;`);
-    L.push(`  if (hand100 != C_BG) { float h100Len = ${c.hand100Len!==undefined?c.hand100Len:'r-10.0f'}, h100Back = ${c.hand100Back!==undefined?c.hand100Back:'r*0.12f'};`);
+    L.push(`  if (hand100 != C_TRANSPARENT) { float h100Len = ${c.hand100Len!==undefined?c.hand100Len:'r-10.0f'}, h100Back = ${c.hand100Back!==undefined?c.hand100Back:'r*0.12f'};`);
     L.push(`    GFX.drawLine(cx-cosf(ang100)*h100Back, cy-sinf(ang100)*h100Back, cx+cosf(ang100)*h100Len, cy+sinf(ang100)*h100Len, hand100); }`);
     L.push(`  float alt1000 = ((int)altitude) % 10000;`);
     L.push(`  float ang1000 = (-90 + (alt1000 / 10000.0) * 360 + rot) * PI / 180;`);
-    L.push(`  if (hand1000 != C_BG) { float h1000Len = ${c.hand1000Len!==undefined?c.hand1000Len:'r-22.0f'}, h1000Back = ${c.hand1000Back!==undefined?c.hand1000Back:'r*0.15f'};`);
+    L.push(`  if (hand1000 != C_TRANSPARENT) { float h1000Len = ${c.hand1000Len!==undefined?c.hand1000Len:'r-22.0f'}, h1000Back = ${c.hand1000Back!==undefined?c.hand1000Back:'r*0.15f'};`);
     L.push(`    GFX.drawLine(cx-cosf(ang1000)*h1000Back, cy-sinf(ang1000)*h1000Back, cx+cosf(ang1000)*h1000Len, cy+sinf(ang1000)*h1000Len, hand1000); }`);
-    L.push(`  if (showHub) { if (hubColor != C_BG) GFX.fillCircle(cx, cy, 5, hubColor); if (hand1000 != C_BG) GFX.drawCircle(cx, cy, 5, hand1000); }`);
+    L.push(`  if (showHub) { if (hubColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, 5, hubColor); if (hand1000 != C_TRANSPARENT) GFX.drawCircle(cx, cy, 5, hand1000); }`);
     { const digDX = Math.round(gDX(c,'digital')), digDY = Math.round(gDY(c,'digital'));
-    L.push(`  if (showDigital && digColor != C_BG) { int dSz=gfxSizeF(${sizeExpr(c,'digital','r*0.14f')}); int dCharW=gfxCharW(dSz), dCharH=gfxCharH(dSz); int dCurX=cx - 4.5f*dCharW + (${digDX}), dCurY=cy + r*0.5 + (${digDY}); if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(dCurX - 3, dCurY - 2, 9*dCharW + 6, dCharH + 4, valueBoxColor); GFX.setCursor(dCurX, dCurY); GFX.setTextColor(digColor); GFX.setTextSize(dSz); GFX.print((int)altitude); GFX.print(" ft"); }`); }
+    L.push(`  if (showDigital && digColor != C_TRANSPARENT) { int dSz=gfxSizeF(${sizeExpr(c,'digital','r*0.14f')}); int dCharW=gfxCharW(dSz), dCharH=gfxCharH(dSz); int dCurX=cx - 4.5f*dCharW + (${digDX}), dCurY=cy + r*0.5 + (${digDY}); if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(dCurX - 3, dCurY - 2, 9*dCharW + 6, dCharH + 4, valueBoxColor); GFX.setCursor(dCurX, dCurY); GFX.setTextColor(digColor); GFX.setTextSize(dSz); GFX.print((int)altitude); GFX.print(" ft"); }`); }
   }
   else if (inst.type === 'altimeter-tape' || inst.type === 'airspeed-tape' || inst.type === 'tape' || inst.type === 'groundspeed-tape' || inst.type === 'vsi-tape') {
     const tickIn = c.tickInset!==undefined ? c.tickInset : 0.6;
@@ -7216,7 +7811,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  bool showTicksB = ${b(c.showTicks)};`);
     L.push(`  bool showPtr    = ${b(c.showPointer)};`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) { for (int bi=0;bi<${tbw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) { for (int bi=0;bi<${tbw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
     L.push(`  float range = ${Number(c.max||100).toFixed(1)}f - ${Number(c.min||0).toFixed(1)}f; if (range <= 0) range = 100;`);
     L.push(`  float pxPerUnit = h / max(1.0f, range * 0.4f);`);
     L.push(`  int midY = y + h/2;`);
@@ -7237,9 +7832,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`    if (showTicksB) {`);
     L.push(`      float x0 = w * (isMajor ? ${tickInEff}f : ${subInEff}f);`);
     L.push(`      uint16_t tc = isMajor ? tickColor : subTickColor;`);
-    L.push(`      if (tc != C_BG) GFX.drawLine(x + x0, py, x + w*${outerFrac}f, py, tc);`);
+    L.push(`      if (tc != C_TRANSPARENT) GFX.drawLine(x + x0, py, x + w*${outerFrac}f, py, tc);`);
     L.push(`    }`);
-    L.push(`    if (isMajor && showLabels && txtColor != C_BG) {`);
+    L.push(`    if (isMajor && showLabels && txtColor != C_TRANSPARENT) {`);
     L.push(`      char tickBuf[8]; itoa((int)v, tickBuf, 10);`);
     L.push(`      int tickW = gfxCharW(tSz) * (int)strlen(tickBuf);`);
     L.push(mirrored
@@ -7247,7 +7842,7 @@ function generateInstrumentCode(inst, i) {
       : `      GFX.setCursor(x + w*${tickInEff}f - w*0.05f - tickW + (${scaleDX}), py + gfxCenterOffset(tSz) + (${scaleDY})); GFX.setTextColor(txtColor); GFX.print(tickBuf);`);
     L.push(`    }`);
     L.push(`  }`);
-    L.push(`  if (showPtr && ptrColor != C_BG) {`);
+    L.push(`  if (showPtr && ptrColor != C_TRANSPARENT) {`);
     L.push(`    float ph = max(3.0f, h*0.03f);`);
     L.push(`    GFX.fillTriangle(x+w*${outerFrac}f, midY, x+w*${ptrBaseFrac}f, midY-ph, x+w*${ptrBaseFrac}f, midY+ph, ptrColor);`);
     L.push(`  }`);
@@ -7264,11 +7859,11 @@ function generateInstrumentCode(inst, i) {
     L.push(mirrored
       ? `    float boxX = x + w*0.95f - boxW;`
       : `    float boxX = x + w*0.05f;`);
-    L.push(`    if (boxBg != C_BG) GFX.fillRect(boxX + (${valueDX}), midY - bh/2 + (${valueDY}), boxW, bh, boxBg);`);
+    L.push(`    if (boxBg != C_TRANSPARENT) GFX.fillRect(boxX + (${valueDX}), midY - bh/2 + (${valueDY}), boxW, bh, boxBg);`);
     L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
     L.push(`    GFX.setCursor(boxX + charW/2 + (${valueDX}), midY - charH/2 + (${valueDY})); GFX.print(vbuf);`);
     L.push(`  }`);
-    L.push(`  if (showUnit && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','w*0.12f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(x + w/2 - 2*gfxCharW(uSz) + (${unitDX}), y + h - max(6,(int)(h*0.04)) + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}"); }`);
+    L.push(`  if (showUnit && tickColor != C_TRANSPARENT) { int uSz=gfxSizeF(${sizeExpr(c,'unit','w*0.12f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(x + w/2 - 2*gfxCharW(uSz) + (${unitDX}), y + h - max(6,(int)(h*0.04)) + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}"); }`);
   }
   else if (inst.type === 'vsi') {
     const vSweep = c.sweepAngle!==undefined?c.sweepAngle:180;
@@ -7299,7 +7894,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // Redrawn in full every frame - see the note on Turn Coordinator for why`);
     L.push(`  // the earlier cache-background/sprite-needle approach was removed.`);
     L.push(circularBgFill(c));
-    L.push(`  if (borderColor != C_BG) for (int bi=0;bi<${vbw};bi++) GFX.drawCircle(cx, cy, r-4-bi, borderColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) for (int bi=0;bi<${vbw};bi++) GFX.drawCircle(cx, cy, r-4-bi, borderColor);`);
     L.push(`  int vsiTickSz=gfxSizeF(${sizeExpr(c,'scale','r*0.14f')}); if (showLabels) GFX.setTextSize(vsiTickSz);`);
     { const scaleDX = Math.round(gDX(c,'scale')), scaleDY = Math.round(gDY(c,'scale'));
     L.push(`  for (int i = -totalSteps; i <= totalSteps; i++) {`);
@@ -7308,8 +7903,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`    float ang = startRad + (v/range) * (sweepRad/2.0f);`);
     L.push(`    int tLen = isMajor ? ${vTickLen} : ${vMinorTickLen};`);
     L.push(`    uint16_t tc = isMajor ? tickColor : subTickColor;`);
-    L.push(`    if (tc != C_BG) GFX.drawLine(cx + cosf(ang)*(r-4), cy + sinf(ang)*(r-4), cx + cosf(ang)*(r-4-tLen), cy + sinf(ang)*(r-4-tLen), tc);`);
-    L.push(`    if (isMajor && showLabels && labelColor != C_BG && fabsf(v) > 0.01f) {`);
+    L.push(`    if (tc != C_TRANSPARENT) GFX.drawLine(cx + cosf(ang)*(r-4), cy + sinf(ang)*(r-4), cx + cosf(ang)*(r-4-tLen), cy + sinf(ang)*(r-4-tLen), tc);`);
+    L.push(`    if (isMajor && showLabels && labelColor != C_TRANSPARENT && fabsf(v) > 0.01f) {`);
     L.push(`      int tx = cx + cosf(ang) * (r - 16 - labelInset); int ty = cy + sinf(ang) * (r - 16 - labelInset);`);
     L.push(`      GFX.setCursor(tx - gfxCharW(vsiTickSz)/2 + (${scaleDX}), ty + gfxCenterOffset(vsiTickSz) + (${scaleDY})); GFX.setTextColor(labelColor); GFX.print((int)v);`);
     L.push(`    }`);
@@ -7317,8 +7912,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`  float vClamped = constrain(value, -range, range);`);
     L.push(`  float ang = startRad + (vClamped/range) * (sweepRad/2.0f);`);
     L.push(`  float needleLen = ${c.needleLength!==undefined?`((${Number(c.needleLength).toFixed(2)}f/100.0f)*(r-4))`:'(r-8)'};`);
-    L.push(`  if (ptrColor != C_BG) GFX.drawLine(cx - cosf(ang)*${vNeedleBack}, cy - sinf(ang)*${vNeedleBack}, cx + cosf(ang)*needleLen, cy + sinf(ang)*needleLen, ptrColor);`);
-    L.push(`  if (showHub && hubColor != C_BG) GFX.fillCircle(cx, cy, 3, hubColor);`);
+    L.push(`  if (ptrColor != C_TRANSPARENT) GFX.drawLine(cx - cosf(ang)*${vNeedleBack}, cy - sinf(ang)*${vNeedleBack}, cx + cosf(ang)*needleLen, cy + sinf(ang)*needleLen, ptrColor);`);
+    L.push(`  if (showHub && hubColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, 3, hubColor);`);
   }
   else if (inst.type === 'heading-tape') {
     const hSubCount = Math.max(0, Math.round(parseFloat(c.subTicks)||0));
@@ -7340,7 +7935,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  bool showTicksH = ${b(c.showTicks)};`);
     L.push(`  bool showPtrH = ${b(c.showPointer)};`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) { for (int bi=0;bi<${htbw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) { for (int bi=0;bi<${htbw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
     L.push(`  float pxPerDeg = w / 90.0f; int midX = x + w/2;`);
     L.push(`  float startH = floorf((heading - 45) / 10.0f) * 10.0f;`);
     L.push(`  float hFineStep = 10.0f / ${hSubDiv}.0f;`);
@@ -7356,11 +7951,11 @@ function generateInstrumentCode(inst, i) {
     L.push(`    int norm = (((int)roundf(a)) % 360 + 360) % 360;`);
     L.push(`    if (showTicksH) {`);
     L.push(`      uint16_t tc = isMajor?tickColor:subTickColor;`);
-    L.push(`      if (tc != C_BG) GFX.drawLine(px, y + (isMajor?hMajTop:hMinTop), px, y + (isMajor?hMajBottom:hMinBottom), tc);`);
+    L.push(`      if (tc != C_TRANSPARENT) GFX.drawLine(px, y + (isMajor?hMajTop:hMinTop), px, y + (isMajor?hMajBottom:hMinBottom), tc);`);
     L.push(`    }`);
     L.push(`    if (isMajor && norm % ${c.labelStep>0?Math.round(c.labelStep):30} == 0 && showLabels) {`);
     L.push(`      uint16_t lc = norm == 0 ? northColor : txtColor;`);
-    L.push(`      if (lc != C_BG) {`);
+    L.push(`      if (lc != C_TRANSPARENT) {`);
     L.push(`      int hLblSz=gfxSizeF(${sizeExpr(c,'scale','h*0.28f')}); GFX.setCursor(px - gfxCharW(hLblSz)/2 + (${scaleDX}), y + h*0.65f + (${scaleDY})); GFX.setTextColor(lc); GFX.setTextSize(hLblSz);`);
     L.push(`      if (norm == 0) GFX.print("N"); else if (norm == 90) GFX.print("E");`);
     L.push(`      else if (norm == 180) GFX.print("S"); else if (norm == 270) GFX.print("W");`);
@@ -7371,7 +7966,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // Center pointer - back at the top, keeping the downward-pointing`);
     L.push(`  // orientation: flat base at the top edge, apex hanging down into`);
     L.push(`  // the tick marks.`);
-    L.push(`  if (showPtrH && ptrColor != C_BG) {`);
+    L.push(`  if (showPtrH && ptrColor != C_TRANSPARENT) {`);
     L.push(`    float pw = max(3.0f, w*0.025f);`);
     L.push(`    GFX.fillTriangle(midX, y+h*0.25f, midX - pw, y, midX + pw, y, ptrColor);`);
     L.push(`    GFX.fillRect(midX - 1, y, 2, h*0.3f, ptrColor);`);
@@ -7380,7 +7975,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    int vSz = gfxSizeF(${sizeExpr(c,'value','h*0.3f')});`);
     L.push(`    int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz);`);
     L.push(`    float bw = max(28.0f, (float)(3*vCharW+8)), bh = max((float)(vCharH+4), h*0.33f);`);
-    L.push(`    if (boxBg != C_BG) GFX.fillRect(midX - bw/2 + (${valueDX}), y + h - bh - 1 + (${valueDY}), bw, bh, boxBg);`);
+    L.push(`    if (boxBg != C_TRANSPARENT) GFX.fillRect(midX - bw/2 + (${valueDX}), y + h - bh - 1 + (${valueDY}), bw, bh, boxBg);`);
     L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
     L.push(`    GFX.setCursor(midX - 3*vCharW/2 + (${valueDX}), y + h - bh/2 - 1 - vCharH/2 + (${valueDY}));`);
     L.push(`    int hdg = (int)heading % 360;`);
@@ -7406,7 +8001,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  bool showTicksHA = ${b(c.showTicks)};`);
     L.push(`  bool showPtrHA = ${b(c.showPointer)};`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) { for (int bi=0;bi<${habw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) { for (int bi=0;bi<${habw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor); }`);
     L.push(`  // The arc's own circle centre sits outside the box (below when normal,`);
     L.push(`  // above when flipped) - the visible portion is just a slice of that`);
     L.push(`  // circle, curving like a smile (normal) or a frown (flipped). apexY is`);
@@ -7433,11 +8028,11 @@ function generateInstrumentCode(inst, i) {
     L.push(`    float innerR = haRadius - tickLen;`);
     L.push(`    if (showTicksHA) {`);
     L.push(`      uint16_t tc = isMajor?tickColor:subTickColor;`);
-    L.push(`      if (tc != C_BG) GFX.drawLine(haCx+haCa*haRadius, haCy+haSa*haRadius, haCx+haCa*innerR, haCy+haSa*innerR, tc);`);
+    L.push(`      if (tc != C_TRANSPARENT) GFX.drawLine(haCx+haCa*haRadius, haCy+haSa*haRadius, haCx+haCa*innerR, haCy+haSa*innerR, tc);`);
     L.push(`    }`);
     L.push(`    if (isMajor && norm % ${c.labelStep>0?Math.round(c.labelStep):30} == 0 && showLabels) {`);
     L.push(`      uint16_t lc = norm == 0 ? northColor : txtColor;`);
-    L.push(`      if (lc != C_BG) {`);
+    L.push(`      if (lc != C_TRANSPARENT) {`);
     L.push(`      float labelR = innerR - h*0.16f;`);
     L.push(`      int hLblSz=gfxSizeF(${sizeExpr(c,'scale','h*0.22f')}); GFX.setCursor(haCx+haCa*labelR - gfxCharW(hLblSz)/2 + (${haScaleDX}), haCy+haSa*labelR - gfxCenterOffset(hLblSz) + (${haScaleDY})); GFX.setTextColor(lc); GFX.setTextSize(hLblSz);`);
     L.push(`      if (norm == 0) GFX.print("N"); else if (norm == 90) GFX.print("E");`);
@@ -7449,7 +8044,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // Same style as Heading Tape's pointer, mirrored vertically when`);
     L.push(`  // flipped: normally a flat base at the top edge with the apex hanging`);
     L.push(`  // down; flipped, a flat base at the bottom edge with the apex rising up.`);
-    L.push(`  if (showPtrHA && ptrColor != C_BG) {`);
+    L.push(`  if (showPtrHA && ptrColor != C_TRANSPARENT) {`);
     L.push(`    float pw = max(3.0f, w*0.02f);`);
     if(haFlipped){
       L.push(`    GFX.fillTriangle(haCx, y+haApexY, haCx - pw, y+h, haCx + pw, y+h, ptrColor);`);
@@ -7466,7 +8061,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz);`);
     L.push(`    float bw = max(28.0f, (float)(3*vCharW+8)), bh = max((float)(vCharH+4), h*0.26f);`);
     L.push(`    float boxY = ${haFlipped?'y + 1':'y + h - bh - 1'};`);
-    L.push(`    if (boxBg != C_BG) GFX.fillRect(haCx - bw/2 + (${haValueDX}), boxY + (${haValueDY}), bw, bh, boxBg);`);
+    L.push(`    if (boxBg != C_TRANSPARENT) GFX.fillRect(haCx - bw/2 + (${haValueDX}), boxY + (${haValueDY}), bw, bh, boxBg);`);
     L.push(`    GFX.setTextColor(${hexTo565Const(c.valueTextColor||'#040810')}); GFX.setTextSize(vSz);`);
     L.push(`    GFX.setCursor(haCx - 3*vCharW/2 + (${haValueDX}), boxY + bh/2 - vCharH/2 + (${haValueDY}));`);
     L.push(`    int hdg = (int)heading % 360;`);
@@ -7491,9 +8086,9 @@ function generateInstrumentCode(inst, i) {
       L.push(`  const char* modeName = (modeIdx>=0 && modeIdx<24) ? FLIGHT_MODES[modeIdx] : "UNKNOWN";`);
     }
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
     { const modeDX = Math.round(gDX(c,'mode')), modeDY = Math.round(gDY(c,'mode'));
-    L.push(`  if (${b(c.showText)} && txtColor != C_BG) { int mSz=gfxSizeF(${sizeExpr(c,'mode','h*0.4f')}); GFX.setCursor(x + 4 + (${modeDX}), y + h/2 + gfxCenterOffset(mSz) + (${modeDY})); GFX.setTextColor(txtColor); GFX.setTextSize(mSz); GFX.print(modeName); }`); }
+    L.push(`  if (${b(c.showText)} && txtColor != C_TRANSPARENT) { int mSz=gfxSizeF(${sizeExpr(c,'mode','h*0.4f')}); GFX.setCursor(x + 4 + (${modeDX}), y + h/2 + gfxCenterOffset(mSz) + (${modeDY})); GFX.setTextColor(txtColor); GFX.setTextSize(mSz); GFX.print(modeName); }`); }
   }
   else if (inst.type === 'arc-gauge') {
     const sweep = c.arcSweep === 'custom' ? (c.sweepAngle || 270) : (parseInt(c.arcSweep) || 270);
@@ -7540,7 +8135,7 @@ function generateInstrumentCode(inst, i) {
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (${b(c.showTrack)}) drawArc(gcx, gy, gr, arcStart + rot, arcEnd + rot, trackColor, ${c.arcThickness>0?Math.round(c.arcThickness):1});`);
     L.push(`  // Value arc`);
-    L.push(`  if (${b(c.showArc)} && color != C_BG) {`);
+    L.push(`  if (${b(c.showArc)} && color != C_TRANSPARENT) {`);
     L.push(`    float v = constrain(value, minV, maxV); float pct = (v - minV) / (maxV - minV);`);
     L.push(`    // Mirrored: fills from the far end (arcEnd) backward instead of`);
     L.push(`    // growing from arcStart forward - the visible track/endpoints`);
@@ -7552,7 +8147,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // Min / Max labels at arc ends - swapped when mirrored so "Min" still`);
     L.push(`  // sits at the end the arc fills from, matching the reversed direction`);
     L.push(`  // above rather than contradicting it.`);
-    L.push(`  if (${b(showScale)} && tickColor != C_BG) {`);
+    L.push(`  if (${b(showScale)} && tickColor != C_TRANSPARENT) {`);
     L.push(`    int mmSz=gfxSizeF(${sizeExpr(c,'scale','max(7.0f,gr*0.18f)')}); GFX.setTextColor(tickColor); GFX.setTextSize(mmSz);`);
     L.push(`    int mmOffX=gfxCharW(mmSz), mmOffY=-gfxCenterOffset(mmSz);`);
     L.push(`    float minAng = (${c.mirrored?'arcEnd':'arcStart'} + rot) * PI / 180; float maxAng = (${c.mirrored?'arcStart':'arcEnd'} + rot) * PI / 180;`);
@@ -7560,7 +8155,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`    GFX.setCursor(gcx + cosf(maxAng) * (gr + 12) - mmOffX + (${scaleDX}), gy + sinf(maxAng) * (gr + 12) - mmOffY + (${scaleDY})); GFX.print((int)maxV);`);
     L.push(`  }`);
     L.push(`  // Digital value - sized proportionally to the gauge radius, like the editor`);
-    L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
+    L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
     L.push(`    int vSize = gfxSizeF(${sizeExpr(c,'value','max(10.0f,gr*0.42f)')});`);
     let vyExpr = `gy - gr * 0.15`;
     if (c.valuePos === 'top') vyExpr = `gy - gr * 0.4`;
@@ -7580,14 +8175,14 @@ function generateInstrumentCode(inst, i) {
     L.push(`    // is left transparent (a common choice for a custom gauge like this),`);
     L.push(`    // so without it a shorter new reading would leave old digits peeking`);
     L.push(`    // out from behind, exactly like an un-erased sprite needle would.`);
-    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, vCurY - 2, vw + 4, vCharH + 4, valueBoxColor);`);
+    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, vCurY - 2, vw + 4, vCharH + 4, valueBoxColor);`);
     L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSize);`);
     L.push(`    GFX.setCursor(vCurX, vCurY); GFX.print(vbuf);`);
     L.push(`  }`);
     L.push(`  // Unit`);
-    L.push(`  if (${b(c.showUnit)} && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','max(7.0f,gr*0.16f)')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(gcx - (int)strlen("${c.unit||''}")*gfxCharW(uSz)/2 + (${unitDX}), gy + gr*0.2f + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}"); }`);
+    L.push(`  if (${b(c.showUnit)} && tickColor != C_TRANSPARENT) { int uSz=gfxSizeF(${sizeExpr(c,'unit','max(7.0f,gr*0.16f)')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(gcx - (int)strlen("${c.unit||''}")*gfxCharW(uSz)/2 + (${unitDX}), gy + gr*0.2f + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}"); }`);
     L.push(`  // Label`);
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSize=gfxSizeF(${sizeExpr(c,'label','max(8.0f,gr*0.2f)')}); int lCharH=gfxCharH(lSize); int lMargin=max(2,(int)(lCharH*0.25f)); GFX.setTextColor(labelColor); GFX.setTextSize(lSize); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSize)/2 + (${labelDX}), y + h - lCharH - lMargin + (${labelDY})); GFX.print("${c.label||''}"); }`);
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSize=gfxSizeF(${sizeExpr(c,'label','max(8.0f,gr*0.2f)')}); int lCharH=gfxCharH(lSize); int lMargin=max(2,(int)(lCharH*0.25f)); GFX.setTextColor(labelColor); GFX.setTextSize(lSize); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSize)/2 + (${labelDX}), y + h - lCharH - lMargin + (${labelDY})); GFX.print("${c.label||''}"); }`);
   }
   else if (inst.type === 'bar-gauge') {
     L.push(`  // --- Bar Gauge ---`);
@@ -7600,18 +8195,18 @@ function generateInstrumentCode(inst, i) {
       const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
       const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
       L.push(`  int padX = 6; int barY = y + h*0.45; int barH = h*0.25;`);
-      L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + padX + (${labelDX}), y + 4 + (${labelDY})); GFX.print("${c.label||''}"); }`);
-      L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
+      L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + padX + (${labelDX}), y + 4 + (${labelDY})); GFX.print("${c.label||''}"); }`);
+      L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
       L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.25f')}); int vCurX = x + w - gfxCharW(vSz)*(digits+3) + (${valueDX});`);
-      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, y + 4 - 2 + (${valueDY}), gfxCharW(vSz)*(digits+3) + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
+      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, y + 4 - 2 + (${valueDY}), gfxCharW(vSz)*(digits+3) + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
       L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, y + 4 + (${valueDY})); GFX.print(v, digits); GFX.print(" ${c.unit||''}");`);
       L.push(`  }`);
-      L.push(`  if (${b(c.showTrack)} && trackColor != C_BG) GFX.fillRect(x + padX, barY, w - padX*2, barH, trackColor);`);
+      L.push(`  if (${b(c.showTrack)} && trackColor != C_TRANSPARENT) GFX.fillRect(x + padX, barY, w - padX*2, barH, trackColor);`);
       L.push(`  // Mirrored: touches the right edge and grows leftward instead of`);
       L.push(`  // touching the left edge and growing rightward.`);
-      L.push(`  if (${b(c.showBar)} && color != C_BG) { float bw = (w - padX*2) * ((v - minV)/(maxV-minV)); float bx = ${c.mirrored?'x + w - padX - bw':'x + padX'}; GFX.fillRect(bx, barY, bw, barH, color); }`);
-      L.push(`  if (${b(c.showTicks)} && borderColor != C_BG) { for (int i=1;i<10;i++) { int tx = x + padX + (int)((w-padX*2)*(i/10.0f)); GFX.drawLine(tx, barY, tx, barY+barH, borderColor); } }`);
-      L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(x + padX, barY, w - padX*2, barH, borderColor);`);
+      L.push(`  if (${b(c.showBar)} && color != C_TRANSPARENT) { float bw = (w - padX*2) * ((v - minV)/(maxV-minV)); float bx = ${c.mirrored?'x + w - padX - bw':'x + padX'}; GFX.fillRect(bx, barY, bw, barH, color); }`);
+      L.push(`  if (${b(c.showTicks)} && borderColor != C_TRANSPARENT) { for (int i=1;i<10;i++) { int tx = x + padX + (int)((w-padX*2)*(i/10.0f)); GFX.drawLine(tx, barY, tx, barY+barH, borderColor); } }`);
+      L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x + padX, barY, w - padX*2, barH, borderColor);`);
     } else {
       L.push(`  // Vertical: fills bottom-to-top, like a thermometer/fuel gauge. Label`);
       L.push(`  // stays at the top and value at the bottom, both upright and readable -`);
@@ -7620,24 +8215,24 @@ function generateInstrumentCode(inst, i) {
       L.push(`  int topY = y + 4, botY = y + h - 4;`);
       const labelDX2 = Math.round(gDX(c,'label')), labelDY2 = Math.round(gDY(c,'label'));
       const valueDX2 = Math.round(gDX(c,'value')), valueDY2 = Math.round(gDY(c,'value'));
-      L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX2}), topY + (${labelDY2})); GFX.print("${c.label||''}"); topY += gfxCharH(lSz) + 3; }`);
+      L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX2}), topY + (${labelDY2})); GFX.print("${c.label||''}"); topY += gfxCharH(lSz) + 3; }`);
       L.push(`  int valH = 0;`);
       L.push(`  int vSz=gfxSizeF(${sizeExpr(c,'value','w*0.2f')});`);
-      L.push(`  if (${b(c.showValue)} && color != C_BG) valH = gfxCharH(vSz) + 4;`);
+      L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) valH = gfxCharH(vSz) + 4;`);
       L.push(`  int barX = x + w*0.3, barW = w*0.4;`);
       L.push(`  int barTop = topY, barBottom = botY - valH;`);
       L.push(`  int barH2 = max(1, barBottom - barTop);`);
-      L.push(`  if (${b(c.showTrack)} && trackColor != C_BG) GFX.fillRect(barX, barTop, barW, barH2, trackColor);`);
+      L.push(`  if (${b(c.showTrack)} && trackColor != C_TRANSPARENT) GFX.fillRect(barX, barTop, barW, barH2, trackColor);`);
       L.push(`  // Mirrored: touches the top edge and grows downward instead of`);
       L.push(`  // touching the bottom edge and growing upward.`);
-      L.push(`  if (${b(c.showBar)} && color != C_BG) { float pct=(v-minV)/(maxV-minV); int fillH=(int)(barH2*pct); int fy = ${c.mirrored?'barTop':'barBottom-fillH'}; GFX.fillRect(barX, fy, barW, fillH, color); }`);
-      L.push(`  if (${b(c.showTicks)} && borderColor != C_BG) { for (int i=1;i<10;i++) { int ty = barTop + (int)(barH2*(i/10.0f)); GFX.drawLine(barX, ty, barX+barW, ty, borderColor); } }`);
-      L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(barX, barTop, barW, barH2, borderColor);`);
-      L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
+      L.push(`  if (${b(c.showBar)} && color != C_TRANSPARENT) { float pct=(v-minV)/(maxV-minV); int fillH=(int)(barH2*pct); int fy = ${c.mirrored?'barTop':'barBottom-fillH'}; GFX.fillRect(barX, fy, barW, fillH, color); }`);
+      L.push(`  if (${b(c.showTicks)} && borderColor != C_TRANSPARENT) { for (int i=1;i<10;i++) { int ty = barTop + (int)(barH2*(i/10.0f)); GFX.drawLine(barX, ty, barX+barW, ty, borderColor); } }`);
+      L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(barX, barTop, barW, barH2, borderColor);`);
+      L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
       L.push(`    char vbuf[16]; dtostrf(v, 1, digits, vbuf);`);
       L.push(`    int vw = gfxCharW(vSz)*((int)strlen(vbuf)+${(c.unit||'').length+1});`);
       L.push(`    int vCurX = x + w/2 - vw/2 + (${valueDX2});`);
-      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(vCurX - 2, botY - gfxCharH(vSz) - 2 + (${valueDY2}), vw + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
+      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, botY - gfxCharH(vSz) - 2 + (${valueDY2}), vw + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
       L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, botY - gfxCharH(vSz) + (${valueDY2})); GFX.print(vbuf); GFX.print(" ${c.unit||''}");`);
       L.push(`  }`);
     }
@@ -7647,8 +8242,8 @@ function generateInstrumentCode(inst, i) {
     const textDX = Math.round(gDX(c,'text')), textDY = Math.round(gDY(c,'text'));
     L.push(`  // --- Static Text ---`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
-    L.push(`  if (txtColor != C_BG) {`);
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
+    L.push(`  if (txtColor != C_TRANSPARENT) {`);
     L.push(`    int tSz=gfxSizeF(${sizeExpr(c,'text','h*0.5f')});`);
     L.push(`    int tw = gfxCharW(tSz) * (int)strlen("${escText}");`);
     L.push(`    int tx = ${c.align==='left'?'x + 4':c.align==='right'?'x + w - 4 - tw':'x + w/2 - tw/2'};`);
@@ -7664,18 +8259,18 @@ function generateInstrumentCode(inst, i) {
     L.push(`  float value = ${mavFetch(c.mavSource)};`);
     L.push(`  int digits = ${c.digits||0};`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (${b(c.showBorder)} && borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
     { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + 4 + (${labelDX}), y + 3 + (${labelDY})); GFX.print("${c.label||''}"); }`); }
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + 4 + (${labelDX}), y + 3 + (${labelDY})); GFX.print("${c.label||''}"); }`); }
     { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
-    L.push(`  if (${b(c.showValue)} && color != C_BG) {`);
+    L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
     L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.5f')});`);
     L.push(`    char vbuf[16]; dtostrf(value, 1, digits, vbuf);`);
     L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz);`);
     L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(vSz)*(int)strlen(vbuf) + (${valueDX}), y + h - gfxCharH(vSz) - 2 + (${valueDY})); GFX.print(vbuf);`);
     L.push(`  }`); }
     { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
-    L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) {`);
+    L.push(`  if (${b(c.showUnit)} && labelColor != C_TRANSPARENT) {`);
     L.push(`    int uSz=gfxSizeF(${sizeExpr(c,'unit','h*0.22f')});`);
     L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(uSz);`);
     L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(uSz)*(int)strlen("${c.unit||''}") + (${unitDX}), y + 3 + (${unitDY})); GFX.print("${c.unit||''}");`);
@@ -7700,9 +8295,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`  int needleR = r * ${c.needleLength||80} / 100;`);
     L.push(bgFillLine(c,'circle'));
     L.push(`  // Background + value arcs`);
-    L.push(`  if (showArc && trackColor != C_BG) {`);
+    L.push(`  if (showArc && trackColor != C_TRANSPARENT) {`);
     L.push(`    drawArc(cx, cy, r-4, arcStart + rot, arcEnd + rot, trackColor);`);
-    L.push(`    if (color != C_BG) {`);
+    L.push(`    if (color != C_TRANSPARENT) {`);
     L.push(`      float v = constrain(value, minV, maxV); float pct = (v - minV) / range; int endA = arcStart + pct * arcRange;`);
     L.push(`      drawArc(cx, cy, r-4, arcStart + rot, endA + rot, color);`);
     L.push(`    }`);
@@ -7724,8 +8319,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`      bool isMajor = (i % ticksPerMajor == 0); int tickLen = isMajor ? ${c.majorTickLen!==undefined?c.majorTickLen:9} : ${c.minorTickLen!==undefined?c.minorTickLen:4};`);
     L.push(`      int tickOuterR = r - edgeDist; int innerR = tickOuterR - tickLen;`);
     L.push(`      uint16_t tc = isMajor ? tickColor : minorTickColor;`);
-    L.push(`      if (tc != C_BG) GFX.drawLine(cx + cosf(angle)*tickOuterR, cy + sinf(angle)*tickOuterR, cx + cosf(angle)*innerR, cy + sinf(angle)*innerR, tc);`);
-    L.push(`      if (isMajor && showLabels && labelColor != C_BG) {`);
+    L.push(`      if (tc != C_TRANSPARENT) GFX.drawLine(cx + cosf(angle)*tickOuterR, cy + sinf(angle)*tickOuterR, cx + cosf(angle)*innerR, cy + sinf(angle)*innerR, tc);`);
+    L.push(`      if (isMajor && showLabels && labelColor != C_TRANSPARENT) {`);
     L.push(`        float vLabel = minV + (i * range / numMinor); int labelR = innerR - labelInset;`);
     L.push(`        int tx = cx + cosf(angle) * labelR; int ty = cy + sinf(angle) * labelR;`);
     L.push(`        int scSz=gfxSizeF(${sizeExpr(c,'scale','r*0.12f')});`);
@@ -7734,30 +8329,30 @@ function generateInstrumentCode(inst, i) {
     L.push(`    }`); }
     L.push(`  }`);
     L.push(`  // Needle + hub`);
-    L.push(`  if (color != C_BG) {`);
+    L.push(`  if (color != C_TRANSPARENT) {`);
     L.push(`    float v = constrain(value, minV, maxV); float pct = (v - minV) / range;`);
     L.push(`    float needleAngle = (arcStart + pct * arcRange + rot) * PI / 180;`);
     L.push(`    GFX.drawLine(cx, cy, cx + cosf(needleAngle)*needleR, cy + sinf(needleAngle)*needleR, color);`);
-    L.push(`    if (showHub) { if (hubColor != C_BG) GFX.fillCircle(cx, cy, 4, hubColor); GFX.drawCircle(cx, cy, 4, color); }`);
+    L.push(`    if (showHub) { if (hubColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, 4, hubColor); GFX.drawCircle(cx, cy, 4, color); }`);
     L.push(`  }`);
     L.push(`  // Digital value + label + unit`);
     { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
-    L.push(`  if (showValue && color != C_BG) {`);
+    L.push(`  if (showValue && color != C_TRANSPARENT) {`);
     L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','r*0.2f')}); int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz);`);
-    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(cx - vCharW*(digits+3)/2 - 2 + (${valueDX}), cy + r*0.35 - vCharH/2 - 1 + (${valueDY}), vCharW*(digits+3) + 4, vCharH + 2, valueBoxColor);`);
+    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(cx - vCharW*(digits+3)/2 - 2 + (${valueDX}), cy + r*0.35 - vCharH/2 - 1 + (${valueDY}), vCharW*(digits+3) + 4, vCharH + 2, valueBoxColor);`);
     L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*(digits+3)/2 + (${valueDX}), cy + r*0.35 - vCharH/2 + (${valueDY})); GFX.print(constrain(value,minV,maxV), digits);`);
     L.push(`  }`); }
     { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) {`);
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) {`);
     L.push(`    int lSz=gfxSizeF(${sizeExpr(c,'label','r*0.13f')});`);
     L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX}), cy - r*0.4 + gfxCenterOffset(lSz) + (${labelDY})); GFX.print("${c.label||''}");`);
     L.push(`  }`); }
     { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
-    L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) {`);
+    L.push(`  if (${b(c.showUnit)} && labelColor != C_TRANSPARENT) {`);
     L.push(`    int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.11f')});`);
     L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(uSz); GFX.setCursor(cx - (int)strlen("${c.unit||''}")*gfxCharW(uSz)/2 + (${unitDX}), cy + r*0.6 + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("${c.unit||''}");`);
     L.push(`  }`); }
-    L.push(`  if (borderColor != C_BG) GFX.drawCircle(cx, cy, r, borderColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawCircle(cx, cy, r, borderColor);`);
   }
   else if (inst.type === 'indicator') {
     const src=c.indicatorSource||'SYS_STATUS.battery_remaining';
@@ -7787,10 +8382,10 @@ function generateInstrumentCode(inst, i) {
     const showBorderInd = c.showBorder!==false && (c.borderColor||'').toLowerCase()!=='transparent';
     const indBw = showBorderInd ? Math.min(wantBw, maxBw) : 0;
     if(c.shape==='rectangle'){
-      L.push(`  if (_indColor != C_BG) GFX.fillRect(x + ${indBw}, y + ${indBw}, w - ${indBw*2}, h - ${indBw*2}, _indColor);`);
+      L.push(`  if (_indColor != C_TRANSPARENT) GFX.fillRect(x + ${indBw}, y + ${indBw}, w - ${indBw*2}, h - ${indBw*2}, _indColor);`);
       if(indBw>0) L.push(`  GFX.drawRect(x, y, w, h, borderColor);`);
     } else {
-      L.push(`  if (_indColor != C_BG) GFX.fillCircle(x + w/2, y + h/2, min(w,h)/2 - ${indBw}, _indColor);`);
+      L.push(`  if (_indColor != C_TRANSPARENT) GFX.fillCircle(x + w/2, y + h/2, min(w,h)/2 - ${indBw}, _indColor);`);
       if(indBw>0) L.push(`  GFX.drawCircle(x + w/2, y + h/2, min(w,h)/2 - ${indBw}, borderColor);`);
     }
     if(c.showLabel&&c.label&&(c.labelColor||'').toLowerCase()!=='transparent'){
@@ -7811,8 +8406,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`  int tipX = cx+cos_a*tipLen, tipY = cy+sin_a*tipLen;`);
     L.push(`  int bx = cx-cos_a*baseLen, by = cy-sin_a*baseLen;`);
     L.push(bgFillLine(c, haRect?'rect':'circle'));
-    L.push(`  if (ptrColor != C_BG) GFX.fillTriangle(tipX, tipY, bx+px*halfW, by+py*halfW, bx-px*halfW, by-py*halfW, ptrColor);`);
-    L.push(`  if (borderColor != C_BG) {`);
+    L.push(`  if (ptrColor != C_TRANSPARENT) GFX.fillTriangle(tipX, tipY, bx+px*halfW, by+py*halfW, bx-px*halfW, by-py*halfW, ptrColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) {`);
     L.push(haRect
       ? `  for (int bi=0;bi<${habw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor);`
       : `  for (int bi=0;bi<${habw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
@@ -7823,11 +8418,11 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // --- Home Distance ---`);
     L.push(`  float dist = homeDistanceM();`);
     L.push(bgFillLine(c,'rect'));
-    L.push(`  if (borderColor != C_BG) GFX.drawRect(x, y, w, h, borderColor);`);
+    L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
     L.push(`  // GFX has no native centre-align - "HOME DIST" is a fixed 9-char`);
     L.push(`  // string, so its printed width is known without measuring at runtime.`);
-    L.push(`  if (labelColor != C_BG) { int hlSz=gfxSizeF(h*0.18f); int hlW=gfxCharW(hlSz)*9; GFX.setTextColor(labelColor); GFX.setTextSize(hlSz); GFX.setCursor(x+w/2-hlW/2, y+4); GFX.print("HOME DIST"); }`);
-    L.push(`  if (ptrColor != C_BG) {`);
+    L.push(`  if (labelColor != C_TRANSPARENT) { int hlSz=gfxSizeF(h*0.18f); int hlW=gfxCharW(hlSz)*9; GFX.setTextColor(labelColor); GFX.setTextSize(hlSz); GFX.setCursor(x+w/2-hlW/2, y+4); GFX.print("HOME DIST"); }`);
+    L.push(`  if (ptrColor != C_TRANSPARENT) {`);
     L.push(`    int hvSz=gfxSizeF(h*0.38f); int hvCharW=gfxCharW(hvSz), hvCharH=gfxCharH(hvSz);`);
     L.push(`    // Built into one buffer (rather than two separate GFX.print calls)`);
     L.push(`    // so the final printed width can be measured, for both centring`);
@@ -7849,11 +8444,11 @@ function generateInstrumentCode(inst, i) {
     }
     L.push(`    int hvW = hvCharW * (int)strlen(hvbuf);`);
     L.push(`    int hvCurX = x + w/2 - hvW/2, hvCurY = y + h*0.5f - hvCharH/2;`);
-    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(hvCurX - hvCharW/2 - 2, hvCurY - 2, hvW + hvCharW + 4, hvCharH + 4, valueBoxColor);`);
+    L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(hvCurX - hvCharW/2 - 2, hvCurY - 2, hvW + hvCharW + 4, hvCharH + 4, valueBoxColor);`);
     L.push(`    GFX.setTextColor(ptrColor); GFX.setTextSize(hvSz); GFX.setCursor(hvCurX, hvCurY); GFX.print(hvbuf);`);
     L.push(`  }`);
     const unitCaption = distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
-    L.push(`  if (${b(c.showUnit)} && labelColor != C_BG) { int huSz=gfxSizeF(h*0.14f); GFX.setTextColor(labelColor); GFX.setTextSize(huSz); GFX.setCursor(x+w/2-${Math.ceil(unitCaption.length/2)}*gfxCharW(huSz), y+h*0.82 + gfxCenterOffset(huSz)); GFX.print("${unitCaption}"); }`);
+    L.push(`  if (${b(c.showUnit)} && labelColor != C_TRANSPARENT) { int huSz=gfxSizeF(h*0.14f); GFX.setTextColor(labelColor); GFX.setTextSize(huSz); GFX.setCursor(x+w/2-${Math.ceil(unitCaption.length/2)}*gfxCharW(huSz), y+h*0.82 + gfxCenterOffset(huSz)); GFX.print("${unitCaption}"); }`);
   }
   else if (inst.type === 'groundspeed-dial') {
     const maxSpd = c.maxSpeed || 200;
@@ -7877,9 +8472,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // line was permanently biting a chunk out of any tick it crossed, since`);
     L.push(`  // a cached tick was never redrawn to repair that damage.`);
     L.push(circularBgFill(c));
-    L.push(`  if (borderColor != C_BG) GFX.drawCircle(cx, cy, r, borderColor);`);
-    L.push(`  if (trackColor != C_BG) drawArc(cx, cy, r-4, startDeg + rot, startDeg + sweep + rot, trackColor);`);
-    L.push(`  if (arcColor != C_BG) {`);
+    L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawCircle(cx, cy, r, borderColor);`);
+    L.push(`  if (trackColor != C_TRANSPARENT) drawArc(cx, cy, r-4, startDeg + rot, startDeg + sweep + rot, trackColor);`);
+    L.push(`  if (arcColor != C_TRANSPARENT) {`);
     L.push(`    float pct = constrain(gs_kmh, 0.0f, maxSpd) / maxSpd;`);
     L.push(`    drawArc(cx, cy, r-4, startDeg + rot, startDeg + pct * sweep + rot, arcColor);`);
     L.push(`  }`);
@@ -7889,22 +8484,22 @@ function generateInstrumentCode(inst, i) {
     L.push(`    float ang = (startDeg + pct * sweep + rot) * PI / 180;`);
     L.push(`    bool maj = (v % ${majStep} == 0);`);
     L.push(`    int inner = (r-4) - (int)(maj ? gdMajLen : gdMinLen);`);
-    L.push(`    if (tickColor != C_BG) GFX.drawLine(cx + cosf(ang)*(r-4), cy + sinf(ang)*(r-4), cx + cosf(ang)*inner, cy + sinf(ang)*inner, tickColor);`);
-    L.push(`    if (maj && ${b(c.showLabels)} && labelColor != C_BG) {`);
+    L.push(`    if (tickColor != C_TRANSPARENT) GFX.drawLine(cx + cosf(ang)*(r-4), cy + sinf(ang)*(r-4), cx + cosf(ang)*inner, cy + sinf(ang)*inner, tickColor);`);
+    L.push(`    if (maj && ${b(c.showLabels)} && labelColor != C_TRANSPARENT) {`);
     L.push(`      int tx = cx + cosf(ang)*(r - r/3 - 6); int ty = cy + sinf(ang)*(r - r/3 - 6);`);
     L.push(`      int tSz=gfxSizeF(${sizeExpr(c,'scale','r*0.15f')}); GFX.setCursor(tx - gfxCharW(tSz)/2 + (${scaleDX}), ty + gfxCenterOffset(tSz) + (${scaleDY})); GFX.setTextColor(labelColor); GFX.setTextSize(tSz); GFX.print(v);`);
     L.push(`    }`);
     L.push(`  }`); }
     L.push(`  float needleAng = (startDeg + (constrain(gs_kmh,0.0f,maxSpd)/maxSpd)*sweep + rot) * PI / 180;`);
-    L.push(`  if (ptrColor != C_BG) GFX.drawLine(cx - cosf(needleAng)*r*0.15, cy - sinf(needleAng)*r*0.15,`);
+    L.push(`  if (ptrColor != C_TRANSPARENT) GFX.drawLine(cx - cosf(needleAng)*r*0.15, cy - sinf(needleAng)*r*0.15,`);
     L.push(`               cx + cosf(needleAng)*(r*0.8), cy + sinf(needleAng)*(r*0.8), ptrColor);`);
-    L.push(`  if (${b(c.showHub)}) { if (hubColor != C_BG) GFX.fillCircle(cx, cy, max(4,r/12), hubColor); if (ptrColor != C_BG) GFX.drawCircle(cx, cy, max(4,r/12), ptrColor); }`);
+    L.push(`  if (${b(c.showHub)}) { if (hubColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, max(4,r/12), hubColor); if (ptrColor != C_TRANSPARENT) GFX.drawCircle(cx, cy, max(4,r/12), ptrColor); }`);
     { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
-    L.push(`  if (${b(c.showValue)} && ptrColor != C_BG) { int vSz=gfxSizeF(${sizeExpr(c,'value','r*0.38f')}); int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz); if (${b(c.showValueBox)} && valueBoxColor != C_BG) GFX.fillRect(cx - vCharW*3/2 - 2 + (${valueDX}), cy + r*0.25 - vCharH/2 - 1 + (${valueDY}), vCharW*4 + 4, vCharH + 2, valueBoxColor); GFX.setTextColor(ptrColor); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*3/2 + (${valueDX}), cy + r*0.25 - vCharH/2 + (${valueDY})); GFX.print((int)gs_kmh); }`); }
+    L.push(`  if (${b(c.showValue)} && ptrColor != C_TRANSPARENT) { int vSz=gfxSizeF(${sizeExpr(c,'value','r*0.38f')}); int vCharW=gfxCharW(vSz), vCharH=gfxCharH(vSz); if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(cx - vCharW*3/2 - 2 + (${valueDX}), cy + r*0.25 - vCharH/2 - 1 + (${valueDY}), vCharW*4 + 4, vCharH + 2, valueBoxColor); GFX.setTextColor(ptrColor); GFX.setTextSize(vSz); GFX.setCursor(cx - vCharW*3/2 + (${valueDX}), cy + r*0.25 - vCharH/2 + (${valueDY})); GFX.print((int)gs_kmh); }`); }
     { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
-    L.push(`  if (${b(c.showUnit)} && tickColor != C_BG) { int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.14f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(cx - 2*gfxCharW(uSz) + (${unitDX}), cy + r*0.52 + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("km/h"); }`); }
+    L.push(`  if (${b(c.showUnit)} && tickColor != C_TRANSPARENT) { int uSz=gfxSizeF(${sizeExpr(c,'unit','r*0.14f')}); GFX.setTextColor(tickColor); GFX.setTextSize(uSz); GFX.setCursor(cx - 2*gfxCharW(uSz) + (${unitDX}), cy + r*0.52 + gfxCenterOffset(uSz) + (${unitDY})); GFX.print("km/h"); }`); }
     { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_BG) { int gSz=gfxSizeF(${sizeExpr(c,'label','r*0.15f')}); GFX.setTextColor(labelColor); GFX.setTextSize(gSz); GFX.setCursor(cx - (int)strlen("${c.label||'GND SPD'}")*gfxCharW(gSz)/2 + (${labelDX}), cy - r*0.52 + gfxCenterOffset(gSz) + (${labelDY})); GFX.print("${c.label||'GND SPD'}"); }`); }
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int gSz=gfxSizeF(${sizeExpr(c,'label','r*0.15f')}); GFX.setTextColor(labelColor); GFX.setTextSize(gSz); GFX.setCursor(cx - (int)strlen("${c.label||'GND SPD'}")*gfxCharW(gSz)/2 + (${labelDX}), cy - r*0.52 + gfxCenterOffset(gSz) + (${labelDY})); GFX.print("${c.label||'GND SPD'}"); }`); }
   }
   else if (inst.type === 'stick-position') {
     L.push(`  // --- Stick Position ---`);
@@ -7914,9 +8509,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`  uint16_t sqBorderColor = ${hexTo565Const(c.squareBorderColor||'#3a4555')};`);
     L.push(`  uint16_t circColor = ${hexTo565Const(c.circleColor||'#5fe88a')};`);
     L.push(`  uint16_t circBorderColor = ${hexTo565Const(c.circleBorderColor||'#1a3d2e')};`);
-    L.push(`  if (sqColor != C_BG) GFX.fillRect(x, y, w, h, sqColor);`);
+    L.push(`  if (sqColor != C_TRANSPARENT) GFX.fillRect(x, y, w, h, sqColor);`);
     const sbw = c.squareBorderWidth!==undefined?c.squareBorderWidth:2;
-    L.push(`  if (sqBorderColor != C_BG) { for (int i=0;i<${sbw};i++) GFX.drawRect(x+i, y+i, w-2*i, h-2*i, sqBorderColor); }`);
+    L.push(`  if (sqBorderColor != C_TRANSPARENT) { for (int i=0;i<${sbw};i++) GFX.drawRect(x+i, y+i, w-2*i, h-2*i, sqBorderColor); }`);
     // Same normalization as the editor preview: typical RC PWM range
     // (1000-2000us, centred at 1500) mapped to -1..1, each axis
     // independently reversible since a channel's physical stick direction
@@ -7926,9 +8521,9 @@ function generateInstrumentCode(inst, i) {
     L.push(`  float stickR = min(w,h) * ${(Number(c.circleSize!==undefined?c.circleSize:20)).toFixed(2)}f / 100.0f / 2.0f;`);
     L.push(`  int stickCx = x + w/2 + (int)(hNorm * (w/2.0f - stickR));`);
     L.push(`  int stickCy = y + h/2 - (int)(vNorm * (h/2.0f - stickR));`); // higher value = up (smaller y), matching the editor preview
-    L.push(`  if (circColor != C_BG) GFX.fillCircle(stickCx, stickCy, (int)stickR, circColor);`);
+    L.push(`  if (circColor != C_TRANSPARENT) GFX.fillCircle(stickCx, stickCy, (int)stickR, circColor);`);
     const cbw = c.circleBorderWidth!==undefined?c.circleBorderWidth:2;
-    L.push(`  if (circBorderColor != C_BG) { for (int i=0;i<${cbw};i++) GFX.drawCircle(stickCx, stickCy, max(0,(int)stickR-i), circBorderColor); }`);
+    L.push(`  if (circBorderColor != C_TRANSPARENT) { for (int i=0;i<${cbw};i++) GFX.drawCircle(stickCx, stickCy, max(0,(int)stickR-i), circBorderColor); }`);
   }
   else if (inst.type === 'shape-rectangle' || inst.type === 'shape-circle' || inst.type === 'shape-oval' || inst.type === 'shape-triangle') {
     const fillParsed = parseColorValue(c.fillColor||'#1c232e');
@@ -7944,25 +8539,25 @@ function generateInstrumentCode(inst, i) {
     L.push(`  uint16_t fillColor = ${fillC};`);
     L.push(`  uint16_t outlineColor = ${outlineC};`);
     if(inst.type==='shape-rectangle'){
-      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
-      else L.push(`  if (fillColor != C_BG) fillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
-      L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) drawRotatedRectOutline(cx, cy, w - i*2, h - i*2, rot, outlineColor);`);
+      if(fillIsDither) L.push(`  if (fillColor != C_TRANSPARENT) ditherFillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      else L.push(`  if (fillColor != C_TRANSPARENT) fillRotatedRect(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      L.push(`  if (${ow} > 0 && outlineColor != C_TRANSPARENT) for (int i=0;i<${ow};i++) drawRotatedRectOutline(cx, cy, w - i*2, h - i*2, rot, outlineColor);`);
     } else if(inst.type==='shape-circle'){
       L.push(`  float scR = min(w,h)/2.0f - ${ow}/2.0f;`);
       // Circles are rotation-invariant, so the plain (non-rotated)
       // ditherFillCircle already lines up correctly regardless of rot.
-      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillCircle(cx, cy, (int)max(0.0f, scR - ${ow}/2.0f), fillColor);`);
-      else L.push(`  if (fillColor != C_BG) GFX.fillCircle(cx, cy, max(0.0f, scR - ${ow}/2.0f), fillColor);`);
-      L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) GFX.drawCircle(cx, cy, scR - i, outlineColor);`);
+      if(fillIsDither) L.push(`  if (fillColor != C_TRANSPARENT) ditherFillCircle(cx, cy, (int)max(0.0f, scR - ${ow}/2.0f), fillColor);`);
+      else L.push(`  if (fillColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, max(0.0f, scR - ${ow}/2.0f), fillColor);`);
+      L.push(`  if (${ow} > 0 && outlineColor != C_TRANSPARENT) for (int i=0;i<${ow};i++) GFX.drawCircle(cx, cy, scR - i, outlineColor);`);
     } else if(inst.type==='shape-triangle'){
-      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillRotatedTriangle(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
-      else L.push(`  if (fillColor != C_BG) fillRotatedTriangle(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
-      L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) drawRotatedTriangleOutline(cx, cy, w - i*2, h - i*2, rot, outlineColor);`);
+      if(fillIsDither) L.push(`  if (fillColor != C_TRANSPARENT) ditherFillRotatedTriangle(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      else L.push(`  if (fillColor != C_TRANSPARENT) fillRotatedTriangle(cx, cy, w - ${ow}, h - ${ow}, rot, fillColor);`);
+      L.push(`  if (${ow} > 0 && outlineColor != C_TRANSPARENT) for (int i=0;i<${ow};i++) drawRotatedTriangleOutline(cx, cy, w - i*2, h - i*2, rot, outlineColor);`);
     } else {
       L.push(`  float ovRx = w/2.0f - ${ow}/2.0f, ovRy = h/2.0f - ${ow}/2.0f;`);
-      if(fillIsDither) L.push(`  if (fillColor != C_BG) ditherFillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
-      else L.push(`  if (fillColor != C_BG) fillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
-      L.push(`  if (${ow} > 0 && outlineColor != C_BG) for (int i=0;i<${ow};i++) drawRotatedEllipseOutline(cx, cy, ovRx-i, ovRy-i, rot, outlineColor);`);
+      if(fillIsDither) L.push(`  if (fillColor != C_TRANSPARENT) ditherFillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
+      else L.push(`  if (fillColor != C_TRANSPARENT) fillRotatedEllipse(cx, cy, max(0.0f,ovRx-${ow}/2.0f), max(0.0f,ovRy-${ow}/2.0f), rot, fillColor);`);
+      L.push(`  if (${ow} > 0 && outlineColor != C_TRANSPARENT) for (int i=0;i<${ow};i++) drawRotatedEllipseOutline(cx, cy, ovRx-i, ovRy-i, rot, outlineColor);`);
     }
   }
   else if (inst.type === 'shape-line') {
@@ -7975,7 +8570,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  // note on shape-rectangle/circle/oval for why drawing it only once`);
     L.push(`  // would eventually make it disappear.`);
     L.push(`  uint16_t lnColor = ${lineC};`);
-    L.push(`  if (lnColor != C_BG) thickLine(x + w*${x1p.toFixed(4)}f, y + h*${y1p.toFixed(4)}f, x + w*${x2p.toFixed(4)}f, y + h*${y2p.toFixed(4)}f, ${lw}, lnColor);`);
+    L.push(`  if (lnColor != C_TRANSPARENT) thickLine(x + w*${x1p.toFixed(4)}f, y + h*${y1p.toFixed(4)}f, x + w*${x2p.toFixed(4)}f, y + h*${y2p.toFixed(4)}f, ${lw}, lnColor);`);
   }
   else if (inst.type === 'shape-screw') {
     const headC = hexTo565Const(c.headColor||'#8a94a3');
@@ -7986,8 +8581,8 @@ function generateInstrumentCode(inst, i) {
     L.push(`  uint16_t headColor = ${headC};`);
     L.push(`  uint16_t slotColor = ${slotC};`);
     L.push(`  float sr = min(w,h)/2.0f - 1.0f;`);
-    L.push(`  if (headColor != C_BG) GFX.fillCircle(cx, cy, sr, headColor);`);
-    L.push(`  if (slotColor != C_BG) {`);
+    L.push(`  if (headColor != C_TRANSPARENT) GFX.fillCircle(cx, cy, sr, headColor);`);
+    L.push(`  if (slotColor != C_TRANSPARENT) {`);
     L.push(`    GFX.drawCircle(cx, cy, sr, slotColor);`);
     L.push(`    float slotLen = sr * 1.4f;`);
     L.push(`    rotLine(cx, cy, cx-slotLen/2, cy, cx+slotLen/2, cy, rot, slotColor);`);
@@ -8049,15 +8644,24 @@ function highlightCode(code){
 function setupEventListeners(){
   // Deselect when clicking empty space — either the screen background or the viewport around it
   document.getElementById('screen').addEventListener('mousedown',e=>{
-    if(e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge') selectInstrument(null);
+    if(e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge'){
+      clearMultiSelect();
+      selectInstrument(null);
+    }
   });
   document.getElementById('editorViewport').addEventListener('mousedown',e=>{
-    if(e.target.id==='editorViewport') selectInstrument(null);
+    if(e.target.id==='editorViewport'){
+      clearMultiSelect();
+      selectInstrument(null);
+    }
   });
   // Drag-to-pan: only starts from a background click (viewport, screen, or
   // its badges), never from an instrument - and only once the mouse has
   // actually moved a few pixels, so a plain click still just deselects
   // (above) instead of every click flagging itself as a tiny pan.
+  // Holding Shift on that same background click starts a marquee
+  // selection instead - checked first, so the two gestures never both
+  // fire from one mousedown.
   (function(){
     const vp=document.getElementById('editorViewport');
     let panning=false, startX=0, startY=0, startScrollL=0, startScrollT=0, moved=false;
@@ -8065,6 +8669,7 @@ function setupEventListeners(){
     vp.addEventListener('mousedown',e=>{
       const bg=e.target.id==='editorViewport'||e.target.id==='screen'||e.target.id==='orientationBadge'||e.target.id==='monoBadge';
       if(!bg) return;
+      if(e.shiftKey){ startMarqueeSelect(e); return; }
       panning=true; moved=false;
       startX=e.clientX; startY=e.clientY;
       startScrollL=vp.scrollLeft; startScrollT=vp.scrollTop;
@@ -8086,6 +8691,9 @@ function setupEventListeners(){
       vp.classList.remove('panning');
     });
   })();
+  document.getElementById('groupSelectionBox').addEventListener('mousedown',e=>startGroupMoveDrag(e));
+  document.getElementById('groupHandleTl').addEventListener('mousedown',e=>startGroupResizeDrag(e,'tl'));
+  document.getElementById('groupHandleBr').addEventListener('mousedown',e=>startGroupResizeDrag(e,'br'));
   document.getElementById('paletteSearch').addEventListener('input',renderPalette);
   document.getElementById('zoomIn').addEventListener('click',()=>{state.zoom=Math.min(3,state.zoom*1.2);applyZoom()});
   document.getElementById('zoomOut').addEventListener('click',()=>{state.zoom=Math.max(0.2,state.zoom/1.2);applyZoom()});
@@ -8521,9 +9129,33 @@ function setupKeyboardShortcuts(){
   document.addEventListener('keydown',e=>{
     if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT'||e.target.tagName==='TEXTAREA') return;
     if(e.key==='Delete'||e.key==='Backspace'){
-      if(state.selectedId){e.preventDefault();deleteInstrument(state.selectedId)}
+      if(state.selectedIds.length>=2){
+        e.preventDefault();
+        const ids=[...state.selectedIds];
+        clearMultiSelect();
+        ids.forEach(id=>deleteInstrument(id));
+      } else if(state.selectedId){e.preventDefault();deleteInstrument(state.selectedId)}
     } else if(e.key==='Escape'){
+      clearMultiSelect();
       selectInstrument(null);
+    } else if(state.selectedIds.length>=2&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
+      e.preventDefault();
+      const members=state.selectedIds.map(id=>state.instruments.find(i=>i.id===id)).filter(Boolean);
+      if(members.length===0) return;
+      const b=computeGroupBounds(state.selectedIds);
+      const step=e.shiftKey?10:1;
+      let dx=0,dy=0;
+      if(e.key==='ArrowUp') dy=-Math.min(step,b.y);
+      if(e.key==='ArrowDown') dy=Math.min(step,state.screenH-(b.y+b.h));
+      if(e.key==='ArrowLeft') dx=-Math.min(step,b.x);
+      if(e.key==='ArrowRight') dx=Math.min(step,state.screenW-(b.x+b.w));
+      members.forEach(inst=>{
+        inst.x+=dx; inst.y+=dy;
+        inst.element.style.left=inst.x+'px';
+        inst.element.style.top=inst.y+'px';
+      });
+      updateGroupSelectionBox();
+      updateStatusBar(); renderProperties(); generateCode();
     } else if(state.selectedId&&['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)){
       e.preventDefault();
       const inst=state.instruments.find(i=>i.id===state.selectedId);
@@ -8980,6 +9612,8 @@ window.addEventListener('load',init);
 
     </div>
     <div class="modal-footer">
+      <a class="btn btn-ghost" href="https://gonnir.github.io/Avionix-Forge/manual.html" target="_blank" rel="noopener"><i class="fa fa-book"></i> User Manual</a>
+      <div class="spacer"></div>
       <button class="btn btn-ghost" id="setupModalCancel">Cancel</button>
       <button class="btn btn-primary" id="setupModalApply"><i class="fa fa-check"></i> Apply</button>
     </div>
