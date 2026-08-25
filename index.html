@@ -1475,6 +1475,23 @@ function computeInstrumentSnap(inst,nx,ny,thresholdScreenPx){
   const candidatesX=[nx,nx+w/2,nx+w];
   const candidatesY=[ny,ny+h/2,ny+h];
   let bestDx=null,bestDy=null,snapLineX=null,snapLineY=null;
+  // The screen's own horizontal/vertical center - checked the same way as
+  // any other snap target below (closest candidate wins), so centering an
+  // instrument on the screen uses the exact same Ctrl-drag gesture as
+  // aligning it to another instrument, not a separate mechanism.
+  const screenCenterX=state.screenW/2, screenCenterY=state.screenH/2;
+  candidatesX.forEach(cx=>{
+    const diff=screenCenterX-cx;
+    if(Math.abs(diff)<=threshold && (bestDx===null||Math.abs(diff)<Math.abs(bestDx))){
+      bestDx=diff; snapLineX=screenCenterX;
+    }
+  });
+  candidatesY.forEach(cy=>{
+    const diff=screenCenterY-cy;
+    if(Math.abs(diff)<=threshold && (bestDy===null||Math.abs(diff)<Math.abs(bestDy))){
+      bestDy=diff; snapLineY=screenCenterY;
+    }
+  });
   state.instruments.forEach(other=>{
     if(other.id===inst.id) return;
     const oxEdges=[other.x,other.x+other.w/2,other.x+other.w];
@@ -2439,6 +2456,14 @@ function renderProperties(){
       const picker=sw.closest('.color-row')?.querySelector('.cfg-color-picker');
       if(picker&&col.startsWith('#')) picker.value=col;
       renderProperties();
+      // Repaint immediately - same reasoning as the other two colour-picker
+      // handlers below (which already call refreshAllInstruments() for
+      // this): the continuous animation loop that would otherwise pick
+      // this up stops scheduling itself entirely once telemetry
+      // simulation is paused, so without this the swatch's own colour
+      // change - unlike the custom hex picker or the dither/checker
+      // sub-picker, both separate handlers - never repainted at all.
+      redrawInstrumentCanvases();
       generateCode();
     });
   });
