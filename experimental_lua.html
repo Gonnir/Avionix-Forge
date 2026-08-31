@@ -585,22 +585,22 @@ const SENSOR_SOURCES = [
   {id:'RQly',label:'Link Quality (LQ)',unit:'%',sim:()=>97+Math.sin(Date.now()/3000)*3},
   {id:'TQly',label:'Telemetry Quality',unit:'%',sim:()=>98},
   {id:'ANT',label:'Active Antenna',unit:'',sim:()=>0},
-  {id:'ch1',label:'Channel 1 (Aileron)',unit:'us',sim:()=>1500+Math.sin(Date.now()/2000)*400},
-  {id:'ch2',label:'Channel 2 (Elevator)',unit:'us',sim:()=>1500+Math.sin(Date.now()/2300)*400},
-  {id:'ch3',label:'Channel 3 (Throttle)',unit:'us',sim:()=>1500+Math.sin(Date.now()/1800)*400},
-  {id:'ch4',label:'Channel 4 (Rudder)',unit:'us',sim:()=>1500+Math.sin(Date.now()/2600)*400},
-  {id:'ch5',label:'Channel 5',unit:'us',sim:()=>((Date.now()/4000)%2)<1?1000:2000}, // simulates a 2-position switch
-  {id:'ch6',label:'Channel 6',unit:'us',sim:()=>((Date.now()/5000)%3)<1?1000:((Date.now()/5000)%3)<2?1500:2000}, // simulates a 3-position switch
-  {id:'ch7',label:'Channel 7',unit:'us',sim:()=>1500},
-  {id:'ch8',label:'Channel 8',unit:'us',sim:()=>1500},
-  {id:'ch9',label:'Channel 9',unit:'us',sim:()=>1500},
-  {id:'ch10',label:'Channel 10',unit:'us',sim:()=>1500},
-  {id:'ch11',label:'Channel 11',unit:'us',sim:()=>1500},
-  {id:'ch12',label:'Channel 12',unit:'us',sim:()=>1500},
-  {id:'ch13',label:'Channel 13',unit:'us',sim:()=>1500},
-  {id:'ch14',label:'Channel 14',unit:'us',sim:()=>1500},
-  {id:'ch15',label:'Channel 15',unit:'us',sim:()=>1500},
-  {id:'ch16',label:'Channel 16',unit:'us',sim:()=>1500},
+  {id:'ch1',label:'Channel 1 (Aileron)',unit:'',sim:()=>Math.sin(Date.now()/2000)*800},
+  {id:'ch2',label:'Channel 2 (Elevator)',unit:'',sim:()=>Math.sin(Date.now()/2300)*800},
+  {id:'ch3',label:'Channel 3 (Throttle)',unit:'',sim:()=>Math.sin(Date.now()/1800)*800},
+  {id:'ch4',label:'Channel 4 (Rudder)',unit:'',sim:()=>Math.sin(Date.now()/2600)*800},
+  {id:'ch5',label:'Channel 5',unit:'',sim:()=>((Date.now()/4000)%2)<1?-1024:1024}, // simulates a 2-position switch
+  {id:'ch6',label:'Channel 6',unit:'',sim:()=>((Date.now()/5000)%3)<1?-1024:((Date.now()/5000)%3)<2?0:1024}, // simulates a 3-position switch
+  {id:'ch7',label:'Channel 7',unit:'',sim:()=>0},
+  {id:'ch8',label:'Channel 8',unit:'',sim:()=>0},
+  {id:'ch9',label:'Channel 9',unit:'',sim:()=>0},
+  {id:'ch10',label:'Channel 10',unit:'',sim:()=>0},
+  {id:'ch11',label:'Channel 11',unit:'',sim:()=>0},
+  {id:'ch12',label:'Channel 12',unit:'',sim:()=>0},
+  {id:'ch13',label:'Channel 13',unit:'',sim:()=>0},
+  {id:'ch14',label:'Channel 14',unit:'',sim:()=>0},
+  {id:'ch15',label:'Channel 15',unit:'',sim:()=>0},
+  {id:'ch16',label:'Channel 16',unit:'',sim:()=>0},
   {id:'Sats',label:'GPS Satellites',unit:'',sim:()=>Math.floor(9+Math.sin(Date.now()/15000)*4)},
   {id:'GPS.lat',label:'GPS Latitude',unit:'°',sim:()=>47.4979+Math.sin(Date.now()/30000)*0.01},
   {id:'GPS.lon',label:'GPS Longitude',unit:'°',sim:()=>19.0402+Math.cos(Date.now()/30000)*0.01},
@@ -629,8 +629,8 @@ const DEMO_FLIGHT_MODES = ['ANGL','HOR','ACRO','STAB','ALTH','POSH','RTH','WAYP'
 const STANDARD_INSTRUMENTS = [
   {type:'artificial-horizon',name:'Artificial Horizon',desc:'Attitude indicator',icon:'fa-circle-half-stroke',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',mavSource2:'Ptch',ahShape:'circle',bgColor:'#3a6db5',groundColor:'#6b4226',lineColor:'#ffffff',refColor:'#4fc3f7',borderColor:'#3a4555',showPitchLadder:true,showRollTicks:true,showRollTriangle:true,rotation:0}},
   {type:'turn-coordinator',name:'Turn Coordinator',desc:'Turn rate & slip',icon:'fa-arrows-rotate',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',slipSource:'CUSTOM_VALUE',bgColor:'#040810',pointerColor:'#4fc3f7',markColor:'#ffffff',tubeColor:'#1c232e',ballColor:'#ffffff',borderColor:'#3a4555',rotation:0}},
-  {type:'compass',name:'Compass',desc:'Heading rose',icon:'fa-compass',defaultSize:{w:120,h:120},defaults:{mavSource:'Hdg',showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',northColor:'#ff5c5c',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,rotation:0}},
-  {type:'altimeter-dial',name:'Altimeter Dial',desc:'Traditional altimeter',icon:'fa-clock',defaultSize:{w:120,h:120},defaults:{mavSource:'Alt',mavMultiply:1,unit:'m',tickEdgeDistance:0,labelInset:0,bgColor:'#040810',handColorOnes:'#ffffff',handColorTens:'#4fc3f7',handColorHundreds:'#ffd93a',digitalColor:'#5fe88a',tickColor:'#e8eef5',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,showDigital:true,showLabels:true,showHundredsHand:true,rotation:0}},
+  {type:'compass',name:'Compass',desc:'Heading rose',icon:'fa-compass',defaultSize:{w:120,h:120},defaults:{mavSource:'Hdg',showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',northColor:'#ff5c5c',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',valueBoxColor:'#1c232e',showHub:true,rotation:0}},
+  {type:'altimeter-dial',name:'Altimeter Dial',desc:'Traditional altimeter',icon:'fa-clock',defaultSize:{w:120,h:120},defaults:{mavSource:'Alt',mavMultiply:1,unit:'m',tickEdgeDistance:0,labelInset:0,bgColor:'#040810',handColorOnes:'#ffffff',handColorTens:'#4fc3f7',handColorHundreds:'#ffd93a',digitalColor:'#5fe88a',tickColor:'#e8eef5',minorTickColor:'#5a6878',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,showDigital:true,showLabels:true,showHundredsHand:true,rotation:0}},
   {type:'altimeter-tape',name:'Altimeter Tape',desc:'Vertical altitude',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'Alt',min:0,max:1000,unit:'m',bgColor:'#040810',pointerColor:'#4dd2c9',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4dd2c9',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'vsi-tape',name:'VSI Tape',desc:'Vertical speed tape',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'VSpd',min:-10,max:10,unit:'m/s',bgColor:'#040810',pointerColor:'#4dd2c9',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4dd2c9',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'static-text',name:'Static Text',desc:'Custom fixed text label',icon:'fa-font',defaultSize:{w:100,h:30},defaults:{text:'Label',textColor:'#ffffff',bgColor:'transparent',accentColor:'#4fc3f7',showAccent:true,borderColor:'#3a4555',showBorder:false,align:'center',rotation:0}},
@@ -647,7 +647,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'gps-coords',name:'GPS Coordinates',desc:'Latitude / longitude readout',icon:'fa-location-dot',defaultSize:{w:140,h:56},defaults:{bgColor:'#040810',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',decimals:4,showSats:true,rotation:0}},
   {type:'qr-code',name:'GPS QR Code',desc:'Scan with a phone to open the position in Maps',icon:'fa-qrcode',defaultSize:{w:150,h:150},defaults:{bgColor:'#ffffff',fgColor:'#000000',borderColor:'transparent',labelColor:'#7a8898',decimals:5,quietZone:2,urlTemplate:'https://maps.google.com/?q={lat},{lon}',showOnlyWithFix:true,refreshInterval:5,rotation:0}},
   {type:'home-arrow',name:'Home Arrow',desc:'Direction to home',icon:'fa-house',defaultSize:{w:100,h:100},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,shape:'circle',rotation:0}},
-  {type:'home-distance',name:'Home Distance',desc:'Distance from home in m',icon:'fa-ruler',defaultSize:{w:120,h:60},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',borderWidth:1,showUnit:true,rotation:0}},
+  {type:'home-distance',name:'Home Distance',desc:'Distance from home in m',icon:'fa-ruler',defaultSize:{w:120,h:60},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',borderWidth:1,valueBoxColor:'#1c232e',showUnit:true,rotation:0}},
   {type:'radar',name:'Radar',desc:'Home/aircraft relative position',icon:'fa-satellite-dish',defaultSize:{w:140,h:140},defaults:{mode:'plane-center',shape:'circle',sweepStyle:'rotate',range:500,bgColor:'#040810',gridColor:'#7a8898',sweepColor:'#5fe88a',blobColor:'#708f7f',planeColor:'#4fc3f7',homeColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,showRings:true,ringCount:4,showBlobs:true,rotation:0}},
   {type:'shape-rectangle',name:'Rectangle',desc:'Decorative panel shape',icon:'fa-square',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-circle',name:'Circle',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:60,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
@@ -3571,12 +3571,13 @@ function drawStickPosition(ctx,w,h,hVal,vVal,c){
   const sbw=c.squareBorderWidth!==undefined?c.squareBorderWidth:2;
   if(sbw>0) for(let i=0;i<sbw;i++) bresenhamRect(ctx,i,i,w-2*i,h-2*i,c.squareBorderColor||'#3a4555');
 
-  // Normalize the typical RC PWM range (1000-2000us, centered at 1500) to
-  // -1..1, then to a pixel offset from centre - each axis independently
-  // reversible since a channel's physical direction on the stick doesn't
-  // always match its raw PWM direction (wiring/TX-dependent).
-  const hNorm=Math.max(-1,Math.min(1,(hVal-1500)/500))*(c.reverseH?-1:1);
-  const vNorm=Math.max(-1,Math.min(1,(vVal-1500)/500))*(c.reverseV?-1:1);
+  // EdgeTX channel values (and most other "value" data sources) fall on a
+  // fixed -1024..1024 scale regardless of the underlying signal - NOT raw
+  // PWM microseconds - confirmed directly in EdgeTX's own Lua reference
+  // docs ("Values... generally fall on a scale between -1024 and 1024,
+  // also sometimes reported as -100% to 100%, e.g. for channel outputs").
+  const hNorm=Math.max(-1,Math.min(1,hVal/1024))*(c.reverseH?-1:1);
+  const vNorm=Math.max(-1,Math.min(1,vVal/1024))*(c.reverseV?-1:1);
   const r=Math.min(w,h)*(c.circleSize!==undefined?c.circleSize:20)/100/2;
   const cx=w/2+hNorm*(w/2-r);
   const cy=h/2-vNorm*(h/2-r); // higher value = up (smaller y) by default
@@ -6326,6 +6327,27 @@ local function centerText(cx,cy,text,sizeFlags,color)
   lcd.drawText(cx,cy-th/2,text,CENTER+sizeFlags+color)
 end
 
+-- Nil-safe wrappers around drawText/centerText: EdgeTX has no real concept
+-- of a transparent colour, so a color field set to "transparent" in the
+-- editor is left out of this instrument's cfg table entirely (see
+-- luaValue's color-key handling) rather than serialized as some literal
+-- "invisible" value - cfg.XColor is then simply nil. Passing that straight
+-- into flags+color would itself throw a Lua error (arithmetic on nil),
+-- and falling back to a hardcoded default color instead - what every text
+-- draw call here used to do - defeats the whole point of choosing
+-- transparent: it silently drew a default colour instead of nothing.
+-- These two treat "no colour" as "don't draw this text", matching how
+-- every other optional visual element in this script (backgrounds,
+-- borders, boxes) already behaves via a plain "if cfg.X then" guard.
+local function drawTextIf(x,y,text,flags,color)
+  if not color then return end
+  lcd.drawText(x,y,text,flags+color)
+end
+local function centerTextIf(cx,cy,text,sizeFlags,color)
+  if not color then return end
+  centerText(cx,cy,text,sizeFlags,color)
+end
+
 -- lcd.drawCircle has no thickness parameter on EdgeTX (only drawRectangle
 -- does, via its own [,t] argument, used natively wherever this script draws
 -- a rectangular border) - so a thick ring is built the same way the editor
@@ -6748,42 +6770,59 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
   local ang = math.rad(roll)
   local cA,sA = math.cos(ang), math.sin(ang)
 
-  if isCircle then lcd.drawFilledCircle(cx,cy,r, cfg.bgColor or lcd.RGB(58,109,181))
-  else lcd.drawFilledRectangle(x,y,w,h, cfg.bgColor or lcd.RGB(58,109,181)) end
+  if isCircle then
+    if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r, cfg.bgColor) end
+  else
+    if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h, cfg.bgColor) end
+  end
 
-  -- Ground fill as a single quadrilateral (two filled triangles) spanning
-  -- well past the widget in every direction, rather than many thin parallel
-  -- lines - that approach left visible gaps between strokes since
-  -- lcd.drawLine has no thickness, and needed dozens of draw calls to even
-  -- approximate solid coverage. A filled polygon is both gapless and only
-  -- two draw calls.
+  -- Ground fill as a single quadrilateral (two filled triangles), rather
+  -- than many thin parallel lines - that approach left visible gaps
+  -- between strokes since lcd.drawLine has no thickness. There is no
+  -- lcd.setClipping used here, so anything this polygon draws beyond the
+  -- widget's own x,y,w,h bleeds straight into neighbouring instruments -
+  -- reach is therefore sized to the box's own half-diagonal (enough to
+  -- cover every corner at any roll angle) plus a small margin, NOT an
+  -- arbitrary multiple of the radius: that used to make the polygon reach
+  -- ~4x further than the box in every direction regardless of roll/pitch,
+  -- overdrawing the whole rest of the screen every single frame rather
+  -- than the "only at extreme angles" edge case it was meant to be.
+  local diag = math.sqrt((w/2)*(w/2)+(h/2)*(h/2)) + 2
   local pxPerDeg = r/25
   local ox,oy = sA*pitch*pxPerDeg, -cA*pitch*pxPerDeg
-  local len = r*2.2
+  local len = diag
   local hx1=cx-cA*len+ox
   local hy1=cy-sA*len+oy
   local hx2=cx+cA*len+ox
   local hy2=cy+sA*len+oy
-  local gx1=hx1-sA*len*2
-  local gy1=hy1+cA*len*2
-  local gx2=hx2-sA*len*2
-  local gy2=hy2+cA*len*2
-  local groundColor = cfg.groundColor or lcd.RGB(107,66,38)
-  lcd.drawFilledTriangle(hx1,hy1,hx2,hy2,gx2,gy2,groundColor)
-  lcd.drawFilledTriangle(hx1,hy1,gx2,gy2,gx1,gy1,groundColor)
-  lcd.drawLine(hx1,hy1,hx2,hy2,SOLID, cfg.lineColor or lcd.RGB(255,255,255))
+  local gx1=hx1-sA*diag
+  local gy1=hy1+cA*diag
+  local gx2=hx2-sA*diag
+  local gy2=hy2+cA*diag
+  if cfg.groundColor then
+    lcd.drawFilledTriangle(hx1,hy1,hx2,hy2,gx2,gy2,cfg.groundColor)
+    lcd.drawFilledTriangle(hx1,hy1,gx2,gy2,gx1,gy1,cfg.groundColor)
+  end
+  if cfg.lineColor then lcd.drawLine(hx1,hy1,hx2,hy2,SOLID, cfg.lineColor) end
 
   -- Pitch ladder: rungs at +-10/20/30deg from the horizon, rotating with
   -- roll and shifting with pitch - same construction as a real synthetic-
-  -- vision attitude indicator.
+  -- vision attitude indicator, including the numeric labels either side of
+  -- each rung (previously only the rung lines were ported, never the
+  -- numbers themselves).
   if cfg.showPitchLadder~=false then
-    local ladderUp = cfg.ladderLineColorUp or cfg.lineColor or lcd.RGB(255,255,255)
-    local ladderDown = cfg.ladderLineColorDown or cfg.lineColor or lcd.RGB(255,255,255)
+    local ladderUp = cfg.ladderLineColorUp or cfg.lineColor
+    local ladderDown = cfg.ladderLineColorDown or cfg.lineColor
+    local ladderLabelUp = cfg.ladderLabelColorUp or cfg.ladderLabelColor or ladderUp
+    local ladderLabelDown = cfg.ladderLabelColorDown or cfg.ladderLabelColor or ladderDown
+    local showPitchLabels = cfg.showPitchLabels~=false
     local pitchRange = (cfg.pitchLadderRange and cfg.pitchLadderRange>0) and cfg.pitchLadderRange or 30
+    local lf = sizeFlag(cfg,"ladder",math.max(7,r*0.12))
     local p=-pitchRange
     while p<=pitchRange do
       if p~=0 then
         local rungColor = (p>0) and ladderUp or ladderDown
+        local labelColor = (p>0) and ladderLabelUp or ladderLabelDown
         local ly=-p*pxPerDeg+pitch*pxPerDeg
         local rlen = (p%20==0) and r*0.45 or r*0.28
         local ax=cx+(-rlen)*cA+ly*sA;     local ay=cy-(-rlen)*sA+ly*cA
@@ -6791,9 +6830,26 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
         local dx=cx+(rlen*0.3)*cA+ly*sA;  local dy=cy-(rlen*0.3)*sA+ly*cA
         local ex=cx+rlen*cA+ly*sA;        local ey=cy-rlen*sA+ly*cA
         local inBounds = ax>x-2 and ax<x+w+2 and ay>y-2 and ay<y+h+2 and ex>x-2 and ex<x+w+2 and ey>y-2 and ey<y+h+2
-        if inBounds then
+        if inBounds and rungColor then
           lcd.drawLine(ax,ay,bx,by,SOLID,rungColor)
           lcd.drawLine(dx,dy,ex,ey,SOLID,rungColor)
+        end
+        if showPitchLabels and labelColor then
+          local gap = math.max(5,r*0.09)
+          local lax=cx+(-rlen-gap)*cA+ly*sA; local lay=cy-(-rlen-gap)*sA+ly*cA
+          local rax=cx+(rlen+gap)*cA+ly*sA;  local ray=cy-(rlen+gap)*sA+ly*cA
+          local labelTxt = string.format("%.0f",math.abs(p))
+          local leftOk,rightOk
+          if isCircle then
+            local safeR = r*0.82
+            leftOk = ((lax-cx)*(lax-cx)+(lay-cy)*(lay-cy)) <= safeR*safeR
+            rightOk = ((rax-cx)*(rax-cx)+(ray-cy)*(ray-cy)) <= safeR*safeR
+          else
+            leftOk = lax>=x+2 and lax<=x+w-2 and lay>=y+2 and lay<=y+h-2
+            rightOk = rax>=x+2 and rax<=x+w-2 and ray>=y+2 and ray<=y+h-2
+          end
+          if leftOk then centerText(lax,lay,labelTxt,lf,labelColor) end
+          if rightOk then centerText(rax,ray,labelTxt,lf,labelColor) end
         end
       end
       p=p+10
@@ -6801,7 +6857,7 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
   end
 
   -- Roll ticks: fixed bezel scale at the rim, does not rotate with roll.
-  if cfg.showRollTicks~=false then
+  if cfg.showRollTicks~=false and cfg.lineColor then
     local majLen = cfg.majorTickLen or 8
     local minLen = cfg.minorTickLen or 4
     local a=-60
@@ -6809,7 +6865,7 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
       local tLen = (math.abs(a)%30==0) and majLen or minLen
       local x0,y0 = polar(cx,cy,r-2,a)
       local x1,y1 = polar(cx,cy,r-2-tLen,a)
-      lcd.drawLine(x0,y0,x1,y1,SOLID, cfg.lineColor or lcd.RGB(255,255,255))
+      lcd.drawLine(x0,y0,x1,y1,SOLID, cfg.lineColor)
       a=a+10
     end
   end
@@ -6817,21 +6873,22 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
   -- Roll triangle: rotates WITH roll, pointing in from the rim - a small
   -- flag/chevron shape rather than a thin needle, same construction as the
   -- pitch ladder rungs above (rotate local coordinates by roll).
-  local refColor = cfg.refColor or lcd.RGB(79,195,247)
-  if cfg.showRollTriangle~=false then
+  if cfg.showRollTriangle~=false and cfg.refColor then
     local triH = (cfg.rollTriHeight and cfg.rollTriHeight>0) and cfg.rollTriHeight or math.max(4,r*0.18)
     local triW = (cfg.rollTriWidth and cfg.rollTriWidth>0) and cfg.rollTriWidth or math.max(3,r*0.1)
     local ttx=cx+0*cA+(-(r-1))*sA;               local tty=cy-0*sA+(-(r-1))*cA
     local tbx=cx+(-triW)*cA+(-(r-1-triH))*sA;    local tby=cy-(-triW)*sA+(-(r-1-triH))*cA
     local tcx=cx+triW*cA+(-(r-1-triH))*sA;       local tcy=cy-triW*sA+(-(r-1-triH))*cA
-    lcd.drawFilledTriangle(ttx,tty,tbx,tby,tcx,tcy, refColor)
+    lcd.drawFilledTriangle(ttx,tty,tbx,tby,tcx,tcy, cfg.refColor)
   end
 
   -- Fixed aircraft reference marker (wings + dot) - does not rotate with
   -- live roll, only with the instrument's own static rotation setting.
-  lcd.drawLine(cx-w*0.18,cy,cx-w*0.06,cy,SOLID,refColor)
-  lcd.drawLine(cx+w*0.06,cy,cx+w*0.18,cy,SOLID,refColor)
-  lcd.drawFilledRectangle(cx-1,cy-1,3,3,refColor)
+  if cfg.refColor then
+    lcd.drawLine(cx-w*0.18,cy,cx-w*0.06,cy,SOLID,cfg.refColor)
+    lcd.drawLine(cx+w*0.06,cy,cx+w*0.18,cy,SOLID,cfg.refColor)
+    lcd.drawFilledRectangle(cx-1,cy-1,3,3,cfg.refColor)
+  end
 
   if cfg.borderColor then
     if isCircle then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth)
@@ -6846,34 +6903,37 @@ DRAW["turn-coordinator"] = function(x,y,w,h,cfg)
   if type(slip)~="number" then slip=0 end
   local cx,cy=x+w/2,y+h/2
   local r=math.min(w,h)/2-2
-  local markColor = cfg.markColor or lcd.RGB(255,255,255)
-  local ptrColor = cfg.pointerColor or lcd.RGB(79,195,247)
-  if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor)
-  else lcd.drawFilledCircle(cx,cy,r,lcd.RGB(4,8,16)) end
+  local markColor = cfg.markColor
+  local ptrColor = cfg.pointerColor
+  if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor) end
 
   -- Standard-rate "L"/"R" marks, level with the pointer's pivot.
-  lcd.drawLine(cx-r*0.8,cy,cx-r*0.5,cy,SOLID,markColor)
-  lcd.drawLine(cx+r*0.5,cy,cx+r*0.8,cy,SOLID,markColor)
+  if markColor then
+    lcd.drawLine(cx-r*0.8,cy,cx-r*0.5,cy,SOLID,markColor)
+    lcd.drawLine(cx+r*0.5,cy,cx+r*0.8,cy,SOLID,markColor)
+  end
 
   -- Rotating aircraft symbol - a "T" shape (wings + tail) built from three
   -- line segments through a standard 2D rotation, same shape a real turn
   -- coordinator's miniature airplane uses.
-  local rad=math.rad(roll)
-  local rc,rs=math.cos(rad),math.sin(rad)
-  local function rot(lx,ly) return cx+lx*rc-ly*rs, cy+lx*rs+ly*rc end
-  local ax,ay=rot(-r*0.6,0); local bx,by=rot(-r*0.2,0)
-  lcd.drawLine(ax,ay,bx,by,SOLID,ptrColor)
-  ax,ay=rot(r*0.2,0); bx,by=rot(r*0.6,0)
-  lcd.drawLine(ax,ay,bx,by,SOLID,ptrColor)
-  ax,ay=rot(0,-r*0.2); bx,by=rot(0,r*0.2)
-  lcd.drawLine(ax,ay,bx,by,SOLID,ptrColor)
+  if ptrColor then
+    local rad=math.rad(roll)
+    local rc,rs=math.cos(rad),math.sin(rad)
+    local function rot(lx,ly) return cx+lx*rc-ly*rs, cy+lx*rs+ly*rc end
+    local ax,ay=rot(-r*0.6,0); local bx,by=rot(-r*0.2,0)
+    lcd.drawLine(ax,ay,bx,by,SOLID,ptrColor)
+    ax,ay=rot(r*0.2,0); bx,by=rot(r*0.6,0)
+    lcd.drawLine(ax,ay,bx,by,SOLID,ptrColor)
+    ax,ay=rot(0,-r*0.2); bx,by=rot(0,r*0.2)
+    lcd.drawLine(ax,ay,bx,by,SOLID,ptrColor)
+  end
 
   -- Inclinometer (slip/skid ball tube).
   local tubeY,tubeW,tubeH = cy+r*0.65, r*0.8, r*0.15
   if cfg.tubeColor then lcd.drawFilledRectangle(cx-tubeW/2,tubeY-tubeH/2,tubeW,tubeH,cfg.tubeColor) end
-  lcd.drawRectangle(cx-tubeW/2,tubeY-tubeH/2,tubeW,tubeH,markColor,1)
+  if markColor then lcd.drawRectangle(cx-tubeW/2,tubeY-tubeH/2,tubeW,tubeH,markColor,1) end
   local slipX=cx+clamp(slip,-1,1)*(tubeW/2-tubeH)
-  lcd.drawFilledCircle(slipX,tubeY,tubeH*0.7, cfg.ballColor or lcd.RGB(255,255,255))
+  if cfg.ballColor then lcd.drawFilledCircle(slipX,tubeY,tubeH*0.7, cfg.ballColor) end
 
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
 end
@@ -6885,9 +6945,9 @@ DRAW["compass"] = function(x,y,w,h,cfg)
   local r=math.max(8,math.min(w,h)/2-2)
   local edgeDist=cfg.tickEdgeDistance or 0
   local labelInset=cfg.labelInset or 0
-  local ptrColor=cfg.pointerColor or lcd.RGB(79,195,247)
-  local txtColor=cfg.textColor or lcd.RGB(255,255,255)
-  local tickCol=cfg.tickColor or lcd.RGB(255,255,255)
+  local ptrColor=cfg.pointerColor
+  local txtColor=cfg.textColor
+  local tickCol=cfg.tickColor
 
   if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor) end
 
@@ -6895,7 +6955,7 @@ DRAW["compass"] = function(x,y,w,h,cfg)
   -- shows the current heading), so every tick/label angle below folds
   -- heading in the same way, matching the editor preview's "compass card"
   -- style rather than a simple rotating needle.
-  if cfg.showTicks~=false then
+  if cfg.showTicks~=false and tickCol then
     local majLen = cfg.majorTickLen or 10
     local minLen = cfg.minorTickLen or 4
     local a=0
@@ -6914,38 +6974,40 @@ DRAW["compass"] = function(x,y,w,h,cfg)
     local labelSize = cfg.cardinalSize or math.max(9,r*0.18)
     local labelDist = cfg.cardinalDist or (r-labelSize*1.4-edgeDist-labelInset)
     local sf = sizeFlag(cfg,"cardinal",labelSize)
-    local cardinals={{0,"N",cfg.northColor or lcd.RGB(255,92,92)},{90,"E",txtColor},{180,"S",txtColor},{270,"W",txtColor}}
+    local cardinals={{0,"N",cfg.northColor or txtColor},{90,"E",txtColor},{180,"S",txtColor},{270,"W",txtColor}}
     for i=1,4 do
       local deg,txt,col = cardinals[i][1],cardinals[i][2],cardinals[i][3]
       local ang=deg-heading
       local lx,ly=polar(cx,cy,labelDist,ang)
-      centerText(lx,ly,txt,sf,col)
+      centerTextIf(lx,ly,txt,sf,col)
     end
   end
 
   -- Fixed pointer at the top rim - does not rotate, the ring does.
-  local ptrW=math.max(3,r*0.1)
-  local ptrH=math.max(5,r*0.15)
-  local tx0,ty0 = cx,cy-r+1
-  local tx1,ty1 = cx-ptrW,cy-r+1+ptrH
-  local tx2,ty2 = cx+ptrW,cy-r+1+ptrH
-  lcd.drawFilledTriangle(tx0,ty0,tx1,ty1,tx2,ty2,ptrColor)
+  if ptrColor then
+    local ptrW=math.max(3,r*0.1)
+    local ptrH=math.max(5,r*0.15)
+    local tx0,ty0 = cx,cy-r+1
+    local tx1,ty1 = cx-ptrW,cy-r+1+ptrH
+    local tx2,ty2 = cx+ptrW,cy-r+1+ptrH
+    lcd.drawFilledTriangle(tx0,ty0,tx1,ty1,tx2,ty2,ptrColor)
+  end
 
   if cfg.showHub~=false then
     local hubR=math.max(3,r*0.07)
-    lcd.drawFilledCircle(cx,cy,hubR, cfg.hubColor or lcd.RGB(58,69,85))
-    lcd.drawCircle(cx,cy,hubR,ptrColor)
+    if cfg.hubColor then lcd.drawFilledCircle(cx,cy,hubR, cfg.hubColor) end
+    if ptrColor then lcd.drawCircle(cx,cy,hubR,ptrColor) end
   end
 
-  if cfg.showHeadingText~=false then
+  if cfg.showHeadingText~=false and txtColor then
     local hdgTxt=string.format("%03d",math.floor(((heading%360)+360)%360+0.5))
     local hdgSize = math.max(9,r*0.2)
     local hf = sizeFlag(cfg,"heading",hdgSize)
-    if cfg.showValueBox~=false then
+    if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,hdgTxt,hf)
       if not ok then tw=nil; th=nil end
       local boxPad=hdgSize*0.3
-      lcd.drawFilledRectangle(cx-(tw or 24)/2-boxPad, cy+r*0.4-(th or hdgSize)/2-boxPad*0.5, (tw or 24)+boxPad*2, (th or hdgSize)+boxPad, cfg.valueBoxColor or lcd.RGB(28,35,46))
+      lcd.drawFilledRectangle(cx-(tw or 24)/2-boxPad, cy+r*0.4-(th or hdgSize)/2-boxPad*0.5, (tw or 24)+boxPad*2, (th or hdgSize)+boxPad, cfg.valueBoxColor)
     end
     centerText(cx,cy+r*0.4,hdgTxt,hf,txtColor)
   end
@@ -6959,12 +7021,25 @@ DRAW["altimeter-dial"] = function(x,y,w,h,cfg)
   local cx,cy=x+w/2,y+h/2
   local r=math.min(w,h)/2-2
   if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor) end
-  if cfg.showLabels~=false then
-    for i=0,9 do
-      local a=i*36
-      local x0,y0=polar(cx,cy,r*0.8,a)
-      local x1,y1=polar(cx,cy,r,a)
-      lcd.drawLine(x0,y0,x1,y1,SOLID, cfg.tickColor or lcd.RGB(232,238,245))
+  do
+    local edgeDist = cfg.tickEdgeDistance or 0
+    local labelInset = cfg.labelInset or 0
+    local majLen = (cfg.majorTickLen~=nil) and cfg.majorTickLen or 12
+    local minLen = (cfg.minorTickLen~=nil) and cfg.minorTickLen or 5
+    local sf = sizeFlag(cfg,"scale",math.max(8,r*0.16))
+    for i=0,49 do
+      local a = i/50*360
+      local isMajor = (i%5==0)
+      local tLen = isMajor and majLen or minLen
+      local tickCol = isMajor and cfg.tickColor or cfg.minorTickColor
+      local x0,y0 = polar(cx,cy,r-2-edgeDist,a)
+      local x1,y1 = polar(cx,cy,r-2-edgeDist-tLen,a)
+      if tickCol then lcd.drawLine(x0,y0,x1,y1,SOLID,tickCol) end
+      if isMajor and cfg.showLabels~=false then
+        local num = i/5
+        local tx,ty = polar(cx,cy,r-26-edgeDist-labelInset,a)
+        centerTextIf(tx,ty,string.format("%.0f",num),sf,cfg.labelColor)
+      end
     end
   end
   -- Three-pointer altimeter scaled for RC altitudes (typically well under
@@ -6976,17 +7051,17 @@ DRAW["altimeter-dial"] = function(x,y,w,h,cfg)
   -- digit) - each a full turn exactly when the one before it completes ten.
   local handOnes = (alt%10)/10*360
   local handTens = (alt%100)/100*360
-  needle(cx,cy,r*0.55, handTens, cfg.handColorTens or lcd.RGB(79,195,247), 4)
-  needle(cx,cy,r*0.85, handOnes, cfg.handColorOnes or lcd.RGB(255,255,255), 3)
+  needle(cx,cy,r*0.55, handTens, cfg.handColorTens, 4)
+  needle(cx,cy,r*0.85, handOnes, cfg.handColorOnes, 3)
   if cfg.showHundredsHand~=false then
     local handHundreds = (alt%1000)/1000*360
-    needle(cx,cy,r*0.35, handHundreds, cfg.handColorHundreds or lcd.RGB(255,217,58), 3)
+    needle(cx,cy,r*0.35, handHundreds, cfg.handColorHundreds, 3)
   end
-  if cfg.showHub~=false then lcd.drawFilledCircle(cx,cy,3, cfg.hubColor or lcd.RGB(58,69,85)) end
+  if cfg.showHub~=false and cfg.hubColor then lcd.drawFilledCircle(cx,cy,3, cfg.hubColor) end
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
-  if cfg.showDigital~=false then
+  if cfg.showDigital~=false and cfg.digitalColor then
     local unitLabel = (cfg.unit~=nil and cfg.unit~="") and cfg.unit or "m"
-    lcd.drawText(cx,y+h+2,string.format("%.0f",alt).." "..unitLabel, CENTER+SMLSIZE+(cfg.digitalColor or lcd.RGB(95,232,138)))
+    lcd.drawText(cx,y+h+2,string.format("%.0f",alt).." "..unitLabel, CENTER+SMLSIZE+cfg.digitalColor)
   end
 end
 
@@ -6996,9 +7071,9 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
   local min = cfg.min or defMin or 0
   local max = cfg.max or defMax or 100
   local unit = cfg.unit or defUnit or ""
-  local ptrColor = cfg.pointerColor or lcd.RGB(77,210,201)
-  local txtColor = cfg.textColor or lcd.RGB(255,255,255)
-  local tickCol = cfg.tickColor or lcd.RGB(122,136,152)
+  local ptrColor = cfg.pointerColor
+  local txtColor = cfg.textColor
+  local tickCol = cfg.tickColor
   -- Mirrored is a pure left-right reflection (fraction f -> 1-f) of every
   -- horizontal position - ticks/pointer move to the left, value box to the
   -- right. Text glyphs are never reversed, only their anchor/alignment.
@@ -7007,8 +7082,8 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
   local ptrBaseFrac = mirrored and 0.05 or 0.95
 
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
-  if cfg.showBorder~=false then
-    lcd.drawRectangle(x,y,w,h, cfg.borderColor or lcd.RGB(42,51,64), cfg.borderWidth or 1)
+  if cfg.showBorder~=false and cfg.borderColor then
+    lcd.drawRectangle(x,y,w,h, cfg.borderColor, cfg.borderWidth or 1)
   end
 
   local range=max-min
@@ -7040,12 +7115,13 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     local ty = math.floor(cy-(v-value)*pxPerUnit + 0.5)
     if ty>=y and ty<=y+h then
       local isMajor = (i%subDiv)==0
-      if showTicks then
+      local thisTickCol = isMajor and tickCol or subCol
+      if showTicks and thisTickCol then
         local x0 = x+w*(isMajor and tickInEff or subInEff)
         local tw = math.max(1, math.floor((cfg.tickWidth or 1)+0.5))
-        strokeLine(x0,ty,x+w*outerFrac,ty, isMajor and tickCol or subCol, tw)
+        strokeLine(x0,ty,x+w*outerFrac,ty, thisTickCol, tw)
       end
-      if isMajor and cfg.showLabels~=false then
+      if isMajor and cfg.showLabels~=false and txtColor then
         local labelX = mirrored and (x+w*tickInEff+w*0.05) or (x+w*tickInEff-w*0.05)
         local flags = mirrored and LEFT or RIGHT
         local labelTxt = string.format("%.0f",v)
@@ -7057,7 +7133,7 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     i=i+1
   end
 
-  if cfg.showPointer~=false then
+  if cfg.showPointer~=false and ptrColor then
     local ph=math.max(3,h*0.03)
     local px0,py0 = x+w*outerFrac, cy
     local px1,py1 = x+w*ptrBaseFrac, cy-ph
@@ -7065,7 +7141,7 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     lcd.drawFilledTriangle(px0,py0,px1,py1,px2,py2,ptrColor)
   end
 
-  if cfg.showValue~=false then
+  if cfg.showValue~=false and (cfg.boxBgColor or ptrColor) then
     -- Box sized to the actual printed digits via lcd.sizeText, not a fixed
     -- fraction of the tape width - never looks oversized for a short
     -- reading or clipped for a long one.
@@ -7078,12 +7154,14 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     local boxW = tw + 10
     local boxX = mirrored and (x+w*0.95-boxW) or (x+w*0.05)
     lcd.drawFilledRectangle(boxX,cy-bh/2,boxW,bh, cfg.boxBgColor or ptrColor)
-    lcd.drawText(boxX+5,cy-(thh or 16)/2,valTxt, vf+(cfg.valueTextColor or lcd.RGB(4,8,16)))
+    if cfg.valueTextColor then
+      lcd.drawText(boxX+5,cy-(thh or 16)/2,valTxt, vf+cfg.valueTextColor)
+    end
   end
 
   if cfg.showUnit~=false and unit~="" then
     local uf = sizeFlag(cfg,"unit",math.max(7,w*0.12))
-    centerText(x+w/2,y+h-math.max(6,h*0.04),unit,uf,tickCol)
+    centerTextIf(x+w/2,y+h-math.max(6,h*0.04),unit,uf,tickCol)
   end
 end
 DRAW["altimeter-tape"]=function(x,y,w,h,cfg) drawTapeGeneric(x,y,w,h,cfg,0,1000,"m") end
@@ -7116,7 +7194,7 @@ DRAW["vsi"]=function(x,y,w,h,cfg)
   local subDiv = minorPerMajor+1
   local fineStep = (range/divisions)/subDiv
   local totalSteps = math.floor(divisions*subDiv+0.5)
-  local tickColor = cfg.tickColor or lcd.RGB(122,136,152)
+  local tickColor = cfg.tickColor
   local subColor = cfg.subTickColor or tickColor
 
   -- startDeg/sweepDeg follow the editor's canvas-style convention (0deg=3
@@ -7129,32 +7207,36 @@ DRAW["vsi"]=function(x,y,w,h,cfg)
     local compassA = startDeg + (v/range)*(sweepDeg/2) + 90
     local x0,y0 = polar(cx,cy,r-4,compassA)
     local x1,y1 = polar(cx,cy,r-4-tLen,compassA)
-    lcd.drawLine(x0,y0,x1,y1,SOLID, isMajor and tickColor or subColor)
+    local col = isMajor and tickColor or subColor
+    if col then lcd.drawLine(x0,y0,x1,y1,SOLID,col) end
     if isMajor and cfg.showLabels~=false and math.floor(v+0.5)~=0 then
       local lx,ly = polar(cx,cy,r-16,compassA)
-      centerText(lx,ly,string.format("%.0f",v),SMLSIZE,(cfg.labelColor or lcd.RGB(232,238,245)))
+      centerTextIf(lx,ly,string.format("%.0f",v),SMLSIZE,cfg.labelColor)
     end
   end
 
   local v=clamp(value,min,max)
   local compassA = startDeg + (v/range)*(sweepDeg/2) + 90
   local needleLen = (cfg.needleLength and cfg.needleLength>0) and ((cfg.needleLength/100)*(r-4)) or (r-8)
-  needle(cx,cy,needleLen,compassA, cfg.pointerColor or lcd.RGB(79,195,247),4)
+  needle(cx,cy,needleLen,compassA, cfg.pointerColor,4)
 
-  if cfg.showHub~=false then lcd.drawFilledCircle(cx,cy,3, cfg.hubColor or cfg.pointerColor or lcd.RGB(79,195,247)) end
+  if cfg.showHub~=false then
+    local hubCol = cfg.hubColor or cfg.pointerColor
+    if hubCol then lcd.drawFilledCircle(cx,cy,3, hubCol) end
+  end
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
 end
 
 local function drawHeadingTapeGeneric(x,y,w,h,cfg)
   local heading=readSensor(cfg,"mavSource","")
   if type(heading)~="number" then heading=0 end
-  local ptrColor = cfg.pointerColor or lcd.RGB(79,195,247)
-  local txtColor = cfg.textColor or lcd.RGB(255,255,255)
-  local tickCol = cfg.tickColor or lcd.RGB(122,136,152)
+  local ptrColor = cfg.pointerColor
+  local txtColor = cfg.textColor
+  local tickCol = cfg.tickColor
 
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
-  if cfg.showBorder~=false then
-    lcd.drawRectangle(x,y,w,h, cfg.borderColor or lcd.RGB(42,51,64), cfg.borderWidth or 1)
+  if cfg.showBorder~=false and cfg.borderColor then
+    lcd.drawRectangle(x,y,w,h, cfg.borderColor, cfg.borderWidth or 1)
   end
 
   local pxPerDeg=w/90
@@ -7195,14 +7277,14 @@ local function drawHeadingTapeGeneric(x,y,w,h,cfg)
         if norm==0 then label="N" elseif norm==90 then label="E"
         elseif norm==180 then label="S" elseif norm==270 then label="W"
         else label=string.format("%03d",norm) end
-        local col = (norm==0) and (cfg.northColor or lcd.RGB(255,92,92)) or txtColor
-        centerText(xx,y+h*0.78,label,sf,col)
+        local col = (norm==0) and (cfg.northColor or txtColor) or txtColor
+        centerTextIf(xx,y+h*0.78,label,sf,col)
       end
     end
     i=i+1
   end
 
-  if cfg.showPointer~=false then
+  if cfg.showPointer~=false and ptrColor then
     local pw=math.max(3,w*0.025)
     -- Back at the top, keeping the downward-pointing orientation: flat
     -- base at the top edge, apex hanging down into the tick marks.
@@ -7210,7 +7292,7 @@ local function drawHeadingTapeGeneric(x,y,w,h,cfg)
     lcd.drawFilledRectangle(cx-1,y,2,h*0.3,ptrColor)
   end
 
-  if cfg.showValue~=false then
+  if cfg.showValue~=false and (cfg.boxBgColor or ptrColor) then
     -- Heading is always exactly 3 digits, but size the box off the actual
     -- measured text anyway, matching the editor's own approach.
     local valTxt=string.format("%03d",math.floor(((heading%360)+360)%360+0.5))
@@ -7220,7 +7302,7 @@ local function drawHeadingTapeGeneric(x,y,w,h,cfg)
     local bw = math.max(28,(tw or 30)+10)
     local bh = math.max((thh or 20)+4, h*0.33)
     lcd.drawFilledRectangle(cx-bw/2,y+h-bh-1,bw,bh, cfg.boxBgColor or ptrColor)
-    centerText(cx,y+h-bh/2-1,valTxt,vf,(cfg.valueTextColor or lcd.RGB(4,8,16)))
+    centerTextIf(cx,y+h-bh/2-1,valTxt,vf,cfg.valueTextColor)
   end
 end
 DRAW["heading-tape"]=drawHeadingTapeGeneric
@@ -7229,28 +7311,28 @@ DRAW["heading-arc"]=drawHeadingTapeGeneric
 DRAW["mode-indicator"]=function(x,y,w,h,cfg)
   local mode=readSensor(cfg,"mavSource","")
   local text = (type(mode)=="string") and mode or "---"
-  local col = cfg.textColor or cfg.borderColor or lcd.RGB(95,232,138)
+  local col = cfg.textColor or cfg.borderColor
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 2) end
   if cfg.showText~=false then
-    centerText(x+w/2,y+h/2,text,sizeFlag(cfg,"mode",math.max(9,h*0.4)),col)
+    centerTextIf(x+w/2,y+h/2,text,sizeFlag(cfg,"mode",math.max(9,h*0.4)),col)
   end
 end
 
 DRAW["indicator"]=function(x,y,w,h,cfg)
   local active=evalIndicator(cfg)
-  local col = active and (cfg.onColor or lcd.RGB(255,92,92)) or (cfg.offColor or lcd.RGB(28,35,46))
+  local col = active and cfg.onColor or cfg.offColor
   local cx,cy=x+w/2,y+h/2
   local r=math.min(w,h)/2-1
   if cfg.shape==nil or cfg.shape=="circle" then
-    lcd.drawFilledCircle(cx,cy,r,col)
+    if col then lcd.drawFilledCircle(cx,cy,r,col) end
     if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
   else
-    lcd.drawFilledRectangle(x,y,w,h,col)
+    if col then lcd.drawFilledRectangle(x,y,w,h,col) end
     if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
   end
   if cfg.showLabel~=false and cfg.label and cfg.label~="" then
-    centerText(cx,cy,cfg.label,sizeFlag(cfg,"text",math.max(7,math.min(w,h)*0.28)),(cfg.labelColor or lcd.RGB(255,255,255)))
+    centerTextIf(cx,cy,cfg.label,sizeFlag(cfg,"text",math.max(7,math.min(w,h)*0.28)),cfg.labelColor)
   end
 end
 
@@ -7270,23 +7352,23 @@ DRAW["rssi-bars"]=function(x,y,w,h,cfg)
   local chartH = h-labelH-2
   local gap = math.max(2,w*0.05)
   local barW = (w-gap*(bars-1))/bars
-  local activeColor = cfg.badColor or lcd.RGB(255,92,92)
-  if frac>0.66 then activeColor = cfg.goodColor or lcd.RGB(95,232,138)
-  elseif frac>0.33 then activeColor = cfg.warnColor or lcd.RGB(255,217,58) end
+  local activeColor = cfg.badColor
+  if frac>0.66 then activeColor = cfg.goodColor
+  elseif frac>0.33 then activeColor = cfg.warnColor end
   for i=0,bars-1 do
     local bh=math.max(2,chartH*((i+1)/bars))
     local bx=x+i*(barW+gap)
     local by=y+chartH-bh+1
-    local col = (i<filled) and activeColor or (cfg.offColor or lcd.RGB(35,43,56))
-    lcd.drawFilledRectangle(bx,by,barW,bh,col)
+    local col = (i<filled) and activeColor or cfg.offColor
+    if col then lcd.drawFilledRectangle(bx,by,barW,bh,col) end
   end
-  if showValue then
+  if showValue and cfg.textColor then
     local unit = cfg.unit~=nil and cfg.unit or "%"
     local txt = string.format("%.0f",value)..unit
     local vf = sizeFlag(cfg,"value",math.max(8,labelH*0.75))
     local ok,tw,th = pcall(lcd.sizeText,txt,vf)
     if not ok or type(th)~="number" then th=16 end
-    lcd.drawText(x+w/2, y+h-1-th, txt, CENTER+vf+(cfg.textColor or lcd.RGB(255,255,255)))
+    lcd.drawText(x+w/2, y+h-1-th, txt, CENTER+vf+cfg.textColor)
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7301,33 +7383,41 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   local txPower = readRaw("TPWR"); if type(txPower)~="number" then txPower=0 end
   local rfMode = readRaw("RFMD")
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
-  local lqColor = cfg.badColor or lcd.RGB(255,92,92)
-  if lq>66 then lqColor = cfg.goodColor or lcd.RGB(95,232,138)
-  elseif lq>33 then lqColor = cfg.warnColor or lcd.RGB(255,217,58) end
+  local lqColor = cfg.badColor
+  if lq>66 then lqColor = cfg.goodColor
+  elseif lq>33 then lqColor = cfg.warnColor end
   local pad = math.max(4,w*0.05)
   local titleH = math.max(10,h*0.16)
   local titleF = sizeFlag(cfg,"title",math.max(7,titleH*0.85))
-  lcd.drawText(x+pad,y+pad*0.6,"LINK",titleF+(cfg.labelColor or lcd.RGB(122,136,152)))
-  lcd.drawText(x+w-pad,y+pad*0.6,string.format("%.0f",lq).."% LQ",RIGHT+titleF+lqColor)
+  if cfg.labelColor then lcd.drawText(x+pad,y+pad*0.6,"LINK",titleF+cfg.labelColor) end
+  if lqColor then lcd.drawText(x+w-pad,y+pad*0.6,string.format("%.0f",lq).."% LQ",RIGHT+titleF+lqColor) end
   local barY=y+pad*0.6+titleH
   local barH=math.max(4,h*0.09)
-  lcd.drawFilledRectangle(x+pad,barY,w-pad*2,barH, cfg.trackColor or lcd.RGB(28,35,46))
-  lcd.drawFilledRectangle(x+pad,barY,(w-pad*2)*clamp(lq/100,0,1),barH,lqColor)
+  if cfg.trackColor then lcd.drawFilledRectangle(x+pad,barY,w-pad*2,barH, cfg.trackColor) end
+  if lqColor then lcd.drawFilledRectangle(x+pad,barY,(w-pad*2)*clamp(lq/100,0,1),barH,lqColor) end
   local rssiY=barY+barH+pad*0.8
   local valSize=math.max(11,h*0.28)
   local valF=sizeFlag(cfg,"value",valSize)
-  lcd.drawText(x+pad,rssiY,string.format("%.0f",rssi).."dB",valF+(cfg.textColor or lcd.RGB(255,255,255)))
-  lcd.drawText(x+pad,rssiY+valSize*0.9,"RSSI",sizeFlag(cfg,"rssiLabel",math.max(7,valSize*0.4))+(cfg.labelColor or lcd.RGB(122,136,152)))
+  local rssiTxt=string.format("%.0f",rssi).."dB"
+  local thR=28
+  if cfg.textColor then
+    lcd.drawText(x+pad,rssiY,rssiTxt,valF+cfg.textColor)
+    local okR,twR,measuredH = pcall(lcd.sizeText,rssiTxt,valF)
+    if okR and type(measuredH)=="number" then thR=measuredH end
+  end
+  if cfg.labelColor then lcd.drawText(x+pad,rssiY+thR+2,"RSSI",sizeFlag(cfg,"rssiLabel",math.max(7,valSize*0.4))+cfg.labelColor) end
   local footY=y+h-pad*1.6
   local footF=sizeFlag(cfg,"footer",math.max(7,h*0.12))
+  local okF,twF,thF = pcall(lcd.sizeText,"PWR",footF)
+  if not okF or type(thF)~="number" then thF=16 end
   if cfg.showTxPower~=false then
-    lcd.drawText(x+pad,footY,"PWR",footF+(cfg.labelColor or lcd.RGB(122,136,152)))
-    lcd.drawText(x+pad,footY+10,string.format("%.0f",txPower).."mW",footF+(cfg.textColor or lcd.RGB(255,255,255)))
+    if cfg.labelColor then lcd.drawText(x+pad,footY,"PWR",footF+cfg.labelColor) end
+    if cfg.textColor then lcd.drawText(x+pad,footY+thF+2,string.format("%.0f",txPower).."mW",footF+cfg.textColor) end
   end
   if cfg.showRfMode~=false then
     local rfText = (type(rfMode)=="string") and rfMode or tostring(rfMode)
-    lcd.drawText(x+w-pad,footY,"MODE",RIGHT+footF+(cfg.labelColor or lcd.RGB(122,136,152)))
-    lcd.drawText(x+w-pad,footY+10,rfText,RIGHT+footF+(cfg.textColor or lcd.RGB(255,255,255)))
+    if cfg.labelColor then lcd.drawText(x+w-pad,footY,"MODE",RIGHT+footF+cfg.labelColor) end
+    if cfg.textColor then lcd.drawText(x+w-pad,footY+thF+2,rfText,RIGHT+footF+cfg.textColor) end
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7353,17 +7443,19 @@ DRAW["gps-coords"]=function(x,y,w,h,cfg)
   local valueAutoPx = math.max(9,rowH*0.62)
   local valueResolvedPx = (type(cfg.valueSize)=="number" and cfg.valueSize>0) and cfg.valueSize or valueAutoPx
   local vf = fontFlag(valueResolvedPx)
-  local textColor = cfg.textColor or lcd.RGB(255,255,255)
-  local okL,twL,thL = pcall(lcd.sizeText,"LAT "..latTxt,vf)
-  if not okL or type(thL)~="number" then thL=16 end
-  lcd.drawText(x+pad,y+rowH*0.55-thL/2,"LAT "..latTxt,vf+textColor)
-  lcd.drawText(x+pad,y+rowH*1.65-thL/2,"LON "..lonTxt,vf+textColor)
-  if showSats then
+  local textColor = cfg.textColor
+  if textColor then
+    local okL,twL,thL = pcall(lcd.sizeText,"LAT "..latTxt,vf)
+    if not okL or type(thL)~="number" then thL=16 end
+    lcd.drawText(x+pad,y+rowH*0.55-thL/2,"LAT "..latTxt,vf+textColor)
+    lcd.drawText(x+pad,y+rowH*1.65-thL/2,"LON "..lonTxt,vf+textColor)
+  end
+  if showSats and cfg.labelColor then
     local satsF = sizeFlag(cfg,"sats",math.max(7,valueResolvedPx*0.6))
     local satsTxt = "SATS "..string.format("%.0f",sats)
     local okS,twS,thS = pcall(lcd.sizeText,satsTxt,satsF)
     if not okS or type(thS)~="number" then thS=12 end
-    lcd.drawText(x+pad,y+rowH*2.75-thS/2,satsTxt,satsF+(cfg.labelColor or lcd.RGB(122,136,152)))
+    lcd.drawText(x+pad,y+rowH*2.75-thS/2,satsTxt,satsF+cfg.labelColor)
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7389,16 +7481,23 @@ DRAW["qr-code"]=function(x,y,w,h,cfg)
   local lon=readRaw("GPS.lon"); if type(lon)~="number" then lon=0 end
   local sats=readRaw("Sats"); if type(sats)~="number" then sats=0 end
 
+  -- Unlike every other color in this script, bgColor/fgColor are not
+  -- optional decoration - a QR code fundamentally needs contrast between
+  -- two colors to be scannable at all, so these keep a hardcoded
+  -- white/black fallback rather than following the "transparent = don't
+  -- draw" rule everywhere else here (a QR code with a missing foreground
+  -- would just be a blank box, not a meaningful "disabled" state).
   local bgColor = cfg.bgColor or lcd.RGB(255,255,255)
   local fgColor = cfg.fgColor or lcd.RGB(0,0,0)
   lcd.drawFilledRectangle(x,y,w,h,bgColor)
 
   if cfg.showOnlyWithFix~=false and (not sats or sats<3) then
-    local labelCol = cfg.labelColor or lcd.RGB(122,136,152)
-    local ok,tw,th = pcall(lcd.sizeText,"WAITING FOR",SMLSIZE)
-    if not ok or type(th)~="number" then th=12 end
-    centerText(x+w/2,y+h/2-th/2,"WAITING FOR",SMLSIZE,labelCol)
-    centerText(x+w/2,y+h/2+th/2,"GPS FIX",SMLSIZE,labelCol)
+    if cfg.labelColor then
+      local ok,tw,th = pcall(lcd.sizeText,"WAITING FOR",SMLSIZE)
+      if not ok or type(th)~="number" then th=12 end
+      centerText(x+w/2,y+h/2-th/2,"WAITING FOR",SMLSIZE,cfg.labelColor)
+      centerText(x+w/2,y+h/2+th/2,"GPS FIX",SMLSIZE,cfg.labelColor)
+    end
     if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
     return
   end
@@ -7430,12 +7529,12 @@ DRAW["qr-code"]=function(x,y,w,h,cfg)
   if result~=nil and result~="working" then qrRuns = result.runs end
 
   if qrTooLong then
-    centerText(x+w/2,y+h/2,"URL TOO LONG",SMLSIZE,(cfg.labelColor or lcd.RGB(122,136,152)))
+    centerTextIf(x+w/2,y+h/2,"URL TOO LONG",SMLSIZE,cfg.labelColor)
     if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
     return
   end
   if not qrRuns then
-    centerText(x+w/2,y+h/2,"BUILDING...",SMLSIZE,(cfg.labelColor or lcd.RGB(122,136,152)))
+    centerTextIf(x+w/2,y+h/2,"BUILDING...",SMLSIZE,cfg.labelColor)
     if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
     return
   end
@@ -7460,7 +7559,7 @@ DRAW["home-arrow"]=function(x,y,w,h,cfg)
   if type(heading)~="number" then heading=0 end
   local cx,cy=x+w/2,y+h/2
   local r=math.max(8,math.min(w,h)/2-2)
-  local ptrColor = cfg.pointerColor or lcd.RGB(95,232,138)
+  local ptrColor = cfg.pointerColor
   local isRect = cfg.shape=="rectangle"
 
   if isRect then
@@ -7488,7 +7587,7 @@ DRAW["home-arrow"]=function(x,y,w,h,cfg)
   local b1x,b1y = bx+px*halfW, by+py*halfW
   local b2x,b2y = bx-px*halfW, by-py*halfW
 
-  lcd.drawFilledTriangle(tipX,tipY,b1x,b1y,b2x,b2y,ptrColor)
+  if ptrColor then lcd.drawFilledTriangle(tipX,tipY,b1x,b1y,b2x,b2y,ptrColor) end
 
   if cfg.borderColor then
     if isRect then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1)
@@ -7498,14 +7597,14 @@ end
 
 DRAW["home-distance"]=function(x,y,w,h,cfg)
   local dist=homeCalc("HOME_DISTANCE")
-  local ptrColor = cfg.pointerColor or lcd.RGB(95,232,138)
-  local labelCol = cfg.labelColor or lcd.RGB(122,136,152)
+  local ptrColor = cfg.pointerColor
+  local labelCol = cfg.labelColor
 
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
-  lcd.drawRectangle(x,y,w,h, cfg.borderColor or lcd.RGB(58,69,85), cfg.borderWidth or 1)
+  if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 
   local lf = sizeFlag(cfg,"label",math.max(7,h*0.18))
-  centerText(x+w/2,y+h*0.22,"HOME DIST",lf,labelCol)
+  centerTextIf(x+w/2,y+h*0.22,"HOME DIST",lf,labelCol)
 
   local distUnit = cfg.distanceUnit or "auto"
   local disp
@@ -7519,13 +7618,13 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
   end
 
   local vf = sizeFlag(cfg,"value",math.max(10,h*0.38))
-  if cfg.showValueBox~=false then
+  if cfg.showValueBox~=false and cfg.valueBoxColor then
     local ok,tw,thh = pcall(lcd.sizeText,disp,vf)
     if not ok then tw=nil; thh=nil end
     local boxPad=(h*0.38)*0.25
-    lcd.drawFilledRectangle(x+w/2-(tw or 40)/2-boxPad, y+h*0.55-(thh or 20)/2-boxPad*0.5, (tw or 40)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor or lcd.RGB(28,35,46))
+    lcd.drawFilledRectangle(x+w/2-(tw or 40)/2-boxPad, y+h*0.55-(thh or 20)/2-boxPad*0.5, (tw or 40)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
   end
-  centerText(x+w/2,y+h*0.55,disp,vf,ptrColor)
+  centerTextIf(x+w/2,y+h*0.55,disp,vf,ptrColor)
 
   if cfg.showUnit~=false then
     local uf = sizeFlag(cfg,"unit",math.max(7,h*0.14))
@@ -7535,7 +7634,7 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
     elseif distUnit=="ft" then unitCaption="feet"
     elseif distUnit=="mi" then unitCaption="miles"
     else unitCaption="m / km" end
-    centerText(x+w/2,y+h*0.82,unitCaption,uf,labelCol)
+    centerTextIf(x+w/2,y+h*0.82,unitCaption,uf,labelCol)
   end
 end
 
@@ -7548,19 +7647,18 @@ DRAW["radar"]=function(x,y,w,h,cfg)
   local r=math.min(w,h)/2-2
   local isHomeCenter = cfg.mode=="home-center"
   if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor) end
-  if cfg.showRings~=false then
+  if cfg.showRings~=false and cfg.gridColor then
     local rings=cfg.ringCount or 4
-    local gridColor = cfg.gridColor or lcd.RGB(122,136,152)
     for i=1,rings do
-      lcd.drawCircle(cx,cy,r*i/rings, gridColor)
+      lcd.drawCircle(cx,cy,r*i/rings, cfg.gridColor)
     end
-    lcd.drawLine(cx-r,cy,cx+r,cy,SOLID,gridColor)
-    lcd.drawLine(cx,cy-r,cx,cy+r,SOLID,gridColor)
+    lcd.drawLine(cx-r,cy,cx+r,cy,SOLID,cfg.gridColor)
+    lcd.drawLine(cx,cy-r,cx,cy+r,SOLID,cfg.gridColor)
   end
   -- Animated sweep line - purely decorative, not telemetry-driven, timed
   -- via getTime() (centiseconds since the radio booted) rather than any
   -- live value, same rotating/sonar-ping-pong styles as the editor preview.
-  if cfg.showSweep~=false then
+  if cfg.showSweep~=false and cfg.sweepColor then
     local t = getTime and getTime() or 0
     local sweepDeg
     if cfg.sweepStyle=="pingpong" then
@@ -7573,7 +7671,7 @@ DRAW["radar"]=function(x,y,w,h,cfg)
       sweepDeg=((t%period)/period)*360
     end
     local sx,sy=polar(cx,cy,r,sweepDeg)
-    lcd.drawLine(cx,cy,sx,sy,SOLID, cfg.sweepColor or lcd.RGB(95,232,138))
+    lcd.drawLine(cx,cy,sx,sy,SOLID, cfg.sweepColor)
   end
 
   -- The off-center point's bearing: plane->home directly in plane-center
@@ -7585,12 +7683,14 @@ DRAW["radar"]=function(x,y,w,h,cfg)
   local clampedDist=math.min(distance,range)
   local distRatio = (range>0) and (clampedDist/range) or 0
   local mx,my=polar(cx,cy,distRatio*r,rel)
-  local offColor = isHomeCenter and (cfg.planeColor or lcd.RGB(79,195,247)) or (cfg.homeColor or lcd.RGB(95,232,138))
-  lcd.drawFilledCircle(mx,my,math.max(2,r*0.06), offColor)
+  local offColor = isHomeCenter and cfg.planeColor or cfg.homeColor
+  if offColor then lcd.drawFilledCircle(mx,my,math.max(2,r*0.06), offColor) end
 
-  local centerColor = isHomeCenter and (cfg.homeColor or lcd.RGB(95,232,138)) or (cfg.planeColor or lcd.RGB(79,195,247))
-  lcd.drawLine(cx-4,cy,cx+4,cy,SOLID,centerColor)
-  lcd.drawLine(cx,cy-4,cx,cy+4,SOLID,centerColor)
+  local centerColor = isHomeCenter and cfg.homeColor or cfg.planeColor
+  if centerColor then
+    lcd.drawLine(cx-4,cy,cx+4,cy,SOLID,centerColor)
+    lcd.drawLine(cx,cy-4,cx,cy+4,SOLID,centerColor)
+  end
 
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
 end
@@ -7602,9 +7702,9 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
   local maxKmh=cfg.maxSpeed or 200
   local cx,cy=x+w/2,y+h/2
   local r=math.max(8,math.min(w,h)/2-4)
-  local ptrColor = cfg.pointerColor or lcd.RGB(95,168,255)
-  local tickCol = cfg.tickColor or lcd.RGB(122,136,152)
-  local lblCol = cfg.labelColor or lcd.RGB(232,238,245)
+  local ptrColor = cfg.pointerColor
+  local tickCol = cfg.tickColor
+  local lblCol = cfg.labelColor
   local majorStep = cfg.majorStep or 40
   local minorStep = cfg.minorStep or 20
 
@@ -7638,11 +7738,11 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
       local tLen=isMajor and majLen or minLen
       local x0,y0=polar(cx,cy,r-4,ang)
       local x1,y1=polar(cx,cy,r-4-tLen,ang)
-      lcd.drawLine(x0,y0,x1,y1,SOLID,tickCol)
+      if tickCol then lcd.drawLine(x0,y0,x1,y1,SOLID,tickCol) end
       if isMajor then
         local dist=r-math.max(20,r*0.35)
         local lx,ly=polar(cx,cy,dist,ang)
-        centerText(lx,ly,string.format("%.0f",v),sf,lblCol)
+        centerTextIf(lx,ly,string.format("%.0f",v),sf,lblCol)
       end
       v=v+minorStep
     end
@@ -7654,29 +7754,30 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
   needle(cx,cy,needleLen,needleAngle,ptrColor,4)
 
   if cfg.showHub~=false then
-    lcd.drawFilledCircle(cx,cy,math.max(4,r*0.08), cfg.hubColor or lcd.RGB(58,69,85))
+    local hubCol = cfg.hubColor
+    if hubCol then lcd.drawFilledCircle(cx,cy,math.max(4,r*0.08), hubCol) end
   end
 
-  if cfg.showValue~=false then
+  if cfg.showValue~=false and ptrColor then
     local valTxt=string.format("%.0f",kmh)
     local vf = sizeFlag(cfg,"value",math.max(12,r*0.38))
-    if cfg.showValueBox~=false then
+    if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,thh = pcall(lcd.sizeText,valTxt,vf)
       if not ok then tw=nil; thh=nil end
       local boxPad=r*0.08
-      lcd.drawFilledRectangle(cx-(tw or 30)/2-boxPad, cy+r*0.25-(thh or 20)/2-boxPad*0.5, (tw or 30)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor or lcd.RGB(28,35,46))
+      lcd.drawFilledRectangle(cx-(tw or 30)/2-boxPad, cy+r*0.25-(thh or 20)/2-boxPad*0.5, (tw or 30)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
     end
     centerText(cx,cy+r*0.25,valTxt,vf,ptrColor)
   end
 
   if cfg.showUnit~=false then
     local uf = sizeFlag(cfg,"unit",math.max(7,r*0.14))
-    centerText(cx,cy+r*0.52,"km/h",uf,tickCol)
+    centerTextIf(cx,cy+r*0.52,"km/h",uf,tickCol)
   end
 
   if cfg.showLabel~=false then
     local lf = sizeFlag(cfg,"label",math.max(7,r*0.15))
-    centerText(cx,cy-r*0.52,cfg.label or "GND SPD",lf,lblCol)
+    centerTextIf(cx,cy-r*0.52,cfg.label or "GND SPD",lf,lblCol)
   end
 end
 
@@ -7713,28 +7814,35 @@ DRAW["shape-line"]=function(x,y,w,h,cfg)
   local y1=y+h*(cfg.y1Pct or 50)/100
   local x2=x+w*(cfg.x2Pct or 100)/100
   local y2=y+h*(cfg.y2Pct or 50)/100
-  strokeLine(x1,y1,x2,y2, cfg.lineColor or lcd.RGB(58,69,85), cfg.lineWidth)
+  strokeLine(x1,y1,x2,y2, cfg.lineColor, cfg.lineWidth)
 end
 DRAW["shape-screw"]=function(x,y,w,h,cfg)
   local cx,cy=x+w/2,y+h/2
   local r=math.min(w,h)/2
-  local slotColor = cfg.slotColor or lcd.RGB(58,69,85)
-  lcd.drawFilledCircle(cx,cy,r, cfg.headColor or lcd.RGB(138,148,163))
-  lcd.drawCircle(cx,cy,r,slotColor)
-  local slotLen=r*1.4
-  lcd.drawLine(cx-slotLen/2,cy,cx+slotLen/2,cy,SOLID,slotColor)
-  if cfg.slotStyle=="phillips" then
-    lcd.drawLine(cx,cy-slotLen/2,cx,cy+slotLen/2,SOLID,slotColor)
+  local slotColor = cfg.slotColor
+  if cfg.headColor then lcd.drawFilledCircle(cx,cy,r, cfg.headColor) end
+  if slotColor then
+    lcd.drawCircle(cx,cy,r,slotColor)
+    local slotLen=r*1.4
+    lcd.drawLine(cx-slotLen/2,cy,cx+slotLen/2,cy,SOLID,slotColor)
+    if cfg.slotStyle=="phillips" then
+      lcd.drawLine(cx,cy-slotLen/2,cx,cy+slotLen/2,SOLID,slotColor)
+    end
   end
 end
 
 DRAW["stick-position"]=function(x,y,w,h,cfg)
   local hv=readSensor(cfg,"mavSourceH","")
   local vv=readSensor(cfg,"mavSourceV","")
-  if type(hv)~="number" then hv=1500 end
-  if type(vv)~="number" then vv=1500 end
-  local hn=(hv-1500)/500
-  local vn=(vv-1500)/500
+  if type(hv)~="number" then hv=0 end
+  if type(vv)~="number" then vv=0 end
+  -- EdgeTX channel values (and most other "value" data sources) fall on a
+  -- fixed -1024..1024 scale regardless of the underlying signal - NOT raw
+  -- PWM microseconds - confirmed directly in EdgeTX's own Lua reference
+  -- docs ("Values... generally fall on a scale between -1024 and 1024,
+  -- also sometimes reported as -100% to 100%, e.g. for channel outputs").
+  local hn=hv/1024
+  local vn=vv/1024
   if cfg.reverseH then hn=-hn end
   if cfg.reverseV then vn=-vn end
   hn=clamp(hn,-1,1); vn=clamp(vn,-1,1)
@@ -7744,7 +7852,7 @@ DRAW["stick-position"]=function(x,y,w,h,cfg)
   local cr=math.min(w,h)*pct/2
   local cx=x+w/2+hn*(w/2-cr)
   local cy=y+h/2-vn*(h/2-cr)
-  lcd.drawFilledCircle(cx,cy,cr, cfg.circleColor or lcd.RGB(95,232,138))
+  if cfg.circleColor then lcd.drawFilledCircle(cx,cy,cr, cfg.circleColor) end
   if cfg.circleBorderColor then strokeCircle(cx,cy,cr,cfg.circleBorderColor,cfg.circleBorderWidth) end
 end
 
@@ -7761,15 +7869,17 @@ DRAW["static-text"]=function(x,y,w,h,cfg)
   -- SMLSIZE/MIDSIZE/DBLSIZE/XXLSIZE tiers - so Bold overrides the size
   -- choice rather than adding to it, same as real hardware.
   local sizeF = cfg.bold and BOLD or sizeFlag(cfg,"text",math.max(8,h*0.5))
-  local flags = (cfg.textColor or 0) + sizeF
   local inset = hasAccent and math.max(6,w*0.08) or 4
   local tx = x+w/2
-  if cfg.align=="right" then flags=flags+RIGHT; tx=x+w-inset
+  local align = LEFT
+  if cfg.align=="right" then align=RIGHT; tx=x+w-inset
   elseif cfg.align=="left" then tx=x+inset
-  else flags=flags+CENTER end
-  local ok,tw,th = pcall(lcd.sizeText,cfg.text or "",sizeF)
-  if not ok or type(th)~="number" then th=16 end
-  lcd.drawText(tx,y+h/2-th/2,cfg.text or "",flags)
+  else align=CENTER end
+  if cfg.textColor then
+    local ok,tw,th = pcall(lcd.sizeText,cfg.text or "",sizeF)
+    if not ok or type(th)~="number" then th=16 end
+    lcd.drawText(tx,y+h/2-th/2,cfg.text or "",align+sizeF+cfg.textColor)
+  end
 end
 
 local function drawValueLabel(x,y,w,h,value,cfg)
@@ -7777,12 +7887,12 @@ local function drawValueLabel(x,y,w,h,value,cfg)
   local text=string.format("%."..digits.."f",value)
   if cfg.unit and cfg.unit~="" then text=text..cfg.unit end
   local vSize=sizeFlag(cfg,"value",math.max(10,h*0.3))
-  centerText(x+w/2,y+h/2,text,vSize,(cfg.color or lcd.RGB(79,195,247)))
-  if cfg.label and cfg.label~="" then
+  centerTextIf(x+w/2,y+h/2,text,vSize,cfg.color)
+  if cfg.label and cfg.label~="" and cfg.labelColor then
     local lSize=sizeFlag(cfg,"label",math.max(7,h*0.14))
     local ok,tw,th = pcall(lcd.sizeText,cfg.label,lSize)
     if not ok or type(th)~="number" then th=16 end
-    lcd.drawText(x+w/2,y+h-2-th,cfg.label,CENTER+lSize+(cfg.labelColor or lcd.RGB(122,136,152)))
+    lcd.drawText(x+w/2,y+h-2-th,cfg.label,CENTER+lSize+cfg.labelColor)
   end
 end
 
@@ -7800,10 +7910,16 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
   local v=clamp(value,min,max)
   local frac=(v-min)/((max-min)~=0 and (max-min) or 1)
 
-  local liveColor = cfg.color or lcd.RGB(79,195,247)
-  if cfg.useZones then
+  local liveColor = cfg.color
+  if cfg.useZones and liveColor then
     local warnAt = cfg.warnThreshold or (max*0.7)
     local badAt = cfg.badThreshold or (max*0.9)
+    -- zoneWarnColor/zoneBadColor keep hardcoded fallbacks rather than the
+    -- "transparent = don't draw" rule used everywhere else in this script:
+    -- useZones is itself an opt-in feature already gating this whole block,
+    -- and a zone with no color to show in would just silently look like
+    -- the feature was never turned on, which is more confusing than
+    -- falling back to a sensible warning/danger color.
     local goodC = cfg.zoneGoodColor or liveColor
     local warnC = cfg.zoneWarnColor or lcd.RGB(255,217,58)
     local badC = cfg.zoneBadColor or lcd.RGB(255,92,92)
@@ -7819,10 +7935,10 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
 
   if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor) end
   local thickness = (cfg.arcThickness and cfg.arcThickness>0) and cfg.arcThickness or math.max(2,math.floor(r*0.12))
-  if cfg.showTrack~=false then
-    strokeArc(cx,cy,r,startA,startA+sweep, cfg.trackColor or lcd.RGB(42,51,64),thickness)
+  if cfg.showTrack~=false and cfg.trackColor then
+    strokeArc(cx,cy,r,startA,startA+sweep, cfg.trackColor,thickness)
   end
-  if cfg.showTicks~=false and cfg.showLabels~=false then
+  if cfg.showTicks~=false and cfg.showLabels~=false and cfg.tickColor then
     local tickCount = math.max(4,math.min(12,math.floor(sweep/22+0.5)))
     for i=0,tickCount do
       local a = startA+sweep*i/tickCount
@@ -7831,10 +7947,10 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
       local tr1 = tr0 + (major and r*0.09 or r*0.045)
       local x0,y0 = polar(cx,cy,tr0,a)
       local x1,y1 = polar(cx,cy,tr1,a)
-      lcd.drawLine(x0,y0,x1,y1,SOLID, cfg.tickColor or lcd.RGB(122,136,152))
+      lcd.drawLine(x0,y0,x1,y1,SOLID, cfg.tickColor)
     end
   end
-  if cfg.showArc~=false then
+  if cfg.showArc~=false and liveColor then
     local a0 = cfg.mirrored and (startA+sweep-frac*sweep) or startA
     local a1 = cfg.mirrored and (startA+sweep) or (startA+frac*sweep)
     strokeArc(cx,cy,r,a0,a1,liveColor,thickness)
@@ -7848,18 +7964,17 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
       lcd.drawFilledCircle(ex1,ey1,capR,liveColor)
     end
   end
-  if cfg.showLabels~=false then
+  if cfg.showLabels~=false and cfg.tickColor then
     local scaleF = sizeFlag(cfg,"scale",math.max(7,r*0.18))
     local gap = r*0.16+thickness*0.3
     local minA,maxA = startA, startA+sweep
     if cfg.mirrored then minA,maxA = startA+sweep, startA end
     local mnx,mny = polar(cx,cy,r+gap,minA)
     local mxx,mxy = polar(cx,cy,r+gap,maxA)
-    local tickCol = cfg.tickColor or lcd.RGB(122,136,152)
-    centerText(mnx,mny,string.format("%.0f",min),scaleF,tickCol)
-    centerText(mxx,mxy,string.format("%.0f",max),scaleF,tickCol)
+    centerText(mnx,mny,string.format("%.0f",min),scaleF,cfg.tickColor)
+    centerText(mxx,mxy,string.format("%.0f",max),scaleF,cfg.tickColor)
   end
-  if cfg.showValue~=false then
+  if cfg.showValue~=false and liveColor then
     local vSize = sizeFlag(cfg,"value",math.max(10,r*0.42))
     local valTxt = string.format("%."..(cfg.digits or 0).."f",v)
     local vy = cy - r*0.15
@@ -7876,11 +7991,11 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
   end
   if cfg.showUnit~=false and cfg.unit and cfg.unit~="" then
     local uSize = sizeFlag(cfg,"unit",math.max(7,r*0.16))
-    centerText(cx,cy+r*0.2,cfg.unit,uSize,(cfg.tickColor or lcd.RGB(122,136,152)))
+    centerTextIf(cx,cy+r*0.2,cfg.unit,uSize,cfg.tickColor)
   end
   if cfg.showLabel~=false and cfg.label and cfg.label~="" then
     local lSize = sizeFlag(cfg,"label",math.max(8,r*0.2))
-    centerText(x+w/2,y+h-lSize/2-4,cfg.label,lSize,(cfg.labelColor or lcd.RGB(232,238,245)))
+    centerTextIf(x+w/2,y+h-lSize/2-4,cfg.label,lSize,cfg.labelColor)
   end
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
 end
@@ -7890,12 +8005,12 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   if type(value)~="number" then value=0 end
   local min,max=cfg.min or 0, cfg.max or 100
   local vClamped=clamp(value,min,max)
-  local color = cfg.color or lcd.RGB(79,195,247)
+  local color = cfg.color
   local vertical = cfg.orientation=="vertical"
   local label = cfg.label or ""
   local unit = cfg.unit
   local digits = cfg.digits or 0
-  local borderColor = cfg.borderColor or lcd.RGB(42,51,64)
+  local borderColor = cfg.borderColor
 
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
 
@@ -7903,37 +8018,37 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
     local padX=6
     local barY=y+h*0.45
     local barH=h*0.25
-    if cfg.showLabel~=false then
+    if cfg.showLabel~=false and cfg.labelColor then
       local lSize = sizeFlag(cfg,"label",math.max(8,h*0.22))
-      lcd.drawText(x+padX,y+4,label,lSize+(cfg.labelColor or lcd.RGB(232,238,245)))
+      lcd.drawText(x+padX,y+4,label,lSize+cfg.labelColor)
     end
-    if cfg.showValue~=false then
+    if cfg.showValue~=false and color then
       local vSize = sizeFlag(cfg,"value",math.max(9,h*0.25))
       local txt = string.format("%."..digits.."f",vClamped)..((cfg.showUnit~=false and unit and unit~="") and (" "..unit) or "")
       local ok,tw,th = pcall(lcd.sizeText,txt,vSize)
       if not ok then tw=nil; th=nil end
-      if cfg.showValueBox~=false then
-        lcd.drawFilledRectangle(x+w-padX-(tw or 40), y+4, (tw or 40), (th or 16), cfg.valueBoxColor or lcd.RGB(28,35,46))
+      if cfg.showValueBox~=false and cfg.valueBoxColor then
+        lcd.drawFilledRectangle(x+w-padX-(tw or 40), y+4, (tw or 40), (th or 16), cfg.valueBoxColor)
       end
       lcd.drawText(x+w-padX,y+4,txt,RIGHT+vSize+color)
     end
     if cfg.showTrack~=false and cfg.trackColor then
       lcd.drawFilledRectangle(x+padX,barY,w-padX*2,barH,cfg.trackColor)
     end
-    if cfg.showBar~=false then
+    if cfg.showBar~=false and color then
       local pct=(vClamped-min)/((max-min)~=0 and (max-min) or 1)
       local area=w-padX*2
       local bw=area*pct
       local bx = cfg.mirrored and (x+w-padX-bw) or (x+padX)
       lcd.drawFilledRectangle(bx,barY,bw,barH,color)
     end
-    if cfg.showTicks~=false then
+    if cfg.showTicks~=false and borderColor then
       for i=1,9 do
         local tx=x+padX+(w-padX*2)*(i/10)
         lcd.drawLine(tx,barY,tx,barY+barH,SOLID,borderColor)
       end
     end
-    if cfg.showBorder~=false then
+    if cfg.showBorder~=false and borderColor then
       lcd.drawRectangle(x+padX,barY,w-padX*2,barH,borderColor,1)
     end
     return
@@ -7946,9 +8061,9 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   local padY=4
   local topY=y+padY
   local botY=y+h-padY
-  if cfg.showLabel~=false then
+  if cfg.showLabel~=false and cfg.labelColor then
     local lSize = sizeFlag(cfg,"label",math.max(8,w*0.16))
-    lcd.drawText(x+w/2,topY,label,CENTER+lSize+(cfg.labelColor or lcd.RGB(232,238,245)))
+    lcd.drawText(x+w/2,topY,label,CENTER+lSize+cfg.labelColor)
     local ok,tw,th = pcall(lcd.sizeText,label,lSize)
     topY = topY + ((ok and type(th)=="number") and th or 16) + 3
   end
@@ -7964,24 +8079,24 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   if cfg.showTrack~=false and cfg.trackColor then
     lcd.drawFilledRectangle(barX,barTop,barW,barH2,cfg.trackColor)
   end
-  if cfg.showBar~=false then
+  if cfg.showBar~=false and color then
     local pct=(vClamped-min)/((max-min)~=0 and (max-min) or 1)
     local fillH=barH2*pct
     local fy = cfg.mirrored and barTop or (barBottom-fillH)
     lcd.drawFilledRectangle(barX,fy,barW,fillH,color)
   end
-  if cfg.showTicks~=false then
+  if cfg.showTicks~=false and borderColor then
     for i=1,9 do
       local ty=barTop+barH2*(i/10)
       lcd.drawLine(barX,ty,barX+barW,ty,SOLID,borderColor)
     end
   end
-  if cfg.showBorder~=false then
+  if cfg.showBorder~=false and borderColor then
     lcd.drawRectangle(barX,barTop,barW,barH2,borderColor,1)
   end
-  if cfg.showValue~=false then
-    if cfg.showValueBox~=false then
-      lcd.drawFilledRectangle(x+w/2-(vw or 40)/2, botY-vh, (vw or 40), vh, cfg.valueBoxColor or lcd.RGB(28,35,46))
+  if cfg.showValue~=false and color then
+    if cfg.showValueBox~=false and cfg.valueBoxColor then
+      lcd.drawFilledRectangle(x+w/2-(vw or 40)/2, botY-vh, (vw or 40), vh, cfg.valueBoxColor)
     end
     lcd.drawText(x+w/2,botY-vh,valueTxt,CENTER+vSize+color)
   end
@@ -7994,15 +8109,15 @@ DRAW["dial"]=function(x,y,w,h,cfg)
   local r=math.min(w,h)/2-2
   local startA,sweep=-120,240
   if cfg.bgColor then lcd.drawFilledCircle(cx,cy,r,cfg.bgColor) end
-  strokeArc(cx,cy,r,startA,startA+sweep, cfg.trackColor or lcd.RGB(42,51,64),2)
+  if cfg.trackColor then strokeArc(cx,cy,r,startA,startA+sweep, cfg.trackColor,2) end
   if cfg.showTicks~=false then
     local range=(max-min)~=0 and (max-min) or 1
     local majorStep = (cfg.majorTick and cfg.majorTick>0) and cfg.majorTick or (range/10)
     local minorStep = (cfg.minorTick and cfg.minorTick>0) and cfg.minorTick or (majorStep/5)
     local numMinor=math.max(1,math.floor(range/minorStep+0.5))
     local ticksPerMajor=math.max(1,math.floor(majorStep/minorStep+0.5))
-    local tickColor = cfg.tickColor or lcd.RGB(232,238,245)
-    local minorTickColor = cfg.minorTickColor or lcd.RGB(90,104,120)
+    local tickColor = cfg.tickColor
+    local minorTickColor = cfg.minorTickColor
     for i=0,numMinor do
       local pct=i/numMinor
       local a=startA+pct*sweep
@@ -8010,17 +8125,18 @@ DRAW["dial"]=function(x,y,w,h,cfg)
       local tickLen = isMajor and (cfg.majorTickLen or 9) or (cfg.minorTickLen or 4)
       local x0,y0=polar(cx,cy,r,a)
       local x1,y1=polar(cx,cy,r-tickLen,a)
-      lcd.drawLine(x0,y0,x1,y1,SOLID, isMajor and tickColor or minorTickColor)
+      local thisCol = isMajor and tickColor or minorTickColor
+      if thisCol then lcd.drawLine(x0,y0,x1,y1,SOLID,thisCol) end
       if isMajor and cfg.showLabels~=false then
         local vLabel = min + math.floor((i/numMinor)*range/majorStep+0.5)*majorStep
         local lx,ly=polar(cx,cy,r-tickLen-10,a)
-        centerText(lx,ly,string.format("%.0f",vLabel),SMLSIZE,(cfg.labelColor or lcd.RGB(122,136,152)))
+        centerTextIf(lx,ly,string.format("%.0f",vLabel),SMLSIZE,cfg.labelColor)
       end
     end
   end
   local frac=clamp((value-min)/((max-min)~=0 and (max-min) or 1),0,1)
-  needle(cx,cy,r*0.8,startA+sweep*frac, cfg.color or lcd.RGB(79,195,247),4)
-  lcd.drawFilledCircle(cx,cy,3, cfg.color or lcd.RGB(79,195,247))
+  needle(cx,cy,r*0.8,startA+sweep*frac, cfg.color,4)
+  if cfg.color then lcd.drawFilledCircle(cx,cy,3, cfg.color) end
   drawValueLabel(x,y,w,h,value,cfg)
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
 end
@@ -8029,8 +8145,8 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
   local value=readSensor(cfg,"mavSource","")
   if type(value)~="number" then value=0 end
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
-  local color = cfg.color or lcd.RGB(79,195,247)
-  local hasAccent = cfg.showAccent~=false
+  local color = cfg.color
+  local hasAccent = cfg.showAccent~=false and color
   if hasAccent then
     local aw=math.max(2,math.min(4,w*0.03))
     lcd.drawFilledRectangle(x,y,aw,h,color)
@@ -8039,11 +8155,11 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1)
   end
   local leftInset = hasAccent and math.max(8,w*0.09) or 5
-  if cfg.showLabel~=false and cfg.label and cfg.label~="" then
+  if cfg.showLabel~=false and cfg.label and cfg.label~="" and cfg.labelColor then
     local lSize=sizeFlag(cfg,"label",math.max(7,h*0.2))
-    lcd.drawText(x+leftInset,y+3,string.upper(cfg.label),lSize+(cfg.labelColor or lcd.RGB(122,136,152)))
+    lcd.drawText(x+leftInset,y+3,string.upper(cfg.label),lSize+cfg.labelColor)
   end
-  if cfg.showValue~=false then
+  if cfg.showValue~=false and color then
     -- Matches JS's vfs*0.42 relationship: the unit's auto size is derived
     -- from the value text's own *resolved* size (including any explicit
     -- override), not computed independently from h - so the unit always
@@ -8056,11 +8172,11 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     if not ok then vw=nil; vh=nil end
     local vy = y+h-(vh or 16)-3
     lcd.drawText(x+leftInset,vy,valTxt,vSize+color)
-    if cfg.showUnit~=false and cfg.unit and cfg.unit~="" then
+    if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
       local uSize=sizeFlag(cfg,"unit",math.max(7,valueResolvedPx*0.42))
       local okU,uw,uh = pcall(lcd.sizeText,cfg.unit,uSize)
       if not okU or type(uh)~="number" then uh=12 end
-      lcd.drawText(x+leftInset+(vw or 30)+3,vy+(vh or 16)-uh,cfg.unit,uSize+(cfg.labelColor or lcd.RGB(122,136,152)))
+      lcd.drawText(x+leftInset+(vw or 30)+3,vy+(vh or 16)-uh,cfg.unit,uSize+cfg.labelColor)
     end
   end
 end
