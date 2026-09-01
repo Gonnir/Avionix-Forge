@@ -6,7 +6,7 @@
 <title>AvionixForge — EdgeTX Telemetry Screen Designer</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@600;700;900&family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
 :root{
@@ -630,7 +630,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'artificial-horizon',name:'Artificial Horizon',desc:'Attitude indicator',icon:'fa-circle-half-stroke',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',mavSource2:'Ptch',ahShape:'circle',bgColor:'#3a6db5',groundColor:'#6b4226',lineColor:'#ffffff',refColor:'#4fc3f7',borderColor:'#3a4555',showPitchLadder:true,showRollTicks:true,showRollTriangle:true,rotation:0}},
   {type:'turn-coordinator',name:'Turn Coordinator',desc:'Turn rate & slip',icon:'fa-arrows-rotate',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',slipSource:'CUSTOM_VALUE',bgColor:'#040810',pointerColor:'#4fc3f7',markColor:'#ffffff',tubeColor:'#1c232e',ballColor:'#ffffff',borderColor:'#3a4555',rotation:0}},
   {type:'compass',name:'Compass',desc:'Heading rose',icon:'fa-compass',defaultSize:{w:120,h:120},defaults:{mavSource:'Hdg',showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',northColor:'#ff5c5c',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',valueBoxColor:'#1c232e',showHub:true,rotation:0}},
-  {type:'altimeter-dial',name:'Altimeter Dial',desc:'Traditional altimeter',icon:'fa-clock',defaultSize:{w:120,h:120},defaults:{mavSource:'Alt',mavMultiply:1,unit:'m',tickEdgeDistance:0,labelInset:0,bgColor:'#040810',handColorOnes:'#ffffff',handColorTens:'#4fc3f7',handColorHundreds:'#ffd93a',digitalColor:'#5fe88a',tickColor:'#e8eef5',minorTickColor:'#5a6878',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,showDigital:true,showLabels:true,showHundredsHand:true,rotation:0}},
+  {type:'altimeter-dial',name:'Altimeter Dial',desc:'Traditional altimeter',icon:'fa-clock',defaultSize:{w:120,h:120},defaults:{mavSource:'Alt',mavMultiply:1,unit:'m',tickEdgeDistance:0,labelInset:0,bgColor:'#040810',handColorOnes:'#ffffff',handColorTens:'#4fc3f7',handColorHundreds:'#ffd93a',digitalColor:'#5fe88a',tickColor:'#e8eef5',minorTickColor:'#5a6878',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#3a4555',valueBoxColor:'#1c232e',showHub:true,showDigital:true,showLabels:true,showHundredsHand:true,rotation:0}},
   {type:'altimeter-tape',name:'Altimeter Tape',desc:'Vertical altitude',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'Alt',min:0,max:1000,unit:'m',bgColor:'#040810',pointerColor:'#4dd2c9',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4dd2c9',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'vsi-tape',name:'VSI Tape',desc:'Vertical speed tape',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'VSpd',min:-10,max:10,unit:'m/s',bgColor:'#040810',pointerColor:'#4dd2c9',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4dd2c9',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'static-text',name:'Static Text',desc:'Custom fixed text label',icon:'fa-font',defaultSize:{w:100,h:30},defaults:{text:'Label',textColor:'#ffffff',bgColor:'transparent',accentColor:'#4fc3f7',showAccent:true,borderColor:'#3a4555',showBorder:false,align:'center',rotation:0}},
@@ -2541,6 +2541,7 @@ function selectField(label,key,value,options){
 // of implying finer control than the exported Lua script can deliver.
 const GFX_SIZE_OPTIONS = [
   ['', 'Auto (fits the instrument)'],
+  ['8', 'Tiny (TINSIZE)'],
   ['12', 'Small (SMLSIZE)'],
   ['16', 'Standard'],
   ['21', 'Mid (MIDSIZE)'],
@@ -3495,8 +3496,31 @@ function drawInstrument(ctx,inst){
   switch(inst.type){
     case 'artificial-horizon': drawAI(ctx,w,h,gm(c.mavSource),gm(c.mavSource2,'2'),c); break;
     case 'turn-coordinator': drawTurnCoordinator(ctx,w,h,gm(c.mavSource),gm(c.slipSource),c); break;
-    case 'compass': drawCompass(ctx,w,h,gm(c.mavSource),c); break;
-    case 'altimeter-dial': drawAltimeterDial(ctx,w,h,gm(c.mavSource),c); break;
+    case 'compass': {
+      // Backfill for projects saved before valueBoxColor existed as its
+      // own field on this instrument - without it, the heading-readout box
+      // would go from "not yet configurable" to "silently disabled" the
+      // moment transparent-aware rendering shipped, which is a real
+      // regression for anyone who saved a layout before that field existed.
+      if(c.valueBoxColor===undefined) c.valueBoxColor='#1c232e';
+      // Same idea for northColor: an older config that never had this
+      // field at all falls back to the general text color, which just
+      // looks like "N" was never made to stand out - not a deliberate
+      // choice, just a field that didn't exist yet when it was saved.
+      if(c.northColor===undefined) c.northColor='#ff5c5c';
+      drawCompass(ctx,w,h,gm(c.mavSource),c);
+      break;
+    }
+    case 'altimeter-dial': {
+      // Same backfill rationale as compass above: minorTickColor and
+      // valueBoxColor are newer fields, so a project saved before they
+      // existed has no way to have set them, and would otherwise lose its
+      // sub-ticks and digital-readout box outright.
+      if(c.minorTickColor===undefined) c.minorTickColor='#5a6878';
+      if(c.valueBoxColor===undefined) c.valueBoxColor='#1c232e';
+      drawAltimeterDial(ctx,w,h,gm(c.mavSource),c);
+      break;
+    }
     case 'altimeter-tape': drawTape(ctx,w,h,gm(c.mavSource),c.min||0,c.max||1000,c.unit||'m',c); break;
     case 'vsi-tape': drawTape(ctx,w,h,gm(c.mavSource),c.min!==undefined?c.min:-10,c.max!==undefined?c.max:10,c.unit||'m/s',c); break;
     case 'airspeed-tape': drawTape(ctx,w,h,gm(c.mavSource),c.min||0,c.max||50,c.unit||'m/s',c); break;
@@ -3520,7 +3544,12 @@ function drawInstrument(ctx,inst){
       break;
     }
     case 'home-arrow': drawHomeArrow(ctx,w,h,gm('HOME_BEARING'),gm('Hdg'),c); break;
-    case 'home-distance': drawHomeDistance(ctx,w,h,gm('HOME_DISTANCE'),c); break;
+    case 'home-distance': {
+      // Same backfill rationale as compass/altimeter-dial above.
+      if(c.valueBoxColor===undefined) c.valueBoxColor='#1c232e';
+      drawHomeDistance(ctx,w,h,gm('HOME_DISTANCE'),c);
+      break;
+    }
     case 'radar': drawRadar(ctx,w,h,gm('HOME_BEARING'),gm('HOME_DISTANCE'),gm('Hdg'),c); break;
     case 'indicator': drawIndicator(ctx,w,h,c); break;
     case 'rssi-bars': drawRssiBars(ctx,w,h,gm(c.mavSource),c); break;
@@ -3532,7 +3561,14 @@ function drawInstrument(ctx,inst){
     case 'text-value': drawTextValue(ctx,w,h,gm(c.mavSource),c.label||'',c.unit||'',resolveColor(c.color||'#4fc3f7'),c.digits||0,c); break;
     case 'static-text': drawStaticText(ctx,w,h,c); break;
     case 'template-image': drawTemplateImage(ctx,w,h,c,inst); break;
-    case 'dial': drawDial(ctx,w,h,gm(c.mavSource),c.min||0,c.max||100,c.label||'',c.unit||'',resolveColor(c.color||'#4fc3f7'),c.digits||0,c); break;
+    case 'dial': {
+      // Same backfill rationale as the other instruments above - this
+      // custom-gauge type doesn't go through STANDARD_INSTRUMENTS defaults
+      // at all, so valueBoxColor has no other path to ever get set.
+      if(c.valueBoxColor===undefined) c.valueBoxColor='#1c232e';
+      drawDial(ctx,w,h,gm(c.mavSource),c.min||0,c.max||100,c.label||'',c.unit||'',resolveColor(c.color||'#4fc3f7'),c.digits||0,c);
+      break;
+    }
     case 'shape-rectangle': drawShapeRectangle(ctx,w,h,c); break;
     case 'shape-circle': drawShapeCircle(ctx,w,h,c); break;
     case 'shape-oval': drawShapeOval(ctx,w,h,c); break;
@@ -4004,7 +4040,7 @@ function drawAI(ctx,w,h,roll,pitch,c){
     const ladderLineColorUp=c.ladderLineColorUp||lineColor;
     const ladderLineColorDown=c.ladderLineColorDown||lineColor;
     const showPitchLabels=c.showPitchLabels!==false;
-    ctx.font=`${gSize(c,'ladder',Math.max(7,r*0.12))}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'ladder',Math.max(7,r*0.12))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const pitchRange = c.pitchLadderRange>0 ? c.pitchLadderRange : 30;
     for(let p=-pitchRange;p<=pitchRange;p+=10){
@@ -4220,7 +4256,7 @@ function drawCompass(ctx,w,h,heading,c){
     const cardinals=[['N',0,c.northColor||'#ff5c5c'],['E',90,txtColor],['S',180,txtColor],['W',270,txtColor]];
     const labelSize=c.cardinalSize!==undefined?c.cardinalSize:snapFontSize(Math.max(9,r*0.18));
     const labelDist=c.cardinalDist!==undefined?c.cardinalDist:r-labelSize*1.4-edgeDist-labelInset;
-    ctx.font=`bold ${labelSize}px JetBrains Mono`;
+    ctx.font=`bold ${labelSize}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     // Real hardware (GFX) cannot rotate glyphs, so the letters stay upright
     // and only their POSITION moves around the ring - matching the panel
@@ -4245,7 +4281,7 @@ function drawCompass(ctx,w,h,heading,c){
   if(c.showHeadingText!==false){
     const hdgTxt=Math.round(((heading%360)+360)%360).toString().padStart(3,'0');
     const hdgSize=snapFontSize(Math.max(9,r*0.2));
-    ctx.font=`bold ${hdgSize}px JetBrains Mono`;
+    ctx.font=`bold ${hdgSize}px Montserrat`;
     if(c.showValueBox!==false){
       const tw=ctx.measureText(hdgTxt).width;
       const boxPad=hdgSize*0.3;
@@ -4276,7 +4312,7 @@ function drawAltimeterDial(ctx,w,h,altitude,c){
   const bw=c.borderWidth!==undefined?c.borderWidth:2;
   for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r-bi,borderColor);
 
-  ctx.font=`bold ${gSize(c,'scale',Math.max(8,r*0.16))}px JetBrains Mono`;
+  ctx.font=`bold ${gSize(c,'scale',Math.max(8,r*0.16))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let i=0;i<50;i++){
     const angle=-Math.PI/2+(i/50)*Math.PI*2;
@@ -4336,7 +4372,7 @@ function drawAltimeterDial(ctx,w,h,altitude,c){
     const unitLabel=c.unit!==undefined&&c.unit!==''?c.unit:'m';
     const digTxt=Math.round(altitude)+' '+unitLabel;
     const digSize=gSize(c,'digital',Math.max(8,r*0.14));
-    ctx.font=`bold ${digSize}px JetBrains Mono`;
+    ctx.font=`bold ${digSize}px Montserrat`;
     if(c.showValueBox!==false){
       const tw=ctx.measureText(digTxt).width;
       const boxPad=digSize*0.35;
@@ -4368,7 +4404,7 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
   const range=max-min;
   const pxPerUnit=h/Math.max(1,range*0.4);
   const cy=h/2;
-  ctx.font=`${gSize(c,'scale',Math.max(7,w*0.14))}px JetBrains Mono`;
+  ctx.font=`${gSize(c,'scale',Math.max(7,w*0.14))}px Montserrat`;
   ctx.textAlign=mirrored?'left':'right'; ctx.textBaseline='middle';
   const step=(c.labelStep>0)?c.labelStep:(range>500?100:range>100?50:range>20?5:1);
   const startV=Math.floor((value-range*0.2)/step)*step;
@@ -4416,7 +4452,7 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
     // looks oversized for a short reading or clipped for a long one.
     const valTxt=value.toFixed(0);
     const vSize=gSize(c,'value',Math.max(8,w*0.16));
-    ctx.font=`bold ${vSize}px JetBrains Mono`;
+    ctx.font=`bold ${vSize}px Montserrat`;
     const tw=ctx.measureText(valTxt).width;
     const bh=Math.max(8*Math.round(vSize/8)+4, h*0.09);
     const boxW=tw+vSize*0.5;
@@ -4428,7 +4464,7 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
   }
   if(c.showUnit!==false && unit){
     ctx.fillStyle=tickCol;
-    ctx.font=`${gSize(c,'unit',Math.max(7,w*0.12))}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'unit',Math.max(7,w*0.12))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'unit',unit,w/2,h-Math.max(6,h*0.04));
   }
@@ -4461,7 +4497,7 @@ function drawVSI(ctx,w,h,value,min,max,unit,c){
   const fineStep=(range/divisions)/subDiv;
   const subCol=c.subTickColor||tickCol;
 
-  ctx.font=`${gSize(c,'scale',Math.max(7,r*0.14))}px JetBrains Mono`;
+  ctx.font=`${gSize(c,'scale',Math.max(7,r*0.14))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   const totalSteps=Math.round(divisions*subDiv);
   for(let i=-totalSteps;i<=totalSteps;i++){
@@ -4501,7 +4537,7 @@ function drawHeadingTape(ctx,w,h,heading,c){
   }
   const pxPerDeg=w/90;
   const cx=w/2;
-  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.28))}px JetBrains Mono`;
+  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.28))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   const startH=Math.floor((heading-45)/10)*10;
   const showTicks=c.showTicks!==false;
@@ -4553,7 +4589,7 @@ function drawHeadingTape(ctx,w,h,heading,c){
     // the printed character count rather than an independent fixed fraction.
     const valTxt=Math.round(heading).toString().padStart(3,'0');
     const vSize=gSize(c,'value',Math.max(9,h*0.3));
-    ctx.font=`bold ${vSize}px JetBrains Mono`;
+    ctx.font=`bold ${vSize}px Montserrat`;
     const tw=ctx.measureText(valTxt).width;
     const bw=Math.max(28,tw+vSize*0.5), bh=Math.max(8*Math.round(vSize/8)+4, h*0.33);
     ctx.fillStyle=c.boxBgColor||ptrColor; ctx.fillRect(cx-bw/2+gDX(c,'value'),h-bh-1+gDY(c,'value'),bw,bh);
@@ -4596,7 +4632,7 @@ function drawHeadingArc(ctx,w,h,heading,c){
   const apexAngle=flipped?90:270;
   const angSign=flipped?-1:1;
 
-  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.22))}px JetBrains Mono`;
+  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.22))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   const startH=Math.floor((heading-45)/10)*10;
   const showTicks=c.showTicks!==false;
@@ -4647,7 +4683,7 @@ function drawHeadingArc(ctx,w,h,heading,c){
   if(c.showValue!==false){
     const valTxt=Math.round(heading).toString().padStart(3,'0');
     const vSize=gSize(c,'value',Math.max(9,h*0.24));
-    ctx.font=`bold ${vSize}px JetBrains Mono`;
+    ctx.font=`bold ${vSize}px Montserrat`;
     const tw=ctx.measureText(valTxt).width;
     const bw2=Math.max(28,tw+vSize*0.5), bh=Math.max(8*Math.round(vSize/8)+4, h*0.26);
     // Value box sits opposite the arc's apex - bottom of the box normally
@@ -4673,7 +4709,7 @@ function drawModeIndicator(ctx,w,h,mode,c){
   ctx.strokeStyle=c.borderColor||color; ctx.lineWidth=2; ctx.strokeRect(1,1,w-2,h-2);
   if(c.showText!==false){
     ctx.fillStyle=c.textColor||color;
-    ctx.font=`bold ${Math.max(9,gSize(c,'mode',h*0.4))}px Orbitron`;
+    ctx.font=`bold ${Math.max(9,gSize(c,'mode',h*0.4))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'mode',modeName,w/2,h/2);
   }
@@ -4740,7 +4776,7 @@ function drawIndicator(ctx,w,h,c){
 
   if(c.showLabel!==false&&c.label){
     ctx.fillStyle=resolveCol(c.labelColor||'#ffffff');
-    ctx.font=`bold ${gSize(c,'text',Math.max(7,Math.min(w,h)*0.28))}px JetBrains Mono`;
+    ctx.font=`bold ${gSize(c,'text',Math.max(7,Math.min(w,h)*0.28))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(c.label,cx,cy);
   }
@@ -4773,7 +4809,7 @@ function drawRssiBars(ctx,w,h,value,c){
   }
   if(showValue){
     ctx.fillStyle=c.textColor||'#ffffff';
-    ctx.font=`bold ${Math.max(8,labelH*0.75)}px JetBrains Mono`;
+    ctx.font=`bold ${gSize(c,'value',Math.max(8,labelH*0.75))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='bottom';
     ctx.fillText(Math.round(value)+(c.unit!==undefined?c.unit:'%'), w/2, h-1);
   }
@@ -4794,49 +4830,70 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   if(lq>66) lqColor=c.goodColor||'#5fe88a';
   else if(lq>33) lqColor=c.warnColor||'#ffd93a';
 
-  const pad=Math.max(4,w*0.05);
-  const titleH=Math.max(10,h*0.16);
-  ctx.fillStyle=labelCol;
-  ctx.font=`bold ${gSize(c,'title',Math.max(7,titleH*0.85))}px JetBrains Mono`;
+  // Every section from here down is stacked sequentially off a running Y
+  // cursor, sized from its own actual font size - the previous version
+  // computed the footer's position as a fixed fraction up from the
+  // BOTTOM while everything above it grew independently down from the
+  // TOP, with neither aware of the other. That works out fine at the one
+  // size it was eyeballed against, but at smaller heights the two
+  // sections collide instead of ever being aware of each other - this
+  // was a real, reproducible bug in the editor itself, not just the Lua
+  // export drifting from it.
+  const pad=Math.max(3,w*0.05);
+  let cursorY = pad*0.5;
+
+  const titleSize=gSize(c,'title',Math.max(7,h*0.14));
+  ctx.font=`bold ${titleSize}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
-  ctx.fillText('LINK',pad,pad*0.6);
+  ctx.fillStyle=labelCol;
+  ctx.fillText('LINK',pad,cursorY);
   ctx.textAlign='right';
   ctx.fillStyle=lqColor;
-  ctx.fillText(Math.round(lq)+'% LQ',w-pad,pad*0.6);
+  ctx.fillText(Math.round(lq)+'% LQ',w-pad,cursorY);
+  cursorY += titleSize*1.15 + pad*0.35;
 
-  // LQ bar
-  const barY=pad*0.6+titleH;
-  const barH=Math.max(4,h*0.09);
+  const barH=Math.max(3,Math.min(h*0.12,8));
   ctx.fillStyle=c.trackColor||'#1c232e';
-  ctx.fillRect(pad,barY,w-pad*2,barH);
+  ctx.fillRect(pad,cursorY,w-pad*2,barH);
   ctx.fillStyle=lqColor;
-  ctx.fillRect(pad,barY,(w-pad*2)*Math.max(0,Math.min(1,lq/100)),barH);
+  ctx.fillRect(pad,cursorY,(w-pad*2)*Math.max(0,Math.min(1,lq/100)),barH);
+  cursorY += barH + pad*0.6;
 
-  // RSSI value, large
-  const rssiY=barY+barH+pad*0.8;
-  const valSize=gSize(c,'value',Math.max(11,h*0.28));
-  ctx.font=`bold ${valSize}px JetBrains Mono`;
+  const valSize=gSize(c,'value',Math.max(10,h*0.24));
+  ctx.font=`bold ${valSize}px Montserrat`;
+  ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=textCol;
-  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  ctx.fillText(Math.round(rssi)+'dB',pad,rssiY+valSize*0.8);
-  ctx.font=`${gSize(c,'rssiLabel',Math.max(7,valSize*0.4))}px JetBrains Mono`;
-  ctx.fillStyle=labelCol;
-  ctx.textAlign='left';
-  ctx.fillText('RSSI',pad,rssiY+valSize*0.8+valSize*0.42);
+  ctx.fillText(Math.round(rssi)+'dB',pad,cursorY);
+  cursorY += valSize*1.1;
 
-  // TX power / RF mode footer row
-  const footY=h-pad*0.6;
-  ctx.font=`${gSize(c,'footer',Math.max(7,h*0.12))}px JetBrains Mono`;
-  ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-  if(c.showTxPower!==false){
-    ctx.fillStyle=labelCol; ctx.fillText('PWR',pad,footY-h*0.13);
-    ctx.fillStyle=textCol; ctx.fillText(Math.round(txPower)+'mW',pad,footY);
-  }
-  if(c.showRfMode!==false){
-    const rfText=(typeof rfMode==='string')?rfMode:String(rfMode);
-    ctx.textAlign='right';
-    ctx.fillStyle=labelCol; ctx.fillText('MODE',w-pad,footY-h*0.13);
-    ctx.fillStyle=textCol; ctx.fillText(rfText,w-pad,footY);
+  const rssiLabelSize=gSize(c,'rssiLabel',Math.max(6,valSize*0.36));
+  ctx.font=`${rssiLabelSize}px Montserrat`;
+  ctx.fillStyle=labelCol;
+  ctx.fillText('RSSI',pad,cursorY);
+  cursorY += rssiLabelSize*1.15 + pad*0.3;
+
+  // Footer (PWR / MODE): anchored near the bottom when there's slack, like
+  // before, but never allowed to start above where the RSSI block above it
+  // actually ended - so it shifts down (rather than overlapping) whenever
+  // the box is too short for both to sit at their "usual" fixed spots.
+  if(c.showTxPower!==false || c.showRfMode!==false){
+    const footSize=gSize(c,'footer',Math.max(6,Math.min(h*0.11,12)));
+    const footBlockH=footSize*2.3;
+    const footLabelY=Math.max(cursorY, h-pad*0.5-footBlockH);
+    const footValueY=footLabelY+footSize*1.15;
+    ctx.font=`${footSize}px Montserrat`;
+    ctx.textBaseline='top';
+    if(c.showTxPower!==false){
+      ctx.textAlign='left';
+      ctx.fillStyle=labelCol; ctx.fillText('PWR',pad,footLabelY);
+      ctx.fillStyle=textCol; ctx.fillText(Math.round(txPower)+'mW',pad,footValueY);
+    }
+    if(c.showRfMode!==false){
+      const rfText=(typeof rfMode==='string')?rfMode:String(rfMode);
+      ctx.textAlign='right';
+      ctx.fillStyle=labelCol; ctx.fillText('MODE',w-pad,footLabelY);
+      ctx.fillStyle=textCol; ctx.fillText(rfText,w-pad,footValueY);
+    }
   }
   if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
 }
@@ -4857,13 +4914,13 @@ function drawGpsCoords(ctx,w,h,lat,lon,sats,c){
   const pad=Math.max(4,w*0.05);
   const rowH=(c.showSats!==false)?h*0.32:h*0.42;
   const valSize=gSize(c,'value',Math.max(9,rowH*0.62));
-  ctx.font=`bold ${valSize}px JetBrains Mono`;
+  ctx.font=`bold ${valSize}px Montserrat`;
   ctx.fillStyle=textCol;
   ctx.textAlign='left'; ctx.textBaseline='middle';
   ctx.fillText('LAT '+latTxt,pad,rowH*0.9);
   ctx.fillText('LON '+lonTxt,pad,rowH*2.0);
   if(c.showSats!==false){
-    ctx.font=`${gSize(c,'sats',Math.max(7,valSize*0.6))}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'sats',Math.max(7,valSize*0.6))}px Montserrat`;
     ctx.fillStyle=labelCol;
     ctx.fillText('SATS '+Math.round(sats),pad,rowH*3.0);
   }
@@ -5151,7 +5208,7 @@ function drawQrCode(ctx,w,h,lat,lon,sats,c,inst){
 
   if(c.showOnlyWithFix!==false && (!sats || sats<3)){
     ctx.fillStyle=c.labelColor||'#7a8898';
-    ctx.font=`${Math.max(8,Math.min(w,h)*0.09)}px Space Grotesk`;
+    ctx.font=`${Math.max(8,Math.min(w,h)*0.09)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('WAITING FOR GPS FIX',w/2,h/2);
     if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
@@ -5177,7 +5234,7 @@ function drawQrCode(ctx,w,h,lat,lon,sats,c,inst){
   const result=inst._qrCache.result;
   if(!result){
     ctx.fillStyle=c.labelColor||'#7a8898';
-    ctx.font=`${Math.max(8,Math.min(w,h)*0.08)}px Space Grotesk`;
+    ctx.font=`${Math.max(8,Math.min(w,h)*0.08)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('URL TOO LONG (max 53 chars)',w/2,h/2);
     return;
@@ -5376,7 +5433,7 @@ function drawHomeDistance(ctx,w,h,distance,c){
 
   // Label
   ctx.fillStyle=labelCol;
-  ctx.font=`${Math.max(7,h*0.18)}px JetBrains Mono`;
+  ctx.font=`${gSize(c,'label',Math.max(7,h*0.18))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText('HOME DIST',w/2,h*0.22);
 
@@ -5388,8 +5445,8 @@ function drawHomeDistance(ctx,w,h,distance,c){
   else if(distUnit==='km') disp=(distance/1000).toFixed(2)+' km';
   else if(distUnit==='ft') disp=Math.round(distance*3.28084)+' ft';
   else if(distUnit==='mi') disp=(distance*0.000621371).toFixed(2)+' mi';
-  const valSize=Math.max(10,h*0.38);
-  ctx.font=`bold ${valSize}px JetBrains Mono`;
+  const valSize=gSize(c,'value',Math.max(10,h*0.38));
+  ctx.font=`bold ${valSize}px Montserrat`;
   if(c.showValueBox!==false){
     const tw=ctx.measureText(disp).width;
     const boxPad=valSize*0.25;
@@ -5403,7 +5460,7 @@ function drawHomeDistance(ctx,w,h,distance,c){
   // Unit footer
   if(c.showUnit!==false){
     ctx.fillStyle=labelCol;
-    ctx.font=`${Math.max(7,h*0.14)}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'unit',Math.max(7,h*0.14))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const unitCaption=distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
     ctx.fillText(unitCaption,w/2,h*0.82);
@@ -5440,7 +5497,7 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
     bresenhamArc(ctx,cx,cy,r-Math.max(3,r*0.05),startDeg,startDeg+pct*sweepDeg,c.arcColor);
   }
 
-  ctx.font=`${gSize(c,'scale',Math.max(7,r*0.15))}px JetBrains Mono`;
+  ctx.font=`${gSize(c,'scale',Math.max(7,r*0.15))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let v=0;v<=maxKmh;v+=minorStep){
     const pct=v/maxKmh;
@@ -5474,7 +5531,7 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
   if(c.showValue!==false){
     const valTxt=Math.round(kmh).toString();
     const valSize=gSize(c,'value',Math.max(12,r*0.38));
-    ctx.font=`bold ${valSize}px JetBrains Mono`;
+    ctx.font=`bold ${valSize}px Montserrat`;
     if(c.showValueBox!==false){
       const tw=ctx.measureText(valTxt).width;
       const boxPad=r*0.08;
@@ -5489,7 +5546,7 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
   // Unit label
   if(c.showUnit!==false){
     ctx.fillStyle=tickCol;
-    ctx.font=`${gSize(c,'unit',Math.max(7,r*0.14))}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'unit',Math.max(7,r*0.14))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'unit','km/h',cx,cy+r*0.52);
   }
@@ -5497,7 +5554,7 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
   // "GS" label at top
   if(c.showLabel!==false){
     ctx.fillStyle=lblCol;
-    ctx.font=`${gSize(c,'label',Math.max(7,r*0.15))}px Space Grotesk`;
+    ctx.font=`${gSize(c,'label',Math.max(7,r*0.15))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'label',c.label||'GND SPD',cx,cy-r*0.52);
   }
@@ -5527,6 +5584,7 @@ function drawGroundspeedTape(ctx,w,h,valueKmh,c){
 // theme, close enough to size layouts correctly). luaFlag is the exact
 // EdgeTX flag the Lua generator emits for this tier.
 const EDGETX_FONT_TIERS = [
+  {id:'tin', name:'Tiny (TINSIZE)',     px:8,  luaFlag:'TINSIZE'},
   {id:'sm',  name:'Small (SMLSIZE)',    px:12, luaFlag:'SMLSIZE'},
   {id:'std', name:'Standard',           px:16, luaFlag:'0'},
   {id:'mid', name:'Mid (MIDSIZE)',      px:21, luaFlag:'MIDSIZE'},
@@ -5534,12 +5592,19 @@ const EDGETX_FONT_TIERS = [
   {id:'xxl', name:'Jumbo (XXLSIZE)',    px:54, luaFlag:'XXLSIZE'}
 ];
 function nearestFontTier(px){
-  let best=EDGETX_FONT_TIERS[0], bestDiff=Infinity;
+  // Rounds DOWN to the next available tier rather than to whichever is
+  // numerically closest - an auto-computed size that doesn't land exactly
+  // on one of the 6 real tiers always prefers the smaller, guaranteed-to-
+  // fit option over a larger one that risks overflowing the space it was
+  // being sized to fit into. EDGETX_FONT_TIERS is defined smallest-first,
+  // so this keeps the largest tier at or below px, falling back to the
+  // smallest tier (TINSIZE) if px doesn't even reach that.
+  let chosen=EDGETX_FONT_TIERS[0];
   for(const t of EDGETX_FONT_TIERS){
-    const d=Math.abs(t.px-px);
-    if(d<bestDiff){ bestDiff=d; best=t; }
+    if(t.px<=px) chosen=t;
+    else break;
   }
-  return best;
+  return chosen;
 }
 // Snaps a desired auto-fit pixel size to the nearest real hardware tier.
 // Sizes above XXLSIZE still clamp to it (54px) - that genuinely is the
@@ -5668,7 +5733,7 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   if(showScale){
     const scaleGap=r*0.16+thickness*0.3;
     ctx.fillStyle=c.tickColor||'#7a8898';
-    ctx.font=`${gSize(c,'scale',Math.max(7,r*0.18))}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'scale',Math.max(7,r*0.18))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     // Swapped when mirrored, so "Min" still sits at the end the arc fills
     // from and "Max" at the end it fills toward - matching the reversed
@@ -5680,7 +5745,7 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   }
   if(c.showValue!==false && liveColor!=='transparent'){
     const vSize=gSize(c,'value',Math.max(10,r*0.42));
-    ctx.font=`bold ${vSize}px JetBrains Mono`;
+    ctx.font=`bold ${vSize}px Montserrat`;
     let vy = cy - r*0.15;
     if(c.valuePos==='top') vy = cy - r*0.4;
     else if(c.valuePos==='center') vy = cy;
@@ -5698,14 +5763,14 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   }
   if(c.showUnit!==false && unit){
     ctx.fillStyle=c.tickColor||'#7a8898';
-    ctx.font=`${gSize(c,'unit',Math.max(7,r*0.16))}px JetBrains Mono`;
+    ctx.font=`${gSize(c,'unit',Math.max(7,r*0.16))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'unit',unit, cx, cy+r*0.2);
   }
   if(showName){
     const fs=gSize(c,'label',Math.max(8,r*0.2));
     ctx.fillStyle=c.labelColor||'#e8eef5';
-    ctx.font=`${fs}px Space Grotesk`;
+    ctx.font=`${fs}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='alphabetic';
     gText(ctx,c,'label',label, w/2, h-Math.max(2,fs*0.25));
   }
@@ -5725,13 +5790,13 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     const barY=h*0.45, barH=h*0.25;
     if(c.showLabel!==false){
       ctx.fillStyle=c.labelColor||'#e8eef5';
-      ctx.font=`${gSize(c,'label',Math.max(8,h*0.22))}px Space Grotesk`;
+      ctx.font=`${gSize(c,'label',Math.max(8,h*0.22))}px Montserrat`;
       ctx.textAlign='left'; ctx.textBaseline='top';
       gText(ctx,c,'label',label,padX,4);
     }
     if(c.showValue!==false && color!=='transparent'){
       const valSize=gSize(c,'value',Math.max(9,h*0.25));
-      ctx.font=`bold ${valSize}px JetBrains Mono`;
+      ctx.font=`bold ${valSize}px Montserrat`;
       // Unit is drawn as part of the value here; its own toggle controls it.
       const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
       if(c.showValueBox!==false){
@@ -5771,7 +5836,7 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   let topY=padY, botY=h-padY;
   if(c.showLabel!==false){
     ctx.fillStyle=c.labelColor||'#e8eef5';
-    ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Space Grotesk`;
+    ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='top';
     gText(ctx,c,'label',label,w/2,topY);
     topY+=gSize(c,'label',Math.max(8,w*0.16))+3;
@@ -5801,7 +5866,7 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   if(c.showBorder!==false) ctx.strokeRect(barX+0.5,barTop+0.5,barW-1,barH2-1);
   if(c.showValue!==false && color!=='transparent'){
     const valSize=gSize(c,'value',Math.max(9,w*0.2));
-    ctx.font=`bold ${valSize}px JetBrains Mono`;
+    ctx.font=`bold ${valSize}px Montserrat`;
     const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
     if(c.showValueBox!==false){
       const tw=ctx.measureText(txt).width;
@@ -5840,39 +5905,47 @@ function drawTextValue(ctx,w,h,value,label,unit,color,digits,c){
     }
   }
   const leftInset=(c.showAccent!==false && color!=='transparent')?Math.max(8,w*0.09):5;
+  // labelBottom tracks where the label actually ends so the value below it
+  // can never be positioned to start above that point - see the matching
+  // comment in the Lua export for why a fixed bottom-anchored value
+  // position isn't safe by itself at small sizes.
+  let labelBottom=4;
   if(c.showLabel!==false){
     ctx.fillStyle=c.labelColor||'#7a8898';
     const lfs=gSize(c,'label',Math.max(7,h*0.2));
-    ctx.font=`${lfs}px Space Grotesk`;
+    ctx.font=`${lfs}px Montserrat`;
     ctx.textAlign='left'; ctx.textBaseline='top';
-    // Small caps read as "instrument label" style at this size, without
-    // needing an actual small-caps font.
     gText(ctx,c,'label',(label||'').toUpperCase(),leftInset,4);
+    labelBottom=4+lfs*1.15;
   }
   if(c.showValue!==false && color!=='transparent'){
     ctx.fillStyle=color;
     const vfs=gSize(c,'value',Math.max(11,h*0.52));
-    ctx.font=`bold ${vfs}px JetBrains Mono`;
+    ctx.font=`bold ${vfs}px Montserrat`;
     ctx.textAlign='left'; ctx.textBaseline='alphabetic';
     const valTxt=value.toFixed(digits);
-    gText(ctx,c,'value',valTxt,leftInset,h-Math.max(4,h*0.14));
+    const valueBaselineY=Math.max(h-Math.max(4,h*0.14), labelBottom+vfs*0.85);
+    gText(ctx,c,'value',valTxt,leftInset,valueBaselineY);
     if(c.showUnit!==false && unit){
       const vw=ctx.measureText(valTxt).width;
       ctx.fillStyle=c.labelColor||'#7a8898';
-      ctx.font=`${gSize(c,'unit',Math.max(7,vfs*0.42))}px JetBrains Mono`;
+      ctx.font=`${gSize(c,'unit',Math.max(7,vfs*0.42))}px Montserrat`;
       ctx.textAlign='left'; ctx.textBaseline='alphabetic';
-      gText(ctx,c,'unit',' '+unit,leftInset+vw,h-Math.max(4,h*0.14));
+      gText(ctx,c,'unit',' '+unit,leftInset+vw,valueBaselineY);
     }
   }
 }
 
 function drawStaticText(ctx,w,h,c){
-  if(c.bgColor && c.bgColor!=='transparent'){ ctx.fillStyle=c.bgColor; ctx.fillRect(0,0,w,h); }
+  const hasBg = c.bgColor && c.bgColor!=='transparent';
+  if(hasBg){ ctx.fillStyle=c.bgColor; ctx.fillRect(0,0,w,h); }
   // An accent bar on the leading edge is a common HUD/telemetry-panel look
-  // and gives a plain text label some visual weight without needing a full
-  // border - shown automatically whenever a background is set, since a
-  // borderless filled panel otherwise reads as an unstyled rectangle.
-  if(c.showAccent!==false && c.bgColor && c.bgColor!=='transparent' && c.accentColor && c.accentColor!=='transparent'){
+  // that gives a plain text label some visual weight - independent of
+  // whether a background fill is set, so a transparent-background label
+  // (the default for this instrument) still gets its accent bar rather
+  // than silently losing it.
+  const hasAccent = c.showAccent!==false && c.accentColor && c.accentColor!=='transparent';
+  if(hasAccent){
     const side=c.align==='right'?'right':'left';
     const aw=Math.max(2,Math.min(5,w*0.04));
     ctx.fillStyle=c.accentColor;
@@ -5886,10 +5959,10 @@ function drawStaticText(ctx,w,h,c){
   if(c.textColor && c.textColor!=='transparent'){
     ctx.fillStyle=c.textColor;
     const fs=gSize(c,'text',Math.max(8,h*0.5));
-    ctx.font=`${c.bold?'bold ':''}${fs}px Space Grotesk`;
+    ctx.font=`${c.bold?'bold ':''}${fs}px Montserrat`;
     const align=c.align||'center';
     ctx.textAlign=align; ctx.textBaseline='middle';
-    const inset=(c.showAccent!==false && c.bgColor && c.bgColor!=='transparent' && c.accentColor && c.accentColor!=='transparent')?Math.max(6,w*0.08):4;
+    const inset=hasAccent?Math.max(6,w*0.08):4;
     const tx = align==='left' ? inset : align==='right' ? w-inset : w/2;
     gText(ctx,c,'text',c.text||'',tx,h/2);
   }
@@ -5953,7 +6026,7 @@ function drawDial(ctx,w,h,value,min,max,label,unit,color,digits,config){
   if(showTicks){
     const numMinor=Math.max(1,Math.round(range/minorStep));
     const ticksPerMajor=Math.max(1,Math.round(majorStep/minorStep));
-    ctx.font=`${gSize(config,'scale',Math.max(7,r*0.12))}px JetBrains Mono`;
+    ctx.font=`${gSize(config,'scale',Math.max(7,r*0.12))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     for(let i=0;i<=numMinor;i++){
       const pct=i/numMinor;
@@ -5998,7 +6071,7 @@ function drawDial(ctx,w,h,value,min,max,label,unit,color,digits,config){
     const v=Math.max(min,Math.min(max,value));
     const valTxt=v.toFixed(digits);
     const vSize=gSize(config,'value',Math.max(9,r*0.2));
-    ctx.font=`bold ${vSize}px JetBrains Mono`;
+    ctx.font=`bold ${vSize}px Montserrat`;
     if(config.showValueBox!==false){
       const tw=ctx.measureText(valTxt).width;
       const boxPad=vSize*0.3;
@@ -6011,13 +6084,13 @@ function drawDial(ctx,w,h,value,min,max,label,unit,color,digits,config){
   }
   if(config.showLabel!==false && label){
     ctx.fillStyle=config.labelColor||'#e8eef5';
-    ctx.font=`${gSize(config,'label',Math.max(8,r*0.13))}px Space Grotesk`;
+    ctx.font=`${gSize(config,'label',Math.max(8,r*0.13))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,config,'label',label,cx,cy-r*0.35);
   }
   if(config.showUnit!==false && unit){
     ctx.fillStyle=config.labelColor||'#7a8898';
-    ctx.font=`${gSize(config,'unit',Math.max(7,r*0.11))}px JetBrains Mono`;
+    ctx.font=`${gSize(config,'unit',Math.max(7,r*0.11))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,config,'unit',unit,cx,cy+r*0.62);
   }
@@ -6312,19 +6385,17 @@ local function needle(cx,cy,len,deg,color,width)
   lcd.drawFilledTriangle(tx,ty,bx1,by1,bx2,by2,color)
 end
 
--- Draws text horizontally centered (via the CENTER flag, same as
--- lcd.drawText always has) AND vertically centered around (cx,cy) - the
--- y coordinate lcd.drawText takes is always the TOP of the text, never
--- its middle, so true vertical centering needs the text's actual
--- rendered height for the specific size flag in use, via lcd.sizeText.
--- A single fixed guessed offset (this script used to subtract a flat 8px
--- everywhere) only happens to look right at exactly one font size and
--- drifts out of alignment at every other one - most visibly on anything
--- using an explicit size override rather than the default tier.
+-- Draws text horizontally centered (via CENTER) AND vertically centered
+-- (via VCENTER) around (cx,cy). EdgeTX exposes a native VCENTER flag
+-- (radio/src/lua/api_general.cpp, added 2.5.0) that does this internally
+-- using the firmware's own real font metrics - this used to be done by
+-- hand instead (measuring the text via lcd.sizeText and subtracting half
+-- its height from y), which meant vertical position was only ever as
+-- accurate as this script's own guess at each font tier's pixel height.
+-- Letting the firmware center it natively removes that whole class of
+-- guesswork.
 local function centerText(cx,cy,text,sizeFlags,color)
-  local ok,tw,th = pcall(lcd.sizeText,text,sizeFlags)
-  if not ok or type(th)~="number" then th=16 end
-  lcd.drawText(cx,cy-th/2,text,CENTER+sizeFlags+color)
+  lcd.drawText(cx,cy,text,CENTER+VCENTER+sizeFlags+color)
 end
 
 -- Nil-safe wrappers around drawText/centerText: EdgeTX has no real concept
@@ -6382,15 +6453,17 @@ end
 -- closest, matching the same tiers the editor preview uses. Breakpoints
 -- are the midpoints between tiers (12/16/21/28/54px).
 local function fontFlag(px)
-  -- Matches nearestFontTier's tie-break exactly: at an exact midpoint
-  -- between two tiers, JS's "keep the first strictly-smaller distance"
-  -- scan (ties don't replace the current best) settles on the lower tier,
-  -- so these boundaries use <= rather than < at each midpoint (14, 18.5,
-  -- 24.5, 41) to land on the same tier JS would for that exact value.
-  if px<=14 then return SMLSIZE
-  elseif px<=18.5 then return 0
-  elseif px<=24.5 then return MIDSIZE
-  elseif px<=41 then return DBLSIZE
+  -- Rounds DOWN to the next available tier rather than to whichever is
+  -- numerically closest - matches nearestFontTier's new floor behavior in
+  -- the editor exactly. An auto-computed size that doesn't land exactly on
+  -- one of the 6 real tiers (8/12/16/21/28/54) always prefers the smaller,
+  -- guaranteed-to-fit option over a larger one that risks overflowing the
+  -- space it was being sized to fit into.
+  if px<12 then return TINSIZE
+  elseif px<16 then return SMLSIZE
+  elseif px<21 then return 0
+  elseif px<28 then return MIDSIZE
+  elseif px<54 then return DBLSIZE
   else return XXLSIZE end
 end
 -- Reads an optional explicit size (from the editor's size dropdown, stored
@@ -6776,33 +6849,67 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
     if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h, cfg.bgColor) end
   end
 
-  -- Ground fill as a single quadrilateral (two filled triangles), rather
-  -- than many thin parallel lines - that approach left visible gaps
-  -- between strokes since lcd.drawLine has no thickness. There is no
-  -- lcd.setClipping used here, so anything this polygon draws beyond the
-  -- widget's own x,y,w,h bleeds straight into neighbouring instruments -
-  -- reach is therefore sized to the box's own half-diagonal (enough to
-  -- cover every corner at any roll angle) plus a small margin, NOT an
-  -- arbitrary multiple of the radius: that used to make the polygon reach
-  -- ~4x further than the box in every direction regardless of roll/pitch,
-  -- overdrawing the whole rest of the screen every single frame rather
-  -- than the "only at extreme angles" edge case it was meant to be.
+  -- Ground fill computed by clipping the widget's own box against the
+  -- (pitch-shifted, rolled) horizon line - a Sutherland-Hodgman single-
+  -- plane clip - rather than a fixed-size "big enough" polygon. That
+  -- approach either overshot (bleeding into neighbouring instruments,
+  -- since nothing here is clipped by the LCD API) or, sized more
+  -- conservatively, still compounded to roughly 1.4x the box's own half-
+  -- diagonal at the far corners - genuinely overshooting by tens of
+  -- pixels even after that "fix", not just at extreme roll/pitch. Clipping
+  -- the box directly against the line is exact: the result can never
+  -- extend beyond the widget's own bounds, at any roll or pitch.
   local diag = math.sqrt((w/2)*(w/2)+(h/2)*(h/2)) + 2
   local pxPerDeg = r/25
   local ox,oy = sA*pitch*pxPerDeg, -cA*pitch*pxPerDeg
+  local hcx, hcy = cx+ox, cy+oy
+  -- Ground direction (perpendicular to horizon, pointing "down" into the
+  -- ground) - matches the sign convention the rest of this function uses.
+  local gdx, gdy = -sA, cA
+  local function sideOf(px,py) return (px-hcx)*gdx + (py-hcy)*gdy end
+  -- When circular, clip against a many-sided polygon approximating the
+  -- disc itself, not the box it's inscribed in - clipping against the
+  -- box's own four corners left the fill reaching into the corners
+  -- OUTSIDE the visible circle (a square's corners sit outside its
+  -- inscribed circle), which is exactly the "flows out of the circle"
+  -- bug: technically within the widget's rectangular bounds, but visibly
+  -- outside the drawn disc. 24 sides is enough that the facets are
+  -- imperceptible at instrument-panel scale.
+  local corners
+  if isCircle then
+    corners = {}
+    for i=0,23 do
+      local px,py = polar(cx,cy,r,i/24*360)
+      corners[#corners+1] = {px,py}
+    end
+  else
+    corners = {{x,y},{x+w,y},{x+w,y+h},{x,y+h}}
+  end
+  local nCorners = #corners
+  local groundPts = {}
+  for i=1,nCorners do
+    local c1,c2 = corners[i], corners[(i%nCorners)+1]
+    local d1,d2 = sideOf(c1[1],c1[2]), sideOf(c2[1],c2[2])
+    if d1>=0 then groundPts[#groundPts+1]={c1[1],c1[2]} end
+    if (d1>=0) ~= (d2>=0) then
+      local t = d1/(d1-d2)
+      groundPts[#groundPts+1]={c1[1]+(c2[1]-c1[1])*t, c1[2]+(c2[2]-c1[2])*t}
+    end
+  end
+  if cfg.groundColor and #groundPts>=3 then
+    for i=2,#groundPts-1 do
+      lcd.drawFilledTriangle(groundPts[1][1],groundPts[1][2], groundPts[i][1],groundPts[i][2], groundPts[i+1][1],groundPts[i+1][2], cfg.groundColor)
+    end
+  end
+  -- The horizon line itself stays a fixed-length line (not a filled area),
+  -- so a small overshoot past the box here is just a thin line extending a
+  -- little further than needed - nowhere near the visual impact of a
+  -- filled polygon doing the same.
   local len = diag
   local hx1=cx-cA*len+ox
   local hy1=cy-sA*len+oy
   local hx2=cx+cA*len+ox
   local hy2=cy+sA*len+oy
-  local gx1=hx1-sA*diag
-  local gy1=hy1+cA*diag
-  local gx2=hx2-sA*diag
-  local gy2=hy2+cA*diag
-  if cfg.groundColor then
-    lcd.drawFilledTriangle(hx1,hy1,hx2,hy2,gx2,gy2,cfg.groundColor)
-    lcd.drawFilledTriangle(hx1,hy1,gx2,gy2,gx1,gy1,cfg.groundColor)
-  end
   if cfg.lineColor then lcd.drawLine(hx1,hy1,hx2,hy2,SOLID, cfg.lineColor) end
 
   -- Pitch ladder: rungs at +-10/20/30deg from the horizon, rotating with
@@ -7061,7 +7168,16 @@ DRAW["altimeter-dial"] = function(x,y,w,h,cfg)
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
   if cfg.showDigital~=false and cfg.digitalColor then
     local unitLabel = (cfg.unit~=nil and cfg.unit~="") and cfg.unit or "m"
-    lcd.drawText(cx,y+h+2,string.format("%.0f",alt).." "..unitLabel, CENTER+SMLSIZE+cfg.digitalColor)
+    local digTxt = string.format("%.0f",alt).." "..unitLabel
+    local digAutoPx = math.max(8,r*0.14)
+    local digSize = sizeFlag(cfg,"digital",digAutoPx)
+    if cfg.showValueBox~=false and cfg.valueBoxColor then
+      local ok,tw,th = pcall(lcd.sizeText,digTxt,digSize)
+      if not ok then tw=#digTxt*10; th=16 end
+      local boxPad = digAutoPx*0.35
+      lcd.drawFilledRectangle(cx-(tw or 30)/2-boxPad, cy+r*0.55-(th or 16)/2-boxPad*0.5, (tw or 30)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
+    end
+    centerText(cx,cy+r*0.55,digTxt,digSize,cfg.digitalColor)
   end
 end
 
@@ -7125,9 +7241,7 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
         local labelX = mirrored and (x+w*tickInEff+w*0.05) or (x+w*tickInEff-w*0.05)
         local flags = mirrored and LEFT or RIGHT
         local labelTxt = string.format("%.0f",v)
-        local ok2,tw2,th2 = pcall(lcd.sizeText,labelTxt,sf)
-        if not ok2 or type(th2)~="number" then th2=16 end
-        lcd.drawText(labelX,ty-th2/2,labelTxt,flags+sf+txtColor)
+        lcd.drawText(labelX,ty,labelTxt,flags+VCENTER+sf+txtColor)
       end
     end
     i=i+1
@@ -7155,7 +7269,7 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     local boxX = mirrored and (x+w*0.95-boxW) or (x+w*0.05)
     lcd.drawFilledRectangle(boxX,cy-bh/2,boxW,bh, cfg.boxBgColor or ptrColor)
     if cfg.valueTextColor then
-      lcd.drawText(boxX+5,cy-(thh or 16)/2,valTxt, vf+cfg.valueTextColor)
+      lcd.drawText(boxX+5,cy,valTxt, VCENTER+vf+cfg.valueTextColor)
     end
   end
 
@@ -7366,9 +7480,7 @@ DRAW["rssi-bars"]=function(x,y,w,h,cfg)
     local unit = cfg.unit~=nil and cfg.unit or "%"
     local txt = string.format("%.0f",value)..unit
     local vf = sizeFlag(cfg,"value",math.max(8,labelH*0.75))
-    local ok,tw,th = pcall(lcd.sizeText,txt,vf)
-    if not ok or type(th)~="number" then th=16 end
-    lcd.drawText(x+w/2, y+h-1-th, txt, CENTER+vf+cfg.textColor)
+    lcd.drawText(x+w/2, y+h-1, txt, CENTER+VBOTTOM+vf+cfg.textColor)
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7386,38 +7498,65 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   local lqColor = cfg.badColor
   if lq>66 then lqColor = cfg.goodColor
   elseif lq>33 then lqColor = cfg.warnColor end
-  local pad = math.max(4,w*0.05)
-  local titleH = math.max(10,h*0.16)
-  local titleF = sizeFlag(cfg,"title",math.max(7,titleH*0.85))
-  if cfg.labelColor then lcd.drawText(x+pad,y+pad*0.6,"LINK",titleF+cfg.labelColor) end
-  if lqColor then lcd.drawText(x+w-pad,y+pad*0.6,string.format("%.0f",lq).."% LQ",RIGHT+titleF+lqColor) end
-  local barY=y+pad*0.6+titleH
-  local barH=math.max(4,h*0.09)
-  if cfg.trackColor then lcd.drawFilledRectangle(x+pad,barY,w-pad*2,barH, cfg.trackColor) end
-  if lqColor then lcd.drawFilledRectangle(x+pad,barY,(w-pad*2)*clamp(lq/100,0,1),barH,lqColor) end
-  local rssiY=barY+barH+pad*0.8
-  local valSize=math.max(11,h*0.28)
-  local valF=sizeFlag(cfg,"value",valSize)
-  local rssiTxt=string.format("%.0f",rssi).."dB"
-  local thR=28
-  if cfg.textColor then
-    lcd.drawText(x+pad,rssiY,rssiTxt,valF+cfg.textColor)
-    local okR,twR,measuredH = pcall(lcd.sizeText,rssiTxt,valF)
-    if okR and type(measuredH)=="number" then thR=measuredH end
-  end
-  if cfg.labelColor then lcd.drawText(x+pad,rssiY+thR+2,"RSSI",sizeFlag(cfg,"rssiLabel",math.max(7,valSize*0.4))+cfg.labelColor) end
-  local footY=y+h-pad*1.6
-  local footF=sizeFlag(cfg,"footer",math.max(7,h*0.12))
-  local okF,twF,thF = pcall(lcd.sizeText,"PWR",footF)
-  if not okF or type(thF)~="number" then thF=16 end
-  if cfg.showTxPower~=false then
-    if cfg.labelColor then lcd.drawText(x+pad,footY,"PWR",footF+cfg.labelColor) end
-    if cfg.textColor then lcd.drawText(x+pad,footY+thF+2,string.format("%.0f",txPower).."mW",footF+cfg.textColor) end
-  end
-  if cfg.showRfMode~=false then
-    local rfText = (type(rfMode)=="string") and rfMode or tostring(rfMode)
-    if cfg.labelColor then lcd.drawText(x+w-pad,footY,"MODE",RIGHT+footF+cfg.labelColor) end
-    if cfg.textColor then lcd.drawText(x+w-pad,footY+thF+2,rfText,RIGHT+footF+cfg.textColor) end
+
+  -- Every section from here down is stacked sequentially off a running Y
+  -- cursor, using each line's own actually-measured height via
+  -- lcd.sizeText - the previous version computed the footer's position as
+  -- a fixed fraction up from the BOTTOM while everything above it grew
+  -- independently down from the TOP, with neither aware of the other.
+  -- That happened to work at the one size it was eyeballed against, but
+  -- at smaller heights the two sections collided instead of ever being
+  -- aware of each other - a real, reproducible layout bug, not just the
+  -- Lua export drifting from the editor (the editor had the same bug).
+  local pad = math.max(3,w*0.05)
+  local cursorY = y+pad*0.5
+
+  local titleF = sizeFlag(cfg,"title",math.max(7,h*0.14))
+  local okT,twT,thT = pcall(lcd.sizeText,"LINK",titleF)
+  if not okT or type(thT)~="number" then thT=16 end
+  if cfg.labelColor then lcd.drawText(x+pad,cursorY,"LINK",VTOP+titleF+cfg.labelColor) end
+  if lqColor then lcd.drawText(x+w-pad,cursorY,string.format("%.0f",lq).."% LQ",RIGHT+VTOP+titleF+lqColor) end
+  cursorY = cursorY + thT + pad*0.35
+
+  local barH = math.max(3,math.min(h*0.12,8))
+  if cfg.trackColor then lcd.drawFilledRectangle(x+pad,cursorY,w-pad*2,barH, cfg.trackColor) end
+  if lqColor then lcd.drawFilledRectangle(x+pad,cursorY,(w-pad*2)*clamp(lq/100,0,1),barH,lqColor) end
+  cursorY = cursorY + barH + pad*0.6
+
+  local valSize = math.max(10,h*0.24)
+  local valF = sizeFlag(cfg,"value",valSize)
+  local rssiTxt = string.format("%.0f",rssi).."dB"
+  local okR,twR,thR = pcall(lcd.sizeText,rssiTxt,valF)
+  if not okR or type(thR)~="number" then thR=16 end
+  if cfg.textColor then lcd.drawText(x+pad,cursorY,rssiTxt,VTOP+valF+cfg.textColor) end
+  cursorY = cursorY + thR
+
+  local rssiLabelF = sizeFlag(cfg,"rssiLabel",math.max(6,valSize*0.36))
+  local okRL,twRL,thRL = pcall(lcd.sizeText,"RSSI",rssiLabelF)
+  if not okRL or type(thRL)~="number" then thRL=12 end
+  if cfg.labelColor then lcd.drawText(x+pad,cursorY,"RSSI",VTOP+rssiLabelF+cfg.labelColor) end
+  cursorY = cursorY + thRL + pad*0.3
+
+  -- Footer (PWR / MODE): anchored near the bottom when there's slack, like
+  -- before, but never allowed to start above where the RSSI block above it
+  -- actually ended - so it shifts down (rather than overlapping) whenever
+  -- the box is too short for both to sit at their "usual" fixed spots.
+  if cfg.showTxPower~=false or cfg.showRfMode~=false then
+    local footF = sizeFlag(cfg,"footer",math.max(6,math.min(h*0.11,12)))
+    local okF,twF,thF = pcall(lcd.sizeText,"PWR",footF)
+    if not okF or type(thF)~="number" then thF=12 end
+    local footBlockH = thF*2
+    local footLabelY = math.max(cursorY, y+h-pad*0.5-footBlockH)
+    local footValueY = footLabelY + thF
+    if cfg.showTxPower~=false then
+      if cfg.labelColor then lcd.drawText(x+pad,footLabelY,"PWR",VTOP+footF+cfg.labelColor) end
+      if cfg.textColor then lcd.drawText(x+pad,footValueY,string.format("%.0f",txPower).."mW",VTOP+footF+cfg.textColor) end
+    end
+    if cfg.showRfMode~=false then
+      local rfText = (type(rfMode)=="string") and rfMode or tostring(rfMode)
+      if cfg.labelColor then lcd.drawText(x+w-pad,footLabelY,"MODE",RIGHT+VTOP+footF+cfg.labelColor) end
+      if cfg.textColor then lcd.drawText(x+w-pad,footValueY,rfText,RIGHT+VTOP+footF+cfg.textColor) end
+    end
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7445,17 +7584,13 @@ DRAW["gps-coords"]=function(x,y,w,h,cfg)
   local vf = fontFlag(valueResolvedPx)
   local textColor = cfg.textColor
   if textColor then
-    local okL,twL,thL = pcall(lcd.sizeText,"LAT "..latTxt,vf)
-    if not okL or type(thL)~="number" then thL=16 end
-    lcd.drawText(x+pad,y+rowH*0.55-thL/2,"LAT "..latTxt,vf+textColor)
-    lcd.drawText(x+pad,y+rowH*1.65-thL/2,"LON "..lonTxt,vf+textColor)
+    lcd.drawText(x+pad,y+rowH*0.55,"LAT "..latTxt,VCENTER+vf+textColor)
+    lcd.drawText(x+pad,y+rowH*1.65,"LON "..lonTxt,VCENTER+vf+textColor)
   end
   if showSats and cfg.labelColor then
     local satsF = sizeFlag(cfg,"sats",math.max(7,valueResolvedPx*0.6))
     local satsTxt = "SATS "..string.format("%.0f",sats)
-    local okS,twS,thS = pcall(lcd.sizeText,satsTxt,satsF)
-    if not okS or type(thS)~="number" then thS=12 end
-    lcd.drawText(x+pad,y+rowH*2.75-thS/2,satsTxt,satsF+cfg.labelColor)
+    lcd.drawText(x+pad,y+rowH*2.75,satsTxt,VCENTER+satsF+cfg.labelColor)
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7726,7 +7861,7 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
     strokeArc(cx,cy,r-math.max(3,r*0.05),startA,startA+pct*sweepDeg,cfg.arcColor,2)
   end
 
-  if cfg.showLabels~=false then
+  do
     local sf = sizeFlag(cfg,"scale",math.max(7,r*0.15))
     local v=0
     while v<=maxKmh do
@@ -7739,7 +7874,7 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
       local x0,y0=polar(cx,cy,r-4,ang)
       local x1,y1=polar(cx,cy,r-4-tLen,ang)
       if tickCol then lcd.drawLine(x0,y0,x1,y1,SOLID,tickCol) end
-      if isMajor then
+      if isMajor and cfg.showLabels~=false then
         local dist=r-math.max(20,r*0.35)
         local lx,ly=polar(cx,cy,dist,ang)
         centerTextIf(lx,ly,string.format("%.0f",v),sf,lblCol)
@@ -7858,7 +7993,13 @@ end
 
 DRAW["static-text"]=function(x,y,w,h,cfg)
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
-  local hasAccent = cfg.showAccent~=false and cfg.bgColor and cfg.accentColor
+  -- Independent of whether a background fill is set - matching JS, this
+  -- used to also require cfg.bgColor to be present, which meant a
+  -- transparent-background label (the default for this instrument) always
+  -- lost its accent bar too, even though the editor showed it fine (there,
+  -- "transparent" resolves to a checkerboard preview pattern rather than a
+  -- real absent value, so its own bgColor check accidentally passed).
+  local hasAccent = cfg.showAccent~=false and cfg.accentColor
   if hasAccent then
     local aw=math.max(2,math.min(5,w*0.04))
     local ax = (cfg.align=="right") and (x+w-aw) or x
@@ -7876,23 +8017,40 @@ DRAW["static-text"]=function(x,y,w,h,cfg)
   elseif cfg.align=="left" then tx=x+inset
   else align=CENTER end
   if cfg.textColor then
-    local ok,tw,th = pcall(lcd.sizeText,cfg.text or "",sizeF)
-    if not ok or type(th)~="number" then th=16 end
-    lcd.drawText(tx,y+h/2-th/2,cfg.text or "",align+sizeF+cfg.textColor)
+    lcd.drawText(tx,y+h/2,cfg.text or "",align+VCENTER+sizeF+cfg.textColor)
   end
 end
 
+-- Matches drawDial's actual value/label/unit layout exactly (this is the
+-- one Lua function backing the custom "dial" gauge's text) - the previous
+-- version used its own approximated formulas (h*0.3 for the value size,
+-- among others) that didn't correspond to any of the editor's actual
+-- per-instrument formulas, so the rendered size on real hardware could
+-- come out at a completely different tier than the editor showed - not a
+-- rounding-level mismatch, a wrong-tier one (e.g. 12px shown, 28px drawn).
 local function drawValueLabel(x,y,w,h,value,cfg)
+  local cx,cy = x+w/2, y+h/2
+  local r = math.max(8, math.min(w,h)/2-2)
   local digits=cfg.digits or 0
   local text=string.format("%."..digits.."f",value)
-  if cfg.unit and cfg.unit~="" then text=text..cfg.unit end
-  local vSize=sizeFlag(cfg,"value",math.max(10,h*0.3))
-  centerTextIf(x+w/2,y+h/2,text,vSize,cfg.color)
-  if cfg.label and cfg.label~="" and cfg.labelColor then
-    local lSize=sizeFlag(cfg,"label",math.max(7,h*0.14))
-    local ok,tw,th = pcall(lcd.sizeText,cfg.label,lSize)
-    if not ok or type(th)~="number" then th=16 end
-    lcd.drawText(x+w/2,y+h-2-th,cfg.label,CENTER+lSize+cfg.labelColor)
+  if cfg.showValue~=false and cfg.color then
+    local vAutoPx = math.max(9,r*0.2)
+    local vSize=sizeFlag(cfg,"value",vAutoPx)
+    if cfg.showValueBox~=false and cfg.valueBoxColor then
+      local ok,tw,th = pcall(lcd.sizeText,text,vSize)
+      if not ok then tw=#text*10; th=16 end
+      local boxPad = vAutoPx*0.3
+      lcd.drawFilledRectangle(cx-(tw or 20)/2-boxPad, cy+r*0.42-(th or 16)/2-boxPad*0.5, (tw or 20)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
+    end
+    centerText(cx,cy+r*0.42,text,vSize,cfg.color)
+  end
+  if cfg.showLabel~=false and cfg.label and cfg.label~="" and cfg.labelColor then
+    local lSize=sizeFlag(cfg,"label",math.max(8,r*0.13))
+    centerText(cx,cy-r*0.35,cfg.label,lSize,cfg.labelColor)
+  end
+  if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
+    local uSize=sizeFlag(cfg,"unit",math.max(7,r*0.11))
+    centerText(cx,cy+r*0.62,cfg.unit,uSize,cfg.labelColor)
   end
 end
 
@@ -8155,9 +8313,21 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1)
   end
   local leftInset = hasAccent and math.max(8,w*0.09) or 5
+  -- labelBottom tracks where the label text actually ends (measured, not
+  -- assumed) so the value below it can never start above that point - a
+  -- fixed bottom-anchored position for the value (h-vh-3) looks fine at
+  -- generous sizes, but at a small box the two can collide regardless of
+  -- how correctly each one's own size is computed, since real hardware's
+  -- font metrics leave a much smaller safety margin than expected between
+  -- a top-anchored label and a bottom-anchored value.
+  local labelBottom = y+2
   if cfg.showLabel~=false and cfg.label and cfg.label~="" and cfg.labelColor then
     local lSize=sizeFlag(cfg,"label",math.max(7,h*0.2))
-    lcd.drawText(x+leftInset,y+3,string.upper(cfg.label),lSize+cfg.labelColor)
+    local labelTxt = string.upper(cfg.label)
+    local okL,twL,thL = pcall(lcd.sizeText,labelTxt,lSize)
+    if not okL or type(thL)~="number" then thL=16 end
+    lcd.drawText(x+leftInset,y+2,labelTxt,VTOP+lSize+cfg.labelColor)
+    labelBottom = y+2+thL
   end
   if cfg.showValue~=false and color then
     -- Matches JS's vfs*0.42 relationship: the unit's auto size is derived
@@ -8169,14 +8339,18 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     local vSize=fontFlag(valueResolvedPx)
     local valTxt=string.format("%."..(cfg.digits or 0).."f",value)
     local ok,vw,vh = pcall(lcd.sizeText,valTxt,vSize)
-    if not ok then vw=nil; vh=nil end
-    local vy = y+h-(vh or 16)-3
-    lcd.drawText(x+leftInset,vy,valTxt,vSize+color)
+    if not ok then vw=30; vh=16 end
+    -- VBOTTOM anchors the actual draw at the real hardware baseline
+    -- directly, rather than computing a top-left position from a
+    -- subtraction that's only as accurate as this measurement - used for
+    -- both the value AND the unit at the same Y, so the two stay
+    -- correctly bottom-aligned with each other even if either measurement
+    -- is slightly off.
+    local valueBottom = math.max(y+h-3, labelBottom+1+(vh or 16))
+    lcd.drawText(x+leftInset,valueBottom,valTxt,VBOTTOM+vSize+color)
     if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
       local uSize=sizeFlag(cfg,"unit",math.max(7,valueResolvedPx*0.42))
-      local okU,uw,uh = pcall(lcd.sizeText,cfg.unit,uSize)
-      if not okU or type(uh)~="number" then uh=12 end
-      lcd.drawText(x+leftInset+(vw or 30)+3,vy+(vh or 16)-uh,cfg.unit,uSize+cfg.labelColor)
+      lcd.drawText(x+leftInset+(vw or 30)+3,valueBottom,cfg.unit,VBOTTOM+uSize+cfg.labelColor)
     end
   end
 end
