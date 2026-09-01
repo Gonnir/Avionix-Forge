@@ -2211,6 +2211,7 @@ function renderProperties(){
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Decimal Places</label><input type="number" data-cfg="decimals" value="${c.decimals!==undefined?c.decimals:4}" min="0" max="7" step="1"></div>`;
     html+=checkboxField('showSats','Show Satellite Count',c.showSats!==false);
     html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=`<div class="field"><label class="field-label">Row Spacing</label><input type="number" data-cfg="rowSpacing" value="${c.rowSpacing!==undefined?c.rowSpacing:1}" min="0" max="4" step="0.1"><span class="field-hint">Multiplies the gap between the LAT/LON/SATS rows - 1 is the default spacing, higher spreads them further apart, lower pulls them closer together.</span></div>`;
     html+=gaugeTextSection(c,[['value','LAT / LON Value'],['sats','SATS Label']]);
   } else if(inst.type==='qr-code'){
     html+=colorField('QR Background','bgColor',c.bgColor||'#ffffff');
@@ -3498,7 +3499,16 @@ function drawInstrument(ctx,inst){
   const gm=(id,suffix)=>getSensorForInst(id,inst.config,suffix); // resolves virtual sources like CELL_VOLTAGE
   switch(inst.type){
     case 'artificial-horizon': drawAI(ctx,w,h,gm(c.mavSource),gm(c.mavSource2,'2'),c); break;
-    case 'turn-coordinator': drawTurnCoordinator(ctx,w,h,gm(c.mavSource),gm(c.slipSource),c); break;
+    case 'turn-coordinator': {
+      // Same backfill rationale as compass/altimeter-dial/home-distance
+      // above - a project saved before borderColor was set on this
+      // instrument (or one that never had it touched) has no other way to
+      // pick it up, and silently loses its border outright rather than
+      // falling back to a visible one.
+      if(c.borderColor===undefined) c.borderColor='#3a4555';
+      drawTurnCoordinator(ctx,w,h,gm(c.mavSource),gm(c.slipSource),c);
+      break;
+    }
     case 'compass': {
       // Backfill for projects saved before valueBoxColor existed as its
       // own field on this instrument - without it, the heading-readout box
@@ -4046,7 +4056,16 @@ function drawAI(ctx,w,h,roll,pitch,c){
     ctx.font=`${gSize(c,'ladder',Math.max(7,r*0.12))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const pitchRange = c.pitchLadderRange>0 ? c.pitchLadderRange : 30;
-    for(let p=-pitchRange;p<=pitchRange;p+=10){
+    // Only compute rungs that could plausibly land within the visible box
+    // for THIS frame's pitch - see the matching comment in the Lua export
+    // for why iterating the full user-specified range unconditionally was
+    // pure wasted work for any pitch away from the extremes, and a real
+    // risk against EdgeTX's per-frame instruction budget on export.
+    const maxVisibleLy = Math.sqrt((w/2)*(w/2)+(h/2)*(h/2)) + r*0.45 + Math.max(5,r*0.09) + 4;
+    const visibleSpan = maxVisibleLy/pxPerDeg;
+    const loP = Math.max(-pitchRange, Math.floor((pitch-visibleSpan)/10)*10);
+    const hiP = Math.min(pitchRange, Math.ceil((pitch+visibleSpan)/10)*10);
+    for(let p=loP;p<=hiP;p+=10){
       if(p===0) continue;
       const rungColor = p>0 ? ladderLineColorUp : ladderLineColorDown;
       const labelColor2 = p>0 ? ladderLabelColorUp : ladderLabelColorDown;
@@ -4916,16 +4935,24 @@ function drawGpsCoords(ctx,w,h,lat,lon,sats,c){
   const lonTxt=Math.abs(lon).toFixed(dec)+'°'+ew;
   const pad=Math.max(4,w*0.05);
   const rowH=(c.showSats!==false)?h*0.32:h*0.42;
+  // rowSpacing scales the GAP between rows (a multiplier, default 1 - the
+  // original fixed spacing) while keeping the first row's own position
+  // fixed, so the default layout is identical to before and existing
+  // designs don't shift when this field is left untouched.
+  const rowGap = c.rowSpacing!==undefined ? c.rowSpacing : 1;
+  const latY = rowH*0.9;
+  const lonY = latY + rowH*1.1*rowGap;
+  const satsY = lonY + rowH*1.0*rowGap;
   const valSize=gSize(c,'value',Math.max(9,rowH*0.62));
   ctx.font=`bold ${valSize}px Montserrat`;
   ctx.fillStyle=textCol;
   ctx.textAlign='left'; ctx.textBaseline='middle';
-  gText(ctx,c,'value','LAT '+latTxt,pad,rowH*0.9);
-  gText(ctx,c,'value','LON '+lonTxt,pad,rowH*2.0);
+  gText(ctx,c,'value','LAT '+latTxt,pad,latY);
+  gText(ctx,c,'value','LON '+lonTxt,pad,lonY);
   if(c.showSats!==false){
     ctx.font=`${gSize(c,'sats',Math.max(7,valSize*0.6))}px Montserrat`;
     ctx.fillStyle=labelCol;
-    gText(ctx,c,'sats','SATS '+Math.round(sats),pad,rowH*3.0);
+    gText(ctx,c,'sats','SATS '+Math.round(sats),pad,satsY);
   }
   if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
 }
@@ -5514,7 +5541,7 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
     if(isMajor&&c.showLabels!==false){
       const dist=r-Math.max(20,r*0.35);
       ctx.fillStyle=lblCol;
-      ctx.fillText(v.toString(),cx+Math.cos(angle)*dist,cy+Math.sin(angle)*dist);
+      gText(ctx,c,'scale',v.toString(),cx+Math.cos(angle)*dist,cy+Math.sin(angle)*dist);
     }
   }
 
@@ -5594,7 +5621,7 @@ const EDGETX_FONT_TIERS = [
   {id:'dbl', name:'Double (DBLSIZE)',   px:28, luaFlag:'DBLSIZE'},
   {id:'xxl', name:'Jumbo (XXLSIZE)',    px:54, luaFlag:'XXLSIZE'}
 ];
-function nearestFontTier(px){
+function nearestFontTier(px, stepDown){
   // Rounds DOWN to the next available tier rather than to whichever is
   // numerically closest - an auto-computed size that doesn't land exactly
   // on one of the 6 real tiers always prefers the smaller, guaranteed-to-
@@ -5602,25 +5629,35 @@ function nearestFontTier(px){
   // being sized to fit into. EDGETX_FONT_TIERS is defined smallest-first,
   // so this keeps the largest tier at or below px, falling back to the
   // smallest tier (TINSIZE) if px doesn't even reach that.
-  let chosen=EDGETX_FONT_TIERS[0];
-  for(const t of EDGETX_FONT_TIERS){
-    if(t.px<=px) chosen=t;
+  let idx=0;
+  for(let i=0;i<EDGETX_FONT_TIERS.length;i++){
+    if(EDGETX_FONT_TIERS[i].px<=px) idx=i;
     else break;
   }
-  return chosen;
+  // stepDown pulls the AUTO-FIT result one additional tier smaller still -
+  // the floor-rounding above already avoids rounding UP, but the auto-fit
+  // formulas throughout this app (h*0.52, r*0.2, etc) were calibrated a
+  // touch large relative to how big the corresponding tier actually reads
+  // on real hardware, consistently reported as "one size too big" even
+  // after floor-rounding alone. This only ever applies to the auto-fit
+  // path - an explicit size the user picked is never adjusted.
+  if(stepDown) idx=Math.max(0,idx-1);
+  return EDGETX_FONT_TIERS[idx];
 }
-// Snaps a desired auto-fit pixel size to the nearest real hardware tier.
+// Snaps a desired auto-fit pixel size to the nearest real hardware tier,
+// stepped one size down from floor-rounding alone (see nearestFontTier).
 // Sizes above XXLSIZE still clamp to it (54px) - that genuinely is the
 // largest text EdgeTX can draw without a custom bitmap font, so a very
 // large text element legitimately stops growing there rather than this
 // being a bug; the gap just reads as intentional headroom in the box.
-function snapFontSize(px){ return nearestFontTier(px).px; }
+function snapFontSize(px){ return nearestFontTier(px,true).px; }
 
 // Every text element in a gauge supports an optional explicit size (picked
 // from GFX_SIZE_OPTIONS, all real EdgeTX tiers) and an X/Y nudge. Leaving
 // the size on Auto snaps to the nearest hardware tier for the instrument's
 // current dimensions, so the preview never implies a size the exported Lua
-// script can't actually produce.
+// script can't actually produce. An explicit choice is used exactly as
+// picked - only the auto-fit path gets the extra size-down step.
 function gSize(c,key,auto){
   const v=parseFloat(c[key+'Size']);
   return (isFinite(v)&&v>0)?v:snapFontSize(auto);
@@ -6488,19 +6525,32 @@ end
 -- continuum - so every text element here snaps to whichever of these is
 -- closest, matching the same tiers the editor preview uses. Breakpoints
 -- are the midpoints between tiers (12/16/21/28/54px).
-local function fontFlag(px)
+local FONT_TIER_PX = {8,12,16,21,28,54}
+local FONT_TIER_FLAG = {TINSIZE,SMLSIZE,0,MIDSIZE,DBLSIZE,XXLSIZE}
+-- Resolves an auto-fit pixel size to its actual tier, returning both the
+-- resolved pixel value (for chaining into further "relative to this
+-- text's real rendered size" calculations, e.g. a unit sized off its
+-- value's size) and the EdgeTX flag to draw with.
+local function resolvedTier(px, stepDown)
+  local idx = 1
+  for i=1,6 do
+    if FONT_TIER_PX[i]<=px then idx=i else break end
+  end
+  -- stepDown pulls the AUTO-FIT result one additional tier smaller still -
+  -- see the matching comment on nearestFontTier in the editor for why:
+  -- floor-rounding alone still left the auto-fit formulas throughout this
+  -- app reading a touch large relative to how big the corresponding tier
+  -- actually is on real hardware. Only ever applied to the auto-fit path -
+  -- an explicit size the user picked is never adjusted.
+  if stepDown then idx = math.max(1, idx-1) end
+  return FONT_TIER_PX[idx], FONT_TIER_FLAG[idx]
+end
+local function fontFlag(px, stepDown)
   -- Rounds DOWN to the next available tier rather than to whichever is
-  -- numerically closest - matches nearestFontTier's new floor behavior in
-  -- the editor exactly. An auto-computed size that doesn't land exactly on
-  -- one of the 6 real tiers (8/12/16/21/28/54) always prefers the smaller,
-  -- guaranteed-to-fit option over a larger one that risks overflowing the
-  -- space it was being sized to fit into.
-  if px<12 then return TINSIZE
-  elseif px<16 then return SMLSIZE
-  elseif px<21 then return 0
-  elseif px<28 then return MIDSIZE
-  elseif px<54 then return DBLSIZE
-  else return XXLSIZE end
+  -- numerically closest - matches nearestFontTier's floor behavior in the
+  -- editor exactly.
+  local _, flag = resolvedTier(px, stepDown)
+  return flag
 end
 -- Reads an optional explicit size (from the editor's size dropdown, stored
 -- in pixels) for a given text element, falling back to an auto-fit size
@@ -6508,7 +6558,7 @@ end
 local function sizeFlag(cfg,key,autoPx)
   local v=cfg[key.."Size"]
   if type(v)=="number" and v>0 then return fontFlag(v) end
-  return fontFlag(autoPx)
+  return fontFlag(autoPx, true)
 end
 
 -- ==== QR Code encoder — EdgeTX-safe resumable build (fixed v3-L, mask 2) ====
@@ -6937,16 +6987,45 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
       lcd.drawFilledTriangle(groundPts[1][1],groundPts[1][2], groundPts[i][1],groundPts[i][2], groundPts[i+1][1],groundPts[i+1][2], cfg.groundColor)
     end
   end
-  -- The horizon line itself stays a fixed-length line (not a filled area),
-  -- so a small overshoot past the box here is just a thin line extending a
-  -- little further than needed - nowhere near the visual impact of a
-  -- filled polygon doing the same.
+  -- The horizon line: for a circular AH, clipped against the circle
+  -- itself via a standard line-circle intersection (not the 24-gon
+  -- approximation used for the ground fill - solving the quadratic
+  -- directly is exact and simpler for a single line than repeated
+  -- polygon-edge clipping). Previously this stayed at the box's full
+  -- diagonal unconditionally, reasoned to be an acceptable minor overshoot
+  -- since it's "only a thin line" - but that reasoning doesn't hold once
+  -- it's visibly poking out past the drawn disc's edge, which is exactly
+  -- what was reported.
   local len = diag
   local hx1=cx-cA*len+ox
   local hy1=cy-sA*len+oy
   local hx2=cx+cA*len+ox
   local hy2=cy+sA*len+oy
-  if cfg.lineColor then lcd.drawLine(hx1,hy1,hx2,hy2,SOLID, cfg.lineColor) end
+  local drawHorizonLine = true
+  if isCircle then
+    local dx,dy = hx2-hx1, hy2-hy1
+    local fx,fy = hx1-cx, hy1-cy
+    local a = dx*dx+dy*dy
+    local b = 2*(fx*dx+fy*dy)
+    local cc = fx*fx+fy*fy-r*r
+    local disc = b*b-4*a*cc
+    if a>0 and disc>=0 then
+      disc = math.sqrt(disc)
+      local t1 = clamp((-b-disc)/(2*a),0,1)
+      local t2 = clamp((-b+disc)/(2*a),0,1)
+      local nx1,ny1 = hx1+dx*t1, hy1+dy*t1
+      local nx2,ny2 = hx1+dx*t2, hy1+dy*t2
+      hx1,hy1,hx2,hy2 = nx1,ny1,nx2,ny2
+    else
+      -- The line's infinite extension doesn't cross the circle at all -
+      -- happens at extreme pitch, where the whole visible disc is either
+      -- entirely sky or entirely ground with no horizon in view. Nothing
+      -- to draw here, rather than falling back to the original unclipped
+      -- (and far-overshooting) endpoints.
+      drawHorizonLine = false
+    end
+  end
+  if drawHorizonLine and cfg.lineColor then lcd.drawLine(hx1,hy1,hx2,hy2,SOLID, cfg.lineColor) end
 
   -- Pitch ladder: rungs at +-10/20/30deg from the horizon, rotating with
   -- roll and shifting with pitch - same construction as a real synthetic-
@@ -6961,8 +7040,22 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
     local showPitchLabels = cfg.showPitchLabels~=false
     local pitchRange = (cfg.pitchLadderRange and cfg.pitchLadderRange>0) and cfg.pitchLadderRange or 30
     local lf = sizeFlag(cfg,"ladder",math.max(7,r*0.12))
-    local p=-pitchRange
-    while p<=pitchRange do
+    -- Only compute rungs that could plausibly land within the visible box
+    -- for THIS frame's pitch, rather than the full user-specified range
+    -- unconditionally. ly (each rung's offset) depends on (pitch-p), so
+    -- for any given live pitch only a narrow window of p around it can
+    -- ever be on-screen - the rest was pure wasted computation every
+    -- single frame. That waste scales directly with pitchLadderRange, and
+    -- at large values (some setups use 90 instead of the 30 default) is
+    -- real risk against EdgeTX's per-frame Lua instruction budget: enough
+    -- wasted work in one instrument can silently cut the whole script off
+    -- mid-frame, taking every instrument drawn after it with it.
+    local maxVisibleLy = math.sqrt((w/2)*(w/2)+(h/2)*(h/2)) + r*0.45 + math.max(5,r*0.09) + 4
+    local visibleSpan = maxVisibleLy/pxPerDeg
+    local loP = math.max(-pitchRange, math.floor((pitch-visibleSpan)/10)*10)
+    local hiP = math.min(pitchRange, math.ceil((pitch+visibleSpan)/10)*10)
+    local p=loP
+    while p<=hiP do
       if p~=0 then
         local rungColor = (p>0) and ladderUp or ladderDown
         local labelColor = (p>0) and ladderLabelUp or ladderLabelDown
@@ -6991,8 +7084,14 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
             leftOk = lax>=x+2 and lax<=x+w-2 and lay>=y+2 and lay<=y+h-2
             rightOk = rax>=x+2 and rax<=x+w-2 and ray>=y+2 and ray<=y+h-2
           end
-          if leftOk then centerText(lax,lay,labelTxt,lf,labelColor) end
-          if rightOk then centerText(rax,ray,labelTxt,lf,labelColor) end
+          if leftOk then
+            local odx,ody = (cfg.ladderDX or 0),(cfg.ladderDY or 0)
+            centerText(lax-odx,lay+ody,labelTxt,lf,labelColor)
+          end
+          if rightOk then
+            local odx,ody = (cfg.ladderDX or 0),(cfg.ladderDY or 0)
+            centerText(rax+odx,ray+ody,labelTxt,lf,labelColor)
+          end
         end
       end
       p=p+10
@@ -7181,6 +7280,7 @@ DRAW["altimeter-dial"] = function(x,y,w,h,cfg)
       if isMajor and cfg.showLabels~=false then
         local num = i/5
         local tx,ty = polar(cx,cy,r-26-edgeDist-labelInset,a)
+        tx,ty = offsetXY(cfg,"scale",tx,ty)
         centerTextIf(tx,ty,string.format("%.0f",num),sf,cfg.labelColor)
       end
     end
@@ -7207,13 +7307,14 @@ DRAW["altimeter-dial"] = function(x,y,w,h,cfg)
     local digTxt = string.format("%.0f",alt).." "..unitLabel
     local digAutoPx = math.max(8,r*0.14)
     local digSize = sizeFlag(cfg,"digital",digAutoPx)
+    local dcx,dcy = offsetXY(cfg,"digital",cx,cy+r*0.55)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,digTxt,digSize)
       if not ok then tw=#digTxt*10; th=16 end
       local boxPad = digAutoPx*0.35
-      lcd.drawFilledRectangle(cx-(tw or 30)/2-boxPad, cy+r*0.55-(th or 16)/2-boxPad*0.5, (tw or 30)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
+      lcd.drawFilledRectangle(dcx-(tw or 30)/2-boxPad, dcy-(th or 16)/2-boxPad*0.5, (tw or 30)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
     end
-    centerText(cx,cy+r*0.55,digTxt,digSize,cfg.digitalColor)
+    centerText(dcx,dcy,digTxt,digSize,cfg.digitalColor)
   end
 end
 
@@ -7277,7 +7378,8 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
         local labelX = mirrored and (x+w*tickInEff+w*0.05) or (x+w*tickInEff-w*0.05)
         local flags = mirrored and LEFT or RIGHT
         local labelTxt = string.format("%.0f",v)
-        lcd.drawText(labelX,ty,labelTxt,flags+VCENTER+sf+txtColor)
+        local ltx,lty = offsetXY(cfg,"scale",labelX,ty)
+        lcd.drawText(ltx,lty,labelTxt,flags+VCENTER+sf+txtColor)
       end
     end
     i=i+1
@@ -7305,13 +7407,15 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     local boxX = mirrored and (x+w*0.95-boxW) or (x+w*0.05)
     lcd.drawFilledRectangle(boxX,cy-bh/2,boxW,bh, cfg.boxBgColor or ptrColor)
     if cfg.valueTextColor then
-      lcd.drawText(boxX+5,cy,valTxt, VCENTER+vf+cfg.valueTextColor)
+      local vtx,vty = offsetXY(cfg,"value",boxX+5,cy)
+      lcd.drawText(vtx,vty,valTxt, VCENTER+vf+cfg.valueTextColor)
     end
   end
 
   if cfg.showUnit~=false and unit~="" then
     local uf = sizeFlag(cfg,"unit",math.max(7,w*0.12))
-    centerTextIf(x+w/2,y+h-math.max(6,h*0.04),unit,uf,tickCol)
+    local utx,uty = offsetXY(cfg,"unit",x+w/2,y+h-math.max(6,h*0.04))
+    centerTextIf(utx,uty,unit,uf,tickCol)
   end
 end
 DRAW["altimeter-tape"]=function(x,y,w,h,cfg) drawTapeGeneric(x,y,w,h,cfg,0,1000,"m") end
@@ -7346,6 +7450,12 @@ DRAW["vsi"]=function(x,y,w,h,cfg)
   local totalSteps = math.floor(divisions*subDiv+0.5)
   local tickColor = cfg.tickColor
   local subColor = cfg.subTickColor or tickColor
+  -- Was hardcoded to SMLSIZE regardless of any size setting - completely
+  -- ignoring both the auto-fit formula AND an explicit override, so
+  -- picking e.g. Tiny for the tick numbers had no effect on the exported
+  -- Lua at all, even though the editor preview (which did use gSize
+  -- correctly) showed it changing.
+  local scaleF = sizeFlag(cfg,"scale",math.max(7,r*0.14))
 
   -- startDeg/sweepDeg follow the editor's canvas-style convention (0deg=3
   -- o'clock); +90 converts to this script's compass convention (0deg=up)
@@ -7360,8 +7470,9 @@ DRAW["vsi"]=function(x,y,w,h,cfg)
     local col = isMajor and tickColor or subColor
     if col then lcd.drawLine(x0,y0,x1,y1,SOLID,col) end
     if isMajor and cfg.showLabels~=false and math.floor(v+0.5)~=0 then
-      local lx,ly = polar(cx,cy,r-16,compassA)
-      centerTextIf(lx,ly,string.format("%.0f",v),SMLSIZE,cfg.labelColor)
+      local lx,ly = polar(cx,cy,r-16-(cfg.labelInset or 0),compassA)
+      lx,ly = offsetXY(cfg,"scale",lx,ly)
+      centerTextIf(lx,ly,string.format("%.0f",v),scaleF,cfg.labelColor)
     end
   end
 
@@ -7428,7 +7539,8 @@ local function drawHeadingTapeGeneric(x,y,w,h,cfg)
         elseif norm==180 then label="S" elseif norm==270 then label="W"
         else label=string.format("%03d",norm) end
         local col = (norm==0) and (cfg.northColor or txtColor) or txtColor
-        centerTextIf(xx,y+h*0.78,label,sf,col)
+        local stx,sty = offsetXY(cfg,"scale",xx,y+h*0.78)
+        centerTextIf(stx,sty,label,sf,col)
       end
     end
     i=i+1
@@ -7452,11 +7564,128 @@ local function drawHeadingTapeGeneric(x,y,w,h,cfg)
     local bw = math.max(28,(tw or 30)+10)
     local bh = math.max((thh or 20)+4, h*0.33)
     lcd.drawFilledRectangle(cx-bw/2,y+h-bh-1,bw,bh, cfg.boxBgColor or ptrColor)
-    centerTextIf(cx,y+h-bh/2-1,valTxt,vf,cfg.valueTextColor)
+    local htx,hty = offsetXY(cfg,"value",cx,y+h-bh/2-1)
+    centerTextIf(htx,hty,valTxt,vf,cfg.valueTextColor)
   end
 end
 DRAW["heading-tape"]=drawHeadingTapeGeneric
-DRAW["heading-arc"]=drawHeadingTapeGeneric
+
+-- Heading Arc: a genuinely distinct curved instrument (a "smile" or
+-- "frown" shaped scale), not the same shape as Heading Tape - the editor
+-- has always drawn this as an arc via its own dedicated drawHeadingArc,
+-- but this Lua export was aliasing straight-tape code for it, meaning the
+-- exported widget rendered the wrong instrument shape entirely. The arc's
+-- own circle centre sits outside the box (below when normal, above when
+-- flipped); the visible scale is just a slice of that circle.
+DRAW["heading-arc"]=function(x,y,w,h,cfg)
+  local heading=readSensor(cfg,"mavSource","")
+  if type(heading)~="number" then heading=0 end
+  local ptrColor=cfg.pointerColor
+  local txtColor=cfg.textColor
+  local tickCol=cfg.tickColor
+  local flipped = cfg.flipped and true or false
+
+  if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
+  if cfg.showBorder~=false and cfg.borderColor then
+    lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1)
+  end
+
+  -- apexY is where the current-heading point sits - top of the box
+  -- normally (pointer hangs down into it, matching Heading Tape), bottom
+  -- when flipped (pointer rises up into it instead).
+  local apexY = y + (flipped and h*0.85 or h*0.15)
+  local arcSweep = (cfg.arcSweepDeg and cfg.arcSweepDeg>0) and cfg.arcSweepDeg or 70
+  local headingRange = 90
+  local degPerHeadingDeg = arcSweep/headingRange
+  local halfSweepRad = math.rad(arcSweep/2)
+  local radius = (w*0.42)/math.sin(halfSweepRad)
+  local acx = x+w/2
+  local acy = flipped and (apexY-radius) or (apexY+radius)
+  -- Apex angle is 270deg (straight up from a centre below) when normal, or
+  -- 90deg (straight down from a centre above) when flipped. The sign on
+  -- angOffset flips too, so a higher heading value still moves the tick
+  -- rightward either way - only the vertical bend direction changes.
+  local apexAngle = flipped and 90 or 270
+  local angSign = flipped and -1 or 1
+
+  local sf = sizeFlag(cfg,"scale",math.max(8,h*0.22))
+  local startH = math.floor((heading-45)/10)*10
+  local showTicks = cfg.showTicks~=false
+  local subCount = math.max(0, math.floor((cfg.subTicks or 0)+0.5))
+  local subDiv = subCount+1
+  local subCol = cfg.subTickColor or tickCol
+  local majTickLenPx = (cfg.majorTickLen~=nil) and cfg.majorTickLen or h*0.22
+  local minTickLenPx = (cfg.minorTickLen~=nil) and cfg.minorTickLen or h*0.12
+  local labelGap = h*0.16
+  local fineStep = 10/subDiv
+  local nSteps = math.ceil(90/fineStep)+subDiv*2
+  local labelStep = (cfg.labelStep and cfg.labelStep>0) and cfg.labelStep or 30
+
+  local i=0
+  while i<=nSteps do
+    local a = startH + i*fineStep
+    if a > heading+45 then break end
+    local angOffset=(a-heading)*degPerHeadingDeg
+    if math.abs(angOffset)<=arcSweep/2+0.01 then
+      local tickAngle=math.rad(apexAngle+angSign*angOffset)
+      local ca,sa=math.cos(tickAngle),math.sin(tickAngle)
+      local isMajor = (i % subDiv)==0
+      local norm=((a%360)+360)%360
+      local tickLen = isMajor and majTickLenPx or minTickLenPx
+      local innerR = radius-tickLen
+      if showTicks then
+        local tc = isMajor and tickCol or subCol
+        if tc then lcd.drawLine(acx+ca*radius,acy+sa*radius,acx+ca*innerR,acy+sa*innerR,SOLID,tc) end
+      end
+      if isMajor and (norm % labelStep)==0 and cfg.showLabels~=false then
+        local labelR=innerR-labelGap
+        local label
+        if norm==0 then label="N" elseif norm==90 then label="E"
+        elseif norm==180 then label="S" elseif norm==270 then label="W"
+        else label=string.format("%03d",norm) end
+        local col = (norm==0) and (cfg.northColor or txtColor) or txtColor
+        local ltx,lty = offsetXY(cfg,"scale",acx+ca*labelR,acy+sa*labelR)
+        centerTextIf(ltx,lty,label,sf,col)
+      end
+    end
+    i=i+1
+  end
+
+  -- Same construction as Heading Tape's pointer, mirrored vertically when
+  -- flipped: normally a flat base at the top edge with the apex hanging
+  -- down into the ticks; flipped, a flat base at the bottom edge with the
+  -- apex rising up into the ticks instead.
+  if cfg.showPointer~=false and ptrColor then
+    local pw=math.max(3,w*0.02)
+    if flipped then
+      lcd.drawFilledTriangle(acx,apexY,acx-pw,y+h,acx+pw,y+h,ptrColor)
+      lcd.drawFilledRectangle(acx-1,apexY-2,2,y+h-apexY+2,ptrColor)
+    else
+      lcd.drawFilledTriangle(acx,apexY,acx-pw,y,acx+pw,y,ptrColor)
+      lcd.drawFilledRectangle(acx-1,y,2,apexY-y+2,ptrColor)
+    end
+  end
+
+  if cfg.showValue~=false then
+    local valTxt=string.format("%03d",math.floor(((heading%360)+360)%360+0.5))
+    local vSize=sizeFlag(cfg,"value",math.max(9,h*0.24))
+    local ok,tw,thh = pcall(lcd.sizeText,valTxt,vSize)
+    if not ok then tw=nil; thh=nil end
+    local bw2=math.max(28,(tw or 30)+vSize*0.5)
+    local bh=math.max(8*math.floor(vSize/8+0.5)+4, h*0.26)
+    -- Value box sits opposite the arc's apex - bottom of the box normally
+    -- (arc occupies the top), top of the box when flipped (arc occupies
+    -- the bottom instead).
+    local boxY = flipped and (y+1) or (y+h-bh-1)
+    local bx,by = offsetXY(cfg,"value", acx-bw2/2, boxY)
+    if cfg.boxBgColor or ptrColor then
+      lcd.drawFilledRectangle(bx,by,bw2,bh,cfg.boxBgColor or ptrColor)
+    end
+    if cfg.valueTextColor then
+      centerText(bx+bw2/2,by+bh/2,valTxt,vSize,cfg.valueTextColor)
+    end
+  end
+end
 
 DRAW["mode-indicator"]=function(x,y,w,h,cfg)
   local mode=readSensor(cfg,"mavSource","")
@@ -7465,7 +7694,8 @@ DRAW["mode-indicator"]=function(x,y,w,h,cfg)
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 2) end
   if cfg.showText~=false then
-    centerTextIf(x+w/2,y+h/2,text,sizeFlag(cfg,"mode",math.max(9,h*0.4)),col)
+    local mtx,mty = offsetXY(cfg,"mode",x+w/2,y+h/2)
+    centerTextIf(mtx,mty,text,sizeFlag(cfg,"mode",math.max(9,h*0.4)),col)
   end
 end
 
@@ -7636,6 +7866,13 @@ DRAW["gps-coords"]=function(x,y,w,h,cfg)
   local pad = math.max(4,w*0.05)
   local showSats = cfg.showSats~=false
   local rowH = showSats and h*0.32 or h*0.42
+  -- rowSpacing scales the GAP between rows (a multiplier, default 1 - the
+  -- original fixed spacing) while keeping the first row's own position
+  -- fixed, matching the same field in the editor.
+  local rowGap = (cfg.rowSpacing ~= nil) and cfg.rowSpacing or 1
+  local latY = y+rowH*0.55
+  local lonY = latY + rowH*1.1*rowGap
+  local satsY = lonY + rowH*1.1*rowGap
   -- Same vf*0.6 relationship as JS's SATS-relative-to-value sizing (see
   -- text-value's unit for the same pattern) - needs the resolved raw pixel
   -- size, not just the flag, since a flag constant can't be scaled further.
@@ -7644,15 +7881,15 @@ DRAW["gps-coords"]=function(x,y,w,h,cfg)
   local vf = fontFlag(valueResolvedPx)
   local textColor = cfg.textColor
   if textColor then
-    local tx1,ty1 = offsetXY(cfg,"value",x+pad,y+rowH*0.55)
+    local tx1,ty1 = offsetXY(cfg,"value",x+pad,latY)
     lcd.drawText(tx1,ty1,"LAT "..latTxt,VCENTER+vf+textColor)
-    local tx2,ty2 = offsetXY(cfg,"value",x+pad,y+rowH*1.65)
+    local tx2,ty2 = offsetXY(cfg,"value",x+pad,lonY)
     lcd.drawText(tx2,ty2,"LON "..lonTxt,VCENTER+vf+textColor)
   end
   if showSats and cfg.labelColor then
     local satsF = sizeFlag(cfg,"sats",math.max(7,valueResolvedPx*0.6))
     local satsTxt = "SATS "..string.format("%.0f",sats)
-    local tx3,ty3 = offsetXY(cfg,"sats",x+pad,y+rowH*2.75)
+    local tx3,ty3 = offsetXY(cfg,"sats",x+pad,satsY)
     lcd.drawText(tx3,ty3,satsTxt,VCENTER+satsF+cfg.labelColor)
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
@@ -7940,6 +8177,7 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
       if isMajor and cfg.showLabels~=false then
         local dist=r-math.max(20,r*0.35)
         local lx,ly=polar(cx,cy,dist,ang)
+        lx,ly = offsetXY(cfg,"scale",lx,ly)
         centerTextIf(lx,ly,string.format("%.0f",v),sf,lblCol)
       end
       v=v+minorStep
@@ -7959,23 +8197,26 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
   if cfg.showValue~=false and ptrColor then
     local valTxt=string.format("%.0f",kmh)
     local vf = sizeFlag(cfg,"value",math.max(12,r*0.38))
+    local vcx,vcy = offsetXY(cfg,"value",cx,cy+r*0.25)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,thh = pcall(lcd.sizeText,valTxt,vf)
       if not ok then tw=nil; thh=nil end
       local boxPad=r*0.08
-      lcd.drawFilledRectangle(cx-(tw or 30)/2-boxPad, cy+r*0.25-(thh or 20)/2-boxPad*0.5, (tw or 30)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
+      lcd.drawFilledRectangle(vcx-(tw or 30)/2-boxPad, vcy-(thh or 20)/2-boxPad*0.5, (tw or 30)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
     end
-    centerText(cx,cy+r*0.25,valTxt,vf,ptrColor)
+    centerText(vcx,vcy,valTxt,vf,ptrColor)
   end
 
   if cfg.showUnit~=false then
     local uf = sizeFlag(cfg,"unit",math.max(7,r*0.14))
-    centerTextIf(cx,cy+r*0.52,"km/h",uf,tickCol)
+    local ucx,ucy = offsetXY(cfg,"unit",cx,cy+r*0.52)
+    centerTextIf(ucx,ucy,"km/h",uf,tickCol)
   end
 
   if cfg.showLabel~=false then
     local lf = sizeFlag(cfg,"label",math.max(7,r*0.15))
-    centerTextIf(cx,cy-r*0.52,cfg.label or "GND SPD",lf,lblCol)
+    local lcx,lcy = offsetXY(cfg,"label",cx,cy-r*0.52)
+    centerTextIf(lcx,lcy,cfg.label or "GND SPD",lf,lblCol)
   end
 end
 
@@ -8080,7 +8321,8 @@ DRAW["static-text"]=function(x,y,w,h,cfg)
   elseif cfg.align=="left" then tx=x+inset
   else align=CENTER end
   if cfg.textColor then
-    lcd.drawText(tx,y+h/2,cfg.text or "",align+VCENTER+sizeF+cfg.textColor)
+    local ttx,tty = offsetXY(cfg,"text",tx,y+h/2)
+    lcd.drawText(ttx,tty,cfg.text or "",align+VCENTER+sizeF+cfg.textColor)
   end
 end
 
@@ -8099,21 +8341,24 @@ local function drawValueLabel(x,y,w,h,value,cfg)
   if cfg.showValue~=false and cfg.color then
     local vAutoPx = math.max(9,r*0.2)
     local vSize=sizeFlag(cfg,"value",vAutoPx)
+    local vtx,vty = offsetXY(cfg,"value",cx,cy+r*0.42)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,text,vSize)
       if not ok then tw=#text*10; th=16 end
       local boxPad = vAutoPx*0.3
-      lcd.drawFilledRectangle(cx-(tw or 20)/2-boxPad, cy+r*0.42-(th or 16)/2-boxPad*0.5, (tw or 20)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
+      lcd.drawFilledRectangle(vtx-(tw or 20)/2-boxPad, vty-(th or 16)/2-boxPad*0.5, (tw or 20)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
     end
-    centerText(cx,cy+r*0.42,text,vSize,cfg.color)
+    centerText(vtx,vty,text,vSize,cfg.color)
   end
   if cfg.showLabel~=false and cfg.label and cfg.label~="" and cfg.labelColor then
     local lSize=sizeFlag(cfg,"label",math.max(8,r*0.13))
-    centerText(cx,cy-r*0.35,cfg.label,lSize,cfg.labelColor)
+    local ltx,lty = offsetXY(cfg,"label",cx,cy-r*0.35)
+    centerText(ltx,lty,cfg.label,lSize,cfg.labelColor)
   end
   if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
     local uSize=sizeFlag(cfg,"unit",math.max(7,r*0.11))
-    centerText(cx,cy+r*0.62,cfg.unit,uSize,cfg.labelColor)
+    local utx,uty = offsetXY(cfg,"unit",cx,cy+r*0.62)
+    centerText(utx,uty,cfg.unit,uSize,cfg.labelColor)
   end
 end
 
@@ -8192,8 +8437,10 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
     if cfg.mirrored then minA,maxA = startA+sweep, startA end
     local mnx,mny = polar(cx,cy,r+gap,minA)
     local mxx,mxy = polar(cx,cy,r+gap,maxA)
-    centerText(mnx,mny,string.format("%.0f",min),scaleF,cfg.tickColor)
-    centerText(mxx,mxy,string.format("%.0f",max),scaleF,cfg.tickColor)
+    local mntx,mnty = offsetXY(cfg,"scale",mnx,mny)
+    local mxtx,mxty = offsetXY(cfg,"scale",mxx,mxy)
+    centerText(mntx,mnty,string.format("%.0f",min),scaleF,cfg.tickColor)
+    centerText(mxtx,mxty,string.format("%.0f",max),scaleF,cfg.tickColor)
   end
   if cfg.showValue~=false and liveColor then
     local vSize = sizeFlag(cfg,"value",math.max(10,r*0.42))
@@ -8202,21 +8449,24 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
     if cfg.valuePos=="top" then vy = cy - r*0.4
     elseif cfg.valuePos=="center" then vy = cy
     elseif cfg.valuePos=="bottom" then vy = cy + r*0.4 end
+    local vtx,vty = offsetXY(cfg,"value",cx,vy)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,valTxt,vSize)
       if not ok then tw=#valTxt*10; th=16 end
       local pad=6
-      lcd.drawFilledRectangle(cx-(tw or 20)/2-pad,vy-(th or 16)/2-pad*0.4,(tw or 20)+pad*2,(th or 16)+pad*0.8,cfg.valueBoxColor)
+      lcd.drawFilledRectangle(vtx-(tw or 20)/2-pad,vty-(th or 16)/2-pad*0.4,(tw or 20)+pad*2,(th or 16)+pad*0.8,cfg.valueBoxColor)
     end
-    centerText(cx,vy,valTxt,vSize,liveColor)
+    centerText(vtx,vty,valTxt,vSize,liveColor)
   end
   if cfg.showUnit~=false and cfg.unit and cfg.unit~="" then
     local uSize = sizeFlag(cfg,"unit",math.max(7,r*0.16))
-    centerTextIf(cx,cy+r*0.2,cfg.unit,uSize,cfg.tickColor)
+    local utx,uty = offsetXY(cfg,"unit",cx,cy+r*0.2)
+    centerTextIf(utx,uty,cfg.unit,uSize,cfg.tickColor)
   end
   if cfg.showLabel~=false and cfg.label and cfg.label~="" then
     local lSize = sizeFlag(cfg,"label",math.max(8,r*0.2))
-    centerTextIf(x+w/2,y+h-lSize/2-4,cfg.label,lSize,cfg.labelColor)
+    local ltx,lty = offsetXY(cfg,"label",x+w/2,y+h-lSize/2-4)
+    centerTextIf(ltx,lty,cfg.label,lSize,cfg.labelColor)
   end
   if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
 end
@@ -8268,17 +8518,19 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
     end
     if cfg.showLabel~=false and cfg.labelColor then
       local lSize = sizeFlag(cfg,"label",math.max(8,h*0.22))
-      lcd.drawText(x+padX,y+4,label,lSize+cfg.labelColor)
+      local ltx,lty = offsetXY(cfg,"label",x+padX,y+4)
+      lcd.drawText(ltx,lty,label,lSize+cfg.labelColor)
     end
     if cfg.showValue~=false and color then
       local vSize = sizeFlag(cfg,"value",math.max(9,h*0.25))
       local txt = string.format("%."..digits.."f",vClamped)..((cfg.showUnit~=false and unit and unit~="") and (" "..unit) or "")
       local ok,tw,th = pcall(lcd.sizeText,txt,vSize)
       if not ok then tw=nil; th=nil end
+      local vtx,vty = offsetXY(cfg,"value",x+w-padX,y+4)
       if cfg.showValueBox~=false and cfg.valueBoxColor then
-        lcd.drawFilledRectangle(x+w-padX-(tw or 40), y+4, (tw or 40), (th or 16), cfg.valueBoxColor)
+        lcd.drawFilledRectangle(vtx-(tw or 40), vty, (tw or 40), (th or 16), cfg.valueBoxColor)
       end
-      lcd.drawText(x+w-padX,y+4,txt,RIGHT+vSize+color)
+      lcd.drawText(vtx,vty,txt,RIGHT+vSize+color)
     end
     return
   end
@@ -8333,18 +8585,19 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   end
   if cfg.showLabel~=false and cfg.labelColor then
     local lSize = sizeFlag(cfg,"label",math.max(8,w*0.16))
-    lcd.drawText(x+w/2,y+padY,label,CENTER+lSize+cfg.labelColor)
+    local ltx,lty = offsetXY(cfg,"label",x+w/2,y+padY)
+    lcd.drawText(ltx,lty,label,CENTER+lSize+cfg.labelColor)
   end
   if cfg.showValue~=false and color then
     local vSize = sizeFlag(cfg,"value",math.max(9,w*0.2))
     local valueTxt = string.format("%."..digits.."f",vClamped)..((cfg.showUnit~=false and unit and unit~="") and (" "..unit) or "")
     local okV,vw,vh = pcall(lcd.sizeText,valueTxt,vSize)
     if not okV or type(vh)~="number" then vw=nil; vh=16 end
-    local valY = y+h-padY-vh
+    local vtx,vty = offsetXY(cfg,"value",x+w/2,y+h-padY-vh)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
-      lcd.drawFilledRectangle(x+w/2-(vw or 40)/2, valY, (vw or 40), vh, cfg.valueBoxColor)
+      lcd.drawFilledRectangle(vtx-(vw or 40)/2, vty, (vw or 40), vh, cfg.valueBoxColor)
     end
-    lcd.drawText(x+w/2,valY,valueTxt,CENTER+vSize+color)
+    lcd.drawText(vtx,vty,valueTxt,CENTER+vSize+color)
   end
 end
 DRAW["dial"]=function(x,y,w,h,cfg)
@@ -8364,6 +8617,10 @@ DRAW["dial"]=function(x,y,w,h,cfg)
     local ticksPerMajor=math.max(1,math.floor(majorStep/minorStep+0.5))
     local tickColor = cfg.tickColor
     local minorTickColor = cfg.minorTickColor
+    -- Was hardcoded to SMLSIZE regardless of any size setting - same bug
+    -- as VSI's tick labels: an explicit size choice (or the auto-fit
+    -- formula) had no effect on the exported Lua at all.
+    local scaleF = sizeFlag(cfg,"scale",math.max(7,r*0.12))
     for i=0,numMinor do
       local pct=i/numMinor
       local a=startA+pct*sweep
@@ -8376,7 +8633,8 @@ DRAW["dial"]=function(x,y,w,h,cfg)
       if isMajor and cfg.showLabels~=false then
         local vLabel = min + math.floor((i/numMinor)*range/majorStep+0.5)*majorStep
         local lx,ly=polar(cx,cy,r-tickLen-10,a)
-        centerTextIf(lx,ly,string.format("%.0f",vLabel),SMLSIZE,cfg.labelColor)
+        lx,ly = offsetXY(cfg,"scale",lx,ly)
+        centerTextIf(lx,ly,string.format("%.0f",vLabel),scaleF,cfg.labelColor)
       end
     end
   end
@@ -8414,31 +8672,36 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     local labelTxt = string.upper(cfg.label)
     local okL,twL,thL = pcall(lcd.sizeText,labelTxt,lSize)
     if not okL or type(thL)~="number" then thL=16 end
-    lcd.drawText(x+leftInset,y+2,labelTxt,VTOP+lSize+cfg.labelColor)
+    local ltx,lty = offsetXY(cfg,"label",x+leftInset,y+2)
+    lcd.drawText(ltx,lty,labelTxt,VTOP+lSize+cfg.labelColor)
     labelBottom = y+2+thL
   end
   if cfg.showValue~=false and color then
-    -- Matches JS's vfs*0.42 relationship: the unit's auto size is derived
-    -- from the value text's own *resolved* size (including any explicit
-    -- override), not computed independently from h - so the unit always
-    -- scales together with whatever size the value ends up at.
+    -- Matches JS's vfs*0.42 relationship exactly: the unit's auto size is
+    -- derived from the value text's own *actually rendered* pixel size
+    -- (after any auto step-down), not the pre-step-down formula result -
+    -- so the unit always scales together with whatever size the value
+    -- really ends up at, matching the editor's own gSize/vfs chain.
     local valueAutoPx = math.max(11,h*0.52)
-    local valueResolvedPx = (type(cfg.valueSize)=="number" and cfg.valueSize>0) and cfg.valueSize or valueAutoPx
-    local vSize=fontFlag(valueResolvedPx)
+    local valueIsAuto = not (type(cfg.valueSize)=="number" and cfg.valueSize>0)
+    local valueResolvedPx, vSize
+    if valueIsAuto then
+      valueResolvedPx, vSize = resolvedTier(valueAutoPx, true)
+    else
+      valueResolvedPx, vSize = cfg.valueSize, fontFlag(cfg.valueSize)
+    end
     local valTxt=string.format("%."..(cfg.digits or 0).."f",value)
     local ok,vw,vh = pcall(lcd.sizeText,valTxt,vSize)
-    if not ok then vw=30; vh=16 end
-    -- VBOTTOM anchors the actual draw at the real hardware baseline
-    -- directly, rather than computing a top-left position from a
-    -- subtraction that's only as accurate as this measurement - used for
-    -- both the value AND the unit at the same Y, so the two stay
-    -- correctly bottom-aligned with each other even if either measurement
-    -- is slightly off.
-    local valueBottom = math.max(y+h-3, labelBottom+1+(vh or 16))
-    lcd.drawText(x+leftInset,valueBottom,valTxt,VBOTTOM+vSize+color)
+    if not ok or type(vh)~="number" then vw=nil; vh=16 end
+    local vy = math.max(y+h-vh-3, labelBottom+1)
+    local vtx,vty = offsetXY(cfg,"value",x+leftInset,vy)
+    lcd.drawText(vtx,vty,valTxt,vSize+color)
     if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
       local uSize=sizeFlag(cfg,"unit",math.max(7,valueResolvedPx*0.42))
-      lcd.drawText(x+leftInset+(vw or 30)+3,valueBottom,cfg.unit,VBOTTOM+uSize+cfg.labelColor)
+      local okU,uw,uh = pcall(lcd.sizeText,cfg.unit,uSize)
+      if not okU or type(uh)~="number" then uh=12 end
+      local utx,uty = offsetXY(cfg,"unit",x+leftInset+(vw or 30)+3,vy+vh-uh)
+      lcd.drawText(utx,uty,cfg.unit,uSize+cfg.labelColor)
     end
   end
 end
