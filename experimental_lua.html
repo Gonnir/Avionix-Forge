@@ -2149,6 +2149,7 @@ function renderProperties(){
       html+=checkboxField('showBorder','Show Bar Border',c.showBorder!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
       html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
+      html+=checkboxField('fullBar','Full Switch (bar fills the whole box as a background, label/value drawn on top)',!!c.fullBar);
       html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Orientation</label>
         <select data-cfg="orientation">
           <option value="horizontal" ${(c.orientation||'horizontal')==='horizontal'?'selected':''}>Horizontal (fills left to right)</option>
@@ -2201,6 +2202,7 @@ function renderProperties(){
     html+=checkboxField('showTxPower','Show TX Power',c.showTxPower!==false);
     html+=checkboxField('showRfMode','Show RF Mode',c.showRfMode!==false);
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=gaugeTextSection(c,[['title','LINK Title / LQ%'],['value','RSSI Value'],['rssiLabel','RSSI Label'],['footer','PWR / MODE Footer']]);
   } else if(inst.type==='gps-coords'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Text Color','textColor',c.textColor||'#ffffff');
@@ -2209,6 +2211,7 @@ function renderProperties(){
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Decimal Places</label><input type="number" data-cfg="decimals" value="${c.decimals!==undefined?c.decimals:4}" min="0" max="7" step="1"></div>`;
     html+=checkboxField('showSats','Show Satellite Count',c.showSats!==false);
     html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=gaugeTextSection(c,[['value','LAT / LON Value'],['sats','SATS Label']]);
   } else if(inst.type==='qr-code'){
     html+=colorField('QR Background','bgColor',c.bgColor||'#ffffff');
     html+=colorField('QR Foreground','fgColor',c.fgColor||'#000000');
@@ -4846,10 +4849,10 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   ctx.font=`bold ${titleSize}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=labelCol;
-  ctx.fillText('LINK',pad,cursorY);
+  gText(ctx,c,'title','LINK',pad,cursorY);
   ctx.textAlign='right';
   ctx.fillStyle=lqColor;
-  ctx.fillText(Math.round(lq)+'% LQ',w-pad,cursorY);
+  gText(ctx,c,'title',Math.round(lq)+'% LQ',w-pad,cursorY);
   cursorY += titleSize*1.15 + pad*0.35;
 
   const barH=Math.max(3,Math.min(h*0.12,8));
@@ -4863,13 +4866,13 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   ctx.font=`bold ${valSize}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=textCol;
-  ctx.fillText(Math.round(rssi)+'dB',pad,cursorY);
+  gText(ctx,c,'value',Math.round(rssi)+'dB',pad,cursorY);
   cursorY += valSize*1.1;
 
   const rssiLabelSize=gSize(c,'rssiLabel',Math.max(6,valSize*0.36));
   ctx.font=`${rssiLabelSize}px Montserrat`;
   ctx.fillStyle=labelCol;
-  ctx.fillText('RSSI',pad,cursorY);
+  gText(ctx,c,'rssiLabel','RSSI',pad,cursorY);
   cursorY += rssiLabelSize*1.15 + pad*0.3;
 
   // Footer (PWR / MODE): anchored near the bottom when there's slack, like
@@ -4885,14 +4888,14 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
     ctx.textBaseline='top';
     if(c.showTxPower!==false){
       ctx.textAlign='left';
-      ctx.fillStyle=labelCol; ctx.fillText('PWR',pad,footLabelY);
-      ctx.fillStyle=textCol; ctx.fillText(Math.round(txPower)+'mW',pad,footValueY);
+      ctx.fillStyle=labelCol; gText(ctx,c,'footer','PWR',pad,footLabelY);
+      ctx.fillStyle=textCol; gText(ctx,c,'footer',Math.round(txPower)+'mW',pad,footValueY);
     }
     if(c.showRfMode!==false){
       const rfText=(typeof rfMode==='string')?rfMode:String(rfMode);
       ctx.textAlign='right';
-      ctx.fillStyle=labelCol; ctx.fillText('MODE',w-pad,footLabelY);
-      ctx.fillStyle=textCol; ctx.fillText(rfText,w-pad,footValueY);
+      ctx.fillStyle=labelCol; gText(ctx,c,'footer','MODE',w-pad,footLabelY);
+      ctx.fillStyle=textCol; gText(ctx,c,'footer',rfText,w-pad,footValueY);
     }
   }
   if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
@@ -4917,12 +4920,12 @@ function drawGpsCoords(ctx,w,h,lat,lon,sats,c){
   ctx.font=`bold ${valSize}px Montserrat`;
   ctx.fillStyle=textCol;
   ctx.textAlign='left'; ctx.textBaseline='middle';
-  ctx.fillText('LAT '+latTxt,pad,rowH*0.9);
-  ctx.fillText('LON '+lonTxt,pad,rowH*2.0);
+  gText(ctx,c,'value','LAT '+latTxt,pad,rowH*0.9);
+  gText(ctx,c,'value','LON '+lonTxt,pad,rowH*2.0);
   if(c.showSats!==false){
     ctx.font=`${gSize(c,'sats',Math.max(7,valSize*0.6))}px Montserrat`;
     ctx.fillStyle=labelCol;
-    ctx.fillText('SATS '+Math.round(sats),pad,rowH*3.0);
+    gText(ctx,c,'sats','SATS '+Math.round(sats),pad,rowH*3.0);
   }
   if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
 }
@@ -5208,7 +5211,7 @@ function drawQrCode(ctx,w,h,lat,lon,sats,c,inst){
 
   if(c.showOnlyWithFix!==false && (!sats || sats<3)){
     ctx.fillStyle=c.labelColor||'#7a8898';
-    ctx.font=`${Math.max(8,Math.min(w,h)*0.09)}px Montserrat`;
+    ctx.font=`${gSize(c,'status',Math.max(8,Math.min(w,h)*0.09))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('WAITING FOR GPS FIX',w/2,h/2);
     if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
@@ -5234,7 +5237,7 @@ function drawQrCode(ctx,w,h,lat,lon,sats,c,inst){
   const result=inst._qrCache.result;
   if(!result){
     ctx.fillStyle=c.labelColor||'#7a8898';
-    ctx.font=`${Math.max(8,Math.min(w,h)*0.08)}px Montserrat`;
+    ctx.font=`${gSize(c,'status',Math.max(8,Math.min(w,h)*0.08))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('URL TOO LONG (max 53 chars)',w/2,h/2);
     return;
@@ -5784,10 +5787,39 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   ctx.fillStyle=c.bgColor||'#040810'; ctx.fillRect(0,0,w,h);
   const v=Math.max(min,Math.min(max,value));
   const vertical = c.orientation==='vertical';
+  const full = !!c.fullBar;
 
   if(!vertical){
     const padX=6;
-    const barY=h*0.45, barH=h*0.25;
+    // "Full bar" mode: the bar becomes a full-bleed background spanning
+    // the entire box, rather than a thin strip within it - label, value,
+    // ticks and border all draw on top of it instead of around it. Every
+    // other bit of logic (mirrored fill direction, individual show*
+    // toggles, track/border colors) behaves exactly the same either way -
+    // only the bar's own bounds change.
+    const barY = full ? 0 : h*0.45;
+    const barH = full ? h : h*0.25;
+    const barPadX = full ? 0 : padX;
+    if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
+      ctx.fillStyle=c.trackColor; ctx.fillRect(barPadX,barY,w-barPadX*2,barH);
+    }
+    if(c.showBar!==false && color!=='transparent'){
+      const pct=(v-min)/(max-min);
+      const area=w-barPadX*2, bw=area*pct;
+      // Mirrored: touches the right edge and grows leftward instead of
+      // touching the left edge and growing rightward.
+      const bx=c.mirrored ? (w-barPadX-bw) : barPadX;
+      ctx.fillStyle=color; ctx.fillRect(bx,barY,bw,barH);
+    }
+    if(c.showTicks!==false){
+      ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
+      for(let i=1;i<10;i++){const x=barPadX+(w-barPadX*2)*(i/10);ctx.beginPath();ctx.moveTo(x,barY);ctx.lineTo(x,barY+barH);ctx.stroke()}
+    }
+    if(c.showBorder!==false){
+      ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
+      ctx.strokeRect(barPadX+0.5,barY+0.5,w-barPadX*2-1,barH-1);
+    }
+
     if(c.showLabel!==false){
       ctx.fillStyle=c.labelColor||'#e8eef5';
       ctx.font=`${gSize(c,'label',Math.max(8,h*0.22))}px Montserrat`;
@@ -5809,22 +5841,6 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
       ctx.textAlign='right'; ctx.textBaseline='top';
       gText(ctx,c,'value',txt,w-padX,4);
     }
-    if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
-      ctx.fillStyle=c.trackColor; ctx.fillRect(padX,barY,w-padX*2,barH);
-    }
-    if(c.showBar!==false && color!=='transparent'){
-      const pct=(v-min)/(max-min);
-      const area=w-padX*2, bw=area*pct;
-      // Mirrored: touches the right edge and grows leftward instead of
-      // touching the left edge and growing rightward.
-      const bx=c.mirrored ? (w-padX-bw) : padX;
-      ctx.fillStyle=color; ctx.fillRect(bx,barY,bw,barH);
-    }
-    ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
-    if(c.showTicks!==false){
-      for(let i=1;i<10;i++){const x=padX+(w-padX*2)*(i/10);ctx.beginPath();ctx.moveTo(x,barY);ctx.lineTo(x,barY+barH);ctx.stroke()}
-    }
-    if(c.showBorder!==false) ctx.strokeRect(padX+0.5,barY+0.5,w-padX*2-1,barH-1);
     return;
   }
 
@@ -5833,20 +5849,21 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   // rotating the text itself isn't practical, so the layout adapts around
   // keeping it horizontal instead.
   const padY=4;
-  let topY=padY, botY=h-padY;
-  if(c.showLabel!==false){
-    ctx.fillStyle=c.labelColor||'#e8eef5';
-    ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Montserrat`;
-    ctx.textAlign='center'; ctx.textBaseline='top';
-    gText(ctx,c,'label',label,w/2,topY);
-    topY+=gSize(c,'label',Math.max(8,w*0.16))+3;
+  let barTop, barBottom;
+  if(full){
+    // Bar spans the whole box regardless of label/value visibility -
+    // they overlay it afterward rather than reserving space that would
+    // shrink the bar around them.
+    barTop=0; barBottom=h;
+  } else {
+    let topY=padY, botY=h-padY;
+    if(c.showLabel!==false) topY += gSize(c,'label',Math.max(8,w*0.16))+3;
+    let valH=0;
+    if(c.showValue!==false && color!=='transparent') valH=gSize(c,'value',Math.max(9,w*0.2))+4;
+    barTop=topY; barBottom=botY-valH;
   }
-  let valH=0;
-  if(c.showValue!==false && color!=='transparent'){
-    valH=gSize(c,'value',Math.max(9,w*0.2))+4;
-  }
-  const barX=w*0.3, barW=w*0.4;
-  const barTop=topY, barBottom=botY-valH;
+  const barX = full ? 0 : w*0.3;
+  const barW = full ? w : w*0.4;
   const barH2=Math.max(1,barBottom-barTop);
   if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
     ctx.fillStyle=c.trackColor; ctx.fillRect(barX,barTop,barW,barH2);
@@ -5859,24 +5876,34 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     const fy=c.mirrored ? barTop : barBottom-fillH;
     ctx.fillStyle=color; ctx.fillRect(barX,fy,barW,fillH);
   }
-  ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
   if(c.showTicks!==false){
+    ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
     for(let i=1;i<10;i++){const y=barTop+barH2*(i/10);ctx.beginPath();ctx.moveTo(barX,y);ctx.lineTo(barX+barW,y);ctx.stroke()}
   }
-  if(c.showBorder!==false) ctx.strokeRect(barX+0.5,barTop+0.5,barW-1,barH2-1);
+  if(c.showBorder!==false){
+    ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
+    ctx.strokeRect(barX+0.5,barTop+0.5,barW-1,barH2-1);
+  }
+  if(c.showLabel!==false){
+    ctx.fillStyle=c.labelColor||'#e8eef5';
+    ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Montserrat`;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    gText(ctx,c,'label',label,w/2,padY);
+  }
   if(c.showValue!==false && color!=='transparent'){
     const valSize=gSize(c,'value',Math.max(9,w*0.2));
     ctx.font=`bold ${valSize}px Montserrat`;
     const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
+    const valY = h-padY-valSize;
     if(c.showValueBox!==false){
       const tw=ctx.measureText(txt).width;
       const boxPad=valSize*0.2;
       ctx.fillStyle=c.valueBoxColor||'#1c232e';
-      ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'),botY-valSize-boxPad*0.5+gDY(c,'value'),tw+boxPad*2,valSize+boxPad);
+      ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'),valY-boxPad*0.5+gDY(c,'value'),tw+boxPad*2,valSize+boxPad);
     }
     ctx.fillStyle=color;
     ctx.textAlign='center'; ctx.textBaseline='top';
-    gText(ctx,c,'value',txt,w/2,botY-valSize);
+    gText(ctx,c,'value',txt,w/2,valY);
   }
 }
 
@@ -6417,6 +6444,15 @@ end
 local function centerTextIf(cx,cy,text,sizeFlags,color)
   if not color then return end
   centerText(cx,cy,text,sizeFlags,color)
+end
+
+-- Matches the editor's gText/gDX/gDY: every offsettable text element has an
+-- optional per-element pixel nudge (keyDX/keyDY in its config), so a
+-- position that's off by a pixel or two on real hardware - or just a
+-- placement the user wants to fine-tune - doesn't require fighting the
+-- instrument's own layout math to fix.
+local function offsetXY(cfg,key,x,y)
+  return x+(cfg[key.."DX"] or 0), y+(cfg[key.."DY"] or 0)
 end
 
 -- lcd.drawCircle has no thickness parameter on EdgeTX (only drawRectangle
@@ -7514,8 +7550,14 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   local titleF = sizeFlag(cfg,"title",math.max(7,h*0.14))
   local okT,twT,thT = pcall(lcd.sizeText,"LINK",titleF)
   if not okT or type(thT)~="number" then thT=16 end
-  if cfg.labelColor then lcd.drawText(x+pad,cursorY,"LINK",VTOP+titleF+cfg.labelColor) end
-  if lqColor then lcd.drawText(x+w-pad,cursorY,string.format("%.0f",lq).."% LQ",RIGHT+VTOP+titleF+lqColor) end
+  if cfg.labelColor then
+    local tx,ty = offsetXY(cfg,"title",x+pad,cursorY)
+    lcd.drawText(tx,ty,"LINK",VTOP+titleF+cfg.labelColor)
+  end
+  if lqColor then
+    local tx,ty = offsetXY(cfg,"title",x+w-pad,cursorY)
+    lcd.drawText(tx,ty,string.format("%.0f",lq).."% LQ",RIGHT+VTOP+titleF+lqColor)
+  end
   cursorY = cursorY + thT + pad*0.35
 
   local barH = math.max(3,math.min(h*0.12,8))
@@ -7528,13 +7570,19 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   local rssiTxt = string.format("%.0f",rssi).."dB"
   local okR,twR,thR = pcall(lcd.sizeText,rssiTxt,valF)
   if not okR or type(thR)~="number" then thR=16 end
-  if cfg.textColor then lcd.drawText(x+pad,cursorY,rssiTxt,VTOP+valF+cfg.textColor) end
+  if cfg.textColor then
+    local tx,ty = offsetXY(cfg,"value",x+pad,cursorY)
+    lcd.drawText(tx,ty,rssiTxt,VTOP+valF+cfg.textColor)
+  end
   cursorY = cursorY + thR
 
   local rssiLabelF = sizeFlag(cfg,"rssiLabel",math.max(6,valSize*0.36))
   local okRL,twRL,thRL = pcall(lcd.sizeText,"RSSI",rssiLabelF)
   if not okRL or type(thRL)~="number" then thRL=12 end
-  if cfg.labelColor then lcd.drawText(x+pad,cursorY,"RSSI",VTOP+rssiLabelF+cfg.labelColor) end
+  if cfg.labelColor then
+    local tx,ty = offsetXY(cfg,"rssiLabel",x+pad,cursorY)
+    lcd.drawText(tx,ty,"RSSI",VTOP+rssiLabelF+cfg.labelColor)
+  end
   cursorY = cursorY + thRL + pad*0.3
 
   -- Footer (PWR / MODE): anchored near the bottom when there's slack, like
@@ -7549,13 +7597,25 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
     local footLabelY = math.max(cursorY, y+h-pad*0.5-footBlockH)
     local footValueY = footLabelY + thF
     if cfg.showTxPower~=false then
-      if cfg.labelColor then lcd.drawText(x+pad,footLabelY,"PWR",VTOP+footF+cfg.labelColor) end
-      if cfg.textColor then lcd.drawText(x+pad,footValueY,string.format("%.0f",txPower).."mW",VTOP+footF+cfg.textColor) end
+      if cfg.labelColor then
+        local tx,ty = offsetXY(cfg,"footer",x+pad,footLabelY)
+        lcd.drawText(tx,ty,"PWR",VTOP+footF+cfg.labelColor)
+      end
+      if cfg.textColor then
+        local tx,ty = offsetXY(cfg,"footer",x+pad,footValueY)
+        lcd.drawText(tx,ty,string.format("%.0f",txPower).."mW",VTOP+footF+cfg.textColor)
+      end
     end
     if cfg.showRfMode~=false then
       local rfText = (type(rfMode)=="string") and rfMode or tostring(rfMode)
-      if cfg.labelColor then lcd.drawText(x+w-pad,footLabelY,"MODE",RIGHT+VTOP+footF+cfg.labelColor) end
-      if cfg.textColor then lcd.drawText(x+w-pad,footValueY,rfText,RIGHT+VTOP+footF+cfg.textColor) end
+      if cfg.labelColor then
+        local tx,ty = offsetXY(cfg,"footer",x+w-pad,footLabelY)
+        lcd.drawText(tx,ty,"MODE",RIGHT+VTOP+footF+cfg.labelColor)
+      end
+      if cfg.textColor then
+        local tx,ty = offsetXY(cfg,"footer",x+w-pad,footValueY)
+        lcd.drawText(tx,ty,rfText,RIGHT+VTOP+footF+cfg.textColor)
+      end
     end
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
@@ -7584,13 +7644,16 @@ DRAW["gps-coords"]=function(x,y,w,h,cfg)
   local vf = fontFlag(valueResolvedPx)
   local textColor = cfg.textColor
   if textColor then
-    lcd.drawText(x+pad,y+rowH*0.55,"LAT "..latTxt,VCENTER+vf+textColor)
-    lcd.drawText(x+pad,y+rowH*1.65,"LON "..lonTxt,VCENTER+vf+textColor)
+    local tx1,ty1 = offsetXY(cfg,"value",x+pad,y+rowH*0.55)
+    lcd.drawText(tx1,ty1,"LAT "..latTxt,VCENTER+vf+textColor)
+    local tx2,ty2 = offsetXY(cfg,"value",x+pad,y+rowH*1.65)
+    lcd.drawText(tx2,ty2,"LON "..lonTxt,VCENTER+vf+textColor)
   end
   if showSats and cfg.labelColor then
     local satsF = sizeFlag(cfg,"sats",math.max(7,valueResolvedPx*0.6))
     local satsTxt = "SATS "..string.format("%.0f",sats)
-    lcd.drawText(x+pad,y+rowH*2.75,satsTxt,VCENTER+satsF+cfg.labelColor)
+    local tx3,ty3 = offsetXY(cfg,"sats",x+pad,y+rowH*2.75)
+    lcd.drawText(tx3,ty3,satsTxt,VCENTER+satsF+cfg.labelColor)
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -8169,13 +8232,40 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   local unit = cfg.unit
   local digits = cfg.digits or 0
   local borderColor = cfg.borderColor
+  local full = cfg.fullBar and true or false
 
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
 
   if not vertical then
     local padX=6
-    local barY=y+h*0.45
-    local barH=h*0.25
+    -- "Full bar" mode: the bar becomes a full-bleed background spanning
+    -- the entire box, rather than a thin strip within it - label, value,
+    -- ticks and border all draw on top of it instead of around it. Every
+    -- other bit of logic (mirrored fill direction, individual show*
+    -- toggles, track/border colors) behaves exactly the same either way -
+    -- only the bar's own bounds change.
+    local barY = full and y or (y+h*0.45)
+    local barH = full and h or (h*0.25)
+    local barPadX = full and 0 or padX
+    if cfg.showTrack~=false and cfg.trackColor then
+      lcd.drawFilledRectangle(x+barPadX,barY,w-barPadX*2,barH,cfg.trackColor)
+    end
+    if cfg.showBar~=false and color then
+      local pct=(vClamped-min)/((max-min)~=0 and (max-min) or 1)
+      local area=w-barPadX*2
+      local bw=area*pct
+      local bx = cfg.mirrored and (x+w-barPadX-bw) or (x+barPadX)
+      lcd.drawFilledRectangle(bx,barY,bw,barH,color)
+    end
+    if cfg.showTicks~=false and borderColor then
+      for i=1,9 do
+        local tx=x+barPadX+(w-barPadX*2)*(i/10)
+        lcd.drawLine(tx,barY,tx,barY+barH,SOLID,borderColor)
+      end
+    end
+    if cfg.showBorder~=false and borderColor then
+      lcd.drawRectangle(x+barPadX,barY,w-barPadX*2,barH,borderColor,1)
+    end
     if cfg.showLabel~=false and cfg.labelColor then
       local lSize = sizeFlag(cfg,"label",math.max(8,h*0.22))
       lcd.drawText(x+padX,y+4,label,lSize+cfg.labelColor)
@@ -8190,25 +8280,6 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
       end
       lcd.drawText(x+w-padX,y+4,txt,RIGHT+vSize+color)
     end
-    if cfg.showTrack~=false and cfg.trackColor then
-      lcd.drawFilledRectangle(x+padX,barY,w-padX*2,barH,cfg.trackColor)
-    end
-    if cfg.showBar~=false and color then
-      local pct=(vClamped-min)/((max-min)~=0 and (max-min) or 1)
-      local area=w-padX*2
-      local bw=area*pct
-      local bx = cfg.mirrored and (x+w-padX-bw) or (x+padX)
-      lcd.drawFilledRectangle(bx,barY,bw,barH,color)
-    end
-    if cfg.showTicks~=false and borderColor then
-      for i=1,9 do
-        local tx=x+padX+(w-padX*2)*(i/10)
-        lcd.drawLine(tx,barY,tx,barY+barH,SOLID,borderColor)
-      end
-    end
-    if cfg.showBorder~=false and borderColor then
-      lcd.drawRectangle(x+padX,barY,w-padX*2,barH,borderColor,1)
-    end
     return
   end
 
@@ -8217,22 +8288,30 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   -- rotating the text itself isn't practical, so the layout adapts around
   -- keeping it horizontal instead.
   local padY=4
-  local topY=y+padY
-  local botY=y+h-padY
-  if cfg.showLabel~=false and cfg.labelColor then
-    local lSize = sizeFlag(cfg,"label",math.max(8,w*0.16))
-    lcd.drawText(x+w/2,topY,label,CENTER+lSize+cfg.labelColor)
-    local ok,tw,th = pcall(lcd.sizeText,label,lSize)
-    topY = topY + ((ok and type(th)=="number") and th or 16) + 3
+  local barTop,barBottom
+  if full then
+    -- Bar spans the whole box regardless of label/value visibility - they
+    -- overlay it afterward rather than reserving space that would shrink
+    -- the bar around them.
+    barTop,barBottom = y, y+h
+  else
+    local topY=y+padY
+    local botY=y+h-padY
+    if cfg.showLabel~=false and cfg.labelColor then
+      local lSize = sizeFlag(cfg,"label",math.max(8,w*0.16))
+      local ok,tw,th = pcall(lcd.sizeText,label,lSize)
+      topY = topY + ((ok and type(th)=="number") and th or 16) + 3
+    end
+    local valH=0
+    if cfg.showValue~=false and color then
+      local vSize = sizeFlag(cfg,"value",math.max(9,w*0.2))
+      local okV,vw,vh = pcall(lcd.sizeText,"0",vSize)
+      valH = ((okV and type(vh)=="number") and vh or 16) + 4
+    end
+    barTop,barBottom = topY, botY-valH
   end
-  local vSize = sizeFlag(cfg,"value",math.max(9,w*0.2))
-  local valueTxt = string.format("%."..digits.."f",vClamped)..((cfg.showUnit~=false and unit and unit~="") and (" "..unit) or "")
-  local okV,vw,vh = pcall(lcd.sizeText,valueTxt,vSize)
-  if not okV or type(vh)~="number" then vh=16 end
-  local valH = (cfg.showValue~=false) and (vh+4) or 0
-
-  local barX,barW = x+w*0.3, w*0.4
-  local barTop,barBottom = topY, botY-valH
+  local barX = full and x or (x+w*0.3)
+  local barW = full and w or (w*0.4)
   local barH2 = math.max(1,barBottom-barTop)
   if cfg.showTrack~=false and cfg.trackColor then
     lcd.drawFilledRectangle(barX,barTop,barW,barH2,cfg.trackColor)
@@ -8252,11 +8331,20 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   if cfg.showBorder~=false and borderColor then
     lcd.drawRectangle(barX,barTop,barW,barH2,borderColor,1)
   end
+  if cfg.showLabel~=false and cfg.labelColor then
+    local lSize = sizeFlag(cfg,"label",math.max(8,w*0.16))
+    lcd.drawText(x+w/2,y+padY,label,CENTER+lSize+cfg.labelColor)
+  end
   if cfg.showValue~=false and color then
+    local vSize = sizeFlag(cfg,"value",math.max(9,w*0.2))
+    local valueTxt = string.format("%."..digits.."f",vClamped)..((cfg.showUnit~=false and unit and unit~="") and (" "..unit) or "")
+    local okV,vw,vh = pcall(lcd.sizeText,valueTxt,vSize)
+    if not okV or type(vh)~="number" then vw=nil; vh=16 end
+    local valY = y+h-padY-vh
     if cfg.showValueBox~=false and cfg.valueBoxColor then
-      lcd.drawFilledRectangle(x+w/2-(vw or 40)/2, botY-vh, (vw or 40), vh, cfg.valueBoxColor)
+      lcd.drawFilledRectangle(x+w/2-(vw or 40)/2, valY, (vw or 40), vh, cfg.valueBoxColor)
     end
-    lcd.drawText(x+w/2,botY-vh,valueTxt,CENTER+vSize+color)
+    lcd.drawText(x+w/2,valY,valueTxt,CENTER+vSize+color)
   end
 end
 DRAW["dial"]=function(x,y,w,h,cfg)
