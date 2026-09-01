@@ -658,6 +658,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'indicator',name:'Indicator',desc:'Threshold warning lamp',icon:'fa-circle',defaultSize:{w:40,h:40},defaults:{indicatorSource:'SYS_STATUS.battery_remaining',indicatorOp:'<',indicatorThreshold:20,shape:'circle',onColor:'#ff5c5c',offColor:'#1c232e',borderColor:'#3a4555',borderWidth:2,label:'',showLabel:false,labelColor:'#ffffff',rotation:0}},
   {type:'home-arrow',name:'Home Arrow',desc:'Direction to home',icon:'fa-house',defaultSize:{w:100,h:100},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,shape:'circle',rotation:0}},
   {type:'home-distance',name:'Home Distance',desc:'Distance from home in m',icon:'fa-ruler',defaultSize:{w:120,h:60},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',borderWidth:1,showUnit:true,rotation:0}},
+  {type:'radar',name:'Radar',desc:'Home/aircraft relative position',icon:'fa-satellite-dish',defaultSize:{w:140,h:140},defaults:{mode:'plane-center',shape:'circle',sweepStyle:'rotate',range:500,bgColor:'#040810',gridColor:'#7a8898',sweepColor:'#5fe88a',blobColor:'#708f7f',planeColor:'#ff9d3a',homeColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,showRings:true,ringCount:4,showBlobs:true,rotation:0}},
   {type:'shape-rectangle',name:'Rectangle',desc:'Decorative panel shape',icon:'fa-square',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-circle',name:'Circle',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:60,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-oval',name:'Oval',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
@@ -1894,6 +1895,9 @@ function renderProperties(){
     // position internally - there's no user-selectable data source for it
     // at all, so this section is skipped rather than showing an irrelevant
     // MAVLink Source field that the instrument would just ignore.
+  } else if(inst.type==='radar'){
+    // Same reasoning as Home Arrow - radar's plane/home positions are both
+    // computed internally from GPS vs home, no user-selectable source.
   } else {
   html+=`<div class="prop-section"><div class="prop-section-title"><i class="fa fa-${inst.type==='static-text'?'font':'satellite-dish'}"></i> ${inst.type==='static-text'?'Text Content':'Data Source'}</div>`;
   if(inst.type==='static-text'){
@@ -2155,36 +2159,6 @@ function renderProperties(){
     html+=`<div class="field-row"><div class="field"><label class="field-label">Min</label><input type="number" data-cfg="min" value="${c.min||0}" min="0"></div><div class="field"><label class="field-label">Max</label><input type="number" data-cfg="max" value="${c.max||200}" min="10" step="10"></div></div>`;
   } else if(inst.type==='indicator'){
     // Condition
-    const INDICATOR_SOURCES=[
-      ['SYS_STATUS.battery_remaining','Battery %'],
-      ['SYS_STATUS.voltage','Battery Voltage (V)'],
-      ['VFR_HUD.groundspeed','Groundspeed (m/s)'],
-      ['VFR_HUD.airspeed','Airspeed (m/s)'],
-      ['VFR_HUD.alt','Altitude (m)'],
-      ['VFR_HUD.climb','Climb Rate (m/s)'],
-      ['VFR_HUD.throttle','Throttle (%)'],
-      ['VFR_HUD.heading','Heading (°)'],
-      ['RC_CHANNELS.rssi','RSSI'],
-      ['RC_CHANNELS.chan1_raw','RC Channel 1'],
-      ['RC_CHANNELS.chan2_raw','RC Channel 2'],
-      ['RC_CHANNELS.chan3_raw','RC Channel 3'],
-      ['RC_CHANNELS.chan4_raw','RC Channel 4'],
-      ['RC_CHANNELS.chan5_raw','RC Channel 5'],
-      ['RC_CHANNELS.chan6_raw','RC Channel 6'],
-      ['RC_CHANNELS.chan7_raw','RC Channel 7'],
-      ['RC_CHANNELS.chan8_raw','RC Channel 8'],
-      ['RC_CHANNELS.chan9_raw','RC Channel 9'],
-      ['RC_CHANNELS.chan10_raw','RC Channel 10'],
-      ['RC_CHANNELS.chan11_raw','RC Channel 11'],
-      ['RC_CHANNELS.chan12_raw','RC Channel 12'],
-      ['RC_CHANNELS.chan13_raw','RC Channel 13'],
-      ['RC_CHANNELS.chan14_raw','RC Channel 14'],
-      ['RC_CHANNELS.chan15_raw','RC Channel 15'],
-      ['RC_CHANNELS.chan16_raw','RC Channel 16'],
-      ['GPS_RAW_INT.satellites_visible','Satellites'],
-      ['MAVLINK_CONNECTED','MAVLink Connected'],
-    ];
-    const INDICATOR_OPS=['<','>','<=','>=','==','!='];
     const srcOpts=INDICATOR_SOURCES.map(([v,l])=>`<option value="${v}" ${(c.indicatorSource||'SYS_STATUS.battery_remaining')===v?'selected':''}>${l}</option>`).join('');
     const opOpts=INDICATOR_OPS.map(op=>`<option value="${op}" ${(c.indicatorOp||'<')===op?'selected':''}>${op}</option>`).join('');
     html+=`<div class="field"><label class="field-label">Condition Source</label><select data-cfg="indicatorSource">${srcOpts}</select></div>`;
@@ -2229,6 +2203,22 @@ function renderProperties(){
         <option value="ft" ${c.distanceUnit==='ft'?'selected':''}>Feet</option>
         <option value="mi" ${c.distanceUnit==='mi'?'selected':''}>Miles</option>
       </select></div>`;
+  } else if(inst.type==='radar'){
+    html+=colorField('Background','bgColor',c.bgColor||'#040810');
+    html+=colorField('Grid/Rings Color','gridColor',c.gridColor||'#7a8898');
+    html+=colorField('Sweep Color','sweepColor',c.sweepColor||'#5fe88a');
+    html+=colorField('Cloud Blob Color','blobColor',c.blobColor||'#708f7f');
+    html+=colorField('Aircraft Marker Color','planeColor',c.planeColor||'#ff9d3a');
+    html+=colorField('Home Marker Color','homeColor',c.homeColor||'#5fe88a');
+    html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
+    html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Shape</label><select data-cfg="shape"><option value="circle" ${(c.shape||'circle')==='circle'?'selected':''}>Circle</option><option value="square" ${c.shape==='square'?'selected':''}>Square</option></select></div>`;
+    html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=`<div class="field">${propGroupLabel('radar','Radar Behaviour')}<label class="field-label">Center Point</label><select data-cfg="mode"><option value="plane-center" ${(c.mode||'plane-center')==='plane-center'?'selected':''}>Aircraft in the middle</option><option value="home-center" ${c.mode==='home-center'?'selected':''}>Home in the middle</option></select><span class="field-hint">The other point (home, or the aircraft) is plotted relative to whichever is centered, using its live bearing and distance.</span></div>`;
+    html+=`<div class="field"><label class="field-label">Range (m)</label><input type="number" data-cfg="range" value="${c.range!==undefined?c.range:500}" min="10" step="10"><span class="field-hint">Distance represented by the outer edge - the off-center point is clamped to the edge if it's actually farther away than this.</span></div>`;
+    html+=`<div class="field"><label class="field-label">Sweep Style</label><select data-cfg="sweepStyle"><option value="rotate" ${(c.sweepStyle||'rotate')==='rotate'?'selected':''}>Rotating (full circle)</option><option value="pingpong" ${c.sweepStyle==='pingpong'?'selected':''}>Sweeping (left-right, sonar-style)</option></select></div>`;
+    html+=checkboxField('showRings','Show Range Rings',c.showRings!==false);
+    html+=`<div class="field"><label class="field-label">Number of Rings</label><input type="number" data-cfg="ringCount" value="${c.ringCount!==undefined?c.ringCount:4}" min="1" max="10"></div>`;
+    html+=checkboxField('showBlobs','Show Simulated Cloud Clutter',c.showBlobs!==false);
   } else if(inst.type==='arc-gauge'||inst.type==='bar-gauge'||inst.type==='text-value'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Primary Color','color',c.color||'#ff9d3a');
@@ -2256,6 +2246,7 @@ function renderProperties(){
       html+=checkboxField('showBorder','Show Bar Border',c.showBorder!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
       html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
+      html+=checkboxField('fullFill','Full Fill (bar fills the whole box)',!!c.fullFill);
       html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Orientation</label>
         <select data-cfg="orientation">
           <option value="horizontal" ${(c.orientation||'horizontal')==='horizontal'?'selected':''}>Horizontal (fills left to right)</option>
@@ -3563,6 +3554,7 @@ function drawInstrument(ctx,inst){
     }
     case 'home-arrow': drawHomeArrow(ctx,w,h,gm('HOME_BEARING'),gm('VFR_HUD.heading'),c); break;
     case 'home-distance': drawHomeDistance(ctx,w,h,gm('HOME_DISTANCE'),c); break;
+    case 'radar': drawRadar(ctx,w,h,gm('HOME_BEARING'),gm('HOME_DISTANCE'),gm('VFR_HUD.heading'),c); break;
     case 'indicator': drawIndicator(ctx,w,h,c); break;
     case 'arc-gauge': drawArcGauge(ctx,w,h,gm(c.mavSource),c.min||0,c.max||100,c.label||'',c.unit||'',resolveColor(c.color||'#ff9d3a'),c.digits||0,c); break;
     case 'bar-gauge': drawBarGauge(ctx,w,h,gm(c.mavSource),c.min||0,c.max||100,c.label||'',c.unit||'',resolveColor(c.color||'#ff9d3a'),c.digits||0,c); break;
@@ -3893,6 +3885,68 @@ function bresenhamEllipseOutline(ctx,cx,cy,rx,ry,rotDeg,color){
 // (matches the original hardcoded 2px dot exactly, not scaled with r, so
 // the default style has zero visual change - 0 means no dot); circle:
 // outline circle radius as a ratio of r (0 = none).
+// Cloud blob decorations for the radar instrument - purely decorative
+// clutter, not real weather data, so there's nothing to actually simulate
+// from telemetry. Generated ONCE (lazily, on first use) and persisted into
+// the instrument's own config, rather than re-randomized on every render -
+// otherwise the editor preview and the generated device would each show
+// different, constantly-shifting blob positions instead of one stable,
+// matching decoration. Scattered across a square spanning -3..+3 (3x the
+// radar's own -1..+1 width) rather than just the visible area, so there's
+// a buffer of blobs on every side for the plane-center mode's scrolling to
+// draw from - the field tiles seamlessly as the viewport moves through it,
+// wrapping modulo that same 6-unit tile size. Blob count is higher than a
+// single-screen's worth since only roughly a ninth of this larger field is
+// actually visible at any one scroll position.
+function ensureRadarBlobs(c){
+  if(!c.cloudBlobs){
+    c.cloudBlobs=[];
+    const n=40;
+    for(let i=0;i<n;i++){
+      const x=Math.random()*6-3;
+      const y=Math.random()*6-3;
+      const rad=0.04+Math.random()*0.09;
+      c.cloudBlobs.push({x:+x.toFixed(3), y:+y.toFixed(3), r:+rad.toFixed(3)});
+    }
+  }
+  return c.cloudBlobs;
+}
+
+// Shared between the Indicator instrument's own properties panel and the
+// WS2812 LED strip config modal - both use the exact same threshold-vs-
+// MAVLink-value condition logic, so they share one definitive list rather
+// than each keeping their own copy that could quietly drift out of sync.
+const INDICATOR_SOURCES=[
+  ['SYS_STATUS.battery_remaining','Battery %'],
+  ['SYS_STATUS.voltage','Battery Voltage (V)'],
+  ['VFR_HUD.groundspeed','Groundspeed (m/s)'],
+  ['VFR_HUD.airspeed','Airspeed (m/s)'],
+  ['VFR_HUD.alt','Altitude (m)'],
+  ['VFR_HUD.climb','Climb Rate (m/s)'],
+  ['VFR_HUD.throttle','Throttle (%)'],
+  ['VFR_HUD.heading','Heading (°)'],
+  ['RC_CHANNELS.rssi','RSSI'],
+  ['RC_CHANNELS.chan1_raw','RC Channel 1'],
+  ['RC_CHANNELS.chan2_raw','RC Channel 2'],
+  ['RC_CHANNELS.chan3_raw','RC Channel 3'],
+  ['RC_CHANNELS.chan4_raw','RC Channel 4'],
+  ['RC_CHANNELS.chan5_raw','RC Channel 5'],
+  ['RC_CHANNELS.chan6_raw','RC Channel 6'],
+  ['RC_CHANNELS.chan7_raw','RC Channel 7'],
+  ['RC_CHANNELS.chan8_raw','RC Channel 8'],
+  ['RC_CHANNELS.chan9_raw','RC Channel 9'],
+  ['RC_CHANNELS.chan10_raw','RC Channel 10'],
+  ['RC_CHANNELS.chan11_raw','RC Channel 11'],
+  ['RC_CHANNELS.chan12_raw','RC Channel 12'],
+  ['RC_CHANNELS.chan13_raw','RC Channel 13'],
+  ['RC_CHANNELS.chan14_raw','RC Channel 14'],
+  ['RC_CHANNELS.chan15_raw','RC Channel 15'],
+  ['RC_CHANNELS.chan16_raw','RC Channel 16'],
+  ['GPS_RAW_INT.satellites_visible','Satellites'],
+  ['MAVLINK_CONNECTED','MAVLink Connected'],
+];
+const INDICATOR_OPS=['<','>','<=','>=','==','!='];
+
 const REF_SYMBOL_STYLES = {
   'wings-dot': { // Classic mechanical gyro AH - the long-standing default.
     lines:[[-0.42,0,-0.12,0],[0.12,0,0.42,0],[-0.12,0,-0.12,0.1],[0.12,0,0.12,0.1]], dot:2, circle:0
@@ -4736,6 +4790,133 @@ function drawHomeArrow(ctx,w,h,bearing,heading,c){
 
 // ---- Home Distance ----
 // Displays distance from home in metres using a text-value style.
+// ---- Radar ----
+// Shows the aircraft's position relative to home (or vice versa), with a
+// rotating/sweeping radar-style sweep line and decorative simulated cloud
+// clutter. Reuses the same heading-up relative-bearing convention Home
+// Arrow already established, for both the plane-centered and home-centered
+// modes (the off-center point uses the reciprocal bearing in home-centered
+// mode, since bearing/distance are always given as "from plane to home").
+function drawRadar(ctx,w,h,bearing,distance,heading,c){
+  const cx=w/2, cy=h/2;
+  const r=Math.max(10,Math.min(w,h)/2-2);
+  const bgColor=c.bgColor||'#040810';
+  const gridColor=c.gridColor||'#7a8898';
+  const sweepColor=c.sweepColor||'#5fe88a';
+  const blobColor=c.blobColor||'#708f7f';
+  const planeColor=c.planeColor||'#ff9d3a';
+  const homeColor=c.homeColor||'#5fe88a';
+  const borderCol=c.borderColor||'#3a4555';
+  const bw=c.borderWidth!==undefined?c.borderWidth:1;
+  const isSquare=c.shape==='square';
+  const range=c.range!==undefined?c.range:500;
+  const isHomeCenter=c.mode==='home-center';
+
+  if(isSquare){ ctx.fillStyle=bgColor; ctx.fillRect(0,0,w,h); }
+  else bresenhamFillCircle(ctx,cx,cy,r,bgColor);
+
+  // Clouds are stationary in the world - in plane-center mode the plane
+  // itself is what's moving, so the cloud field needs to scroll opposite
+  // to the plane's own displacement from home (the only fixed world point
+  // this tool has). That displacement is exactly home's own unclamped,
+  // heading-up, range-normalized offset from the plane - the same
+  // direction the home marker itself is plotted in, just added to each
+  // blob's stored position rather than used on its own. Unclamped here
+  // deliberately (unlike the marker below, which clamps to the edge) since
+  // the scroll needs the true, unbounded distance, not one capped at the
+  // radar's own radius. Home-center mode leaves blobs untouched entirely:
+  // home is the fixed center there, and clouds share that same fixed
+  // world reference frame, so their relative positions never change as
+  // the plane moves.
+  let cloudOffsetX=0, cloudOffsetY=0;
+  if(!isHomeCenter){
+    const relBearingUnclamped=((bearing-heading)+360)%360;
+    const distRatioUnclamped=range>0?distance/range:0;
+    const angUnclamped=(relBearingUnclamped-90)*Math.PI/180;
+    cloudOffsetX=Math.cos(angUnclamped)*distRatioUnclamped;
+    cloudOffsetY=Math.sin(angUnclamped)*distRatioUnclamped;
+  }
+  const TILE=6; // "3x bigger square": blobs live in -3..+3, 3x the radar's own -1..+1 width
+  const wrap=(v)=>v-TILE*Math.round(v/TILE);
+
+  if(c.showBlobs!==false){
+    const blobs=ensureRadarBlobs(c);
+    ctx.save();
+    ctx.beginPath();
+    if(isSquare) ctx.rect(cx-r,cy-r,r*2,r*2);
+    else ctx.arc(cx,cy,r,0,Math.PI*2);
+    ctx.clip();
+    blobs.forEach(b=>{
+      const bx=wrap(b.x+cloudOffsetX), by=wrap(b.y+cloudOffsetY);
+      // Skip blobs that landed well outside the visible area after
+      // wrapping - the clip above would hide them anyway, this just
+      // avoids the wasted draw call.
+      if(Math.abs(bx)>1.2||Math.abs(by)>1.2) return;
+      bresenhamFillCircle(ctx,cx+bx*r,cy+by*r,Math.max(1,b.r*r),blobColor);
+    });
+    ctx.restore();
+  }
+
+  // Drawn AFTER blobs (not before) so the ring lines stay visible on top
+  // of any overlapping cloud clutter, rather than blobs potentially
+  // painting over them. Always circles, even in square mode - a
+  // traditional radar's range rings are concentric circles regardless of
+  // the screen's own outer shape; only the background/border follow it.
+  if(c.showRings!==false){
+    const ringCount=Math.max(1,Math.min(10,Math.round(c.ringCount!==undefined?c.ringCount:4)));
+    for(let i=1;i<=ringCount;i++){
+      bresenhamCircle(ctx,cx,cy,r*i/ringCount,gridColor);
+    }
+    bresenhamLine(ctx,cx-r,cy,cx+r,cy,gridColor);
+    bresenhamLine(ctx,cx,cy-r,cx,cy+r,gridColor);
+  }
+
+  // Purely decorative motion, not driven by any telemetry value - a
+  // simple time-based angle, ping-ponging within a narrow wedge for the
+  // sonar-style sweep or going all the way around for the classic style.
+  const now=performance.now();
+  let sweepAngleDeg;
+  if(c.sweepStyle==='pingpong'){
+    const period=3000;
+    const t=(now%period)/period;
+    const tri=t<0.5?t*2:2-t*2;
+    sweepAngleDeg=-60+tri*120;
+  } else {
+    const period=4000;
+    sweepAngleDeg=((now%period)/period)*360;
+  }
+  const sweepRad=(sweepAngleDeg-90)*Math.PI/180;
+  bresenhamLine(ctx,cx,cy,cx+Math.cos(sweepRad)*r,cy+Math.sin(sweepRad)*r,sweepColor);
+
+  // The off-center point's bearing: plane->home directly in plane-center
+  // mode, or the reciprocal (home->plane) bearing in home-center mode,
+  // since the only bearing available is always "from the aircraft".
+  // Home-center mode stays fixed north-up (no heading subtraction) - a
+  // map-style view where "up" always means true north, regardless of
+  // which way the aircraft is currently pointed. Plane-center mode stays
+  // heading-up, since that's the sensible convention for an aircraft-
+  // centered display.
+  const rawBearing=isHomeCenter?(bearing+180)%360:bearing;
+  const relBearing=isHomeCenter?rawBearing:((rawBearing-heading)+360)%360;
+  const clampedDist=Math.min(distance,range);
+  const distRatio=range>0?clampedDist/range:0;
+  const markAngle=(relBearing-90)*Math.PI/180;
+  const markX=cx+Math.cos(markAngle)*distRatio*r;
+  const markY=cy+Math.sin(markAngle)*distRatio*r;
+  const offCenterColor=isHomeCenter?planeColor:homeColor;
+  bresenhamFillCircle(ctx,markX,markY,Math.max(2,r*0.06),offCenterColor);
+
+  const centerColor=isHomeCenter?homeColor:planeColor;
+  bresenhamLine(ctx,cx-4,cy,cx+4,cy,centerColor);
+  bresenhamLine(ctx,cx,cy-4,cx,cy+4,centerColor);
+
+  if(isSquare){
+    for(let bi=0;bi<bw;bi++) bresenhamRect(ctx,bi,bi,w-2*bi,h-2*bi,borderCol);
+  } else {
+    for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r-bi,borderCol);
+  }
+}
+
 function drawHomeDistance(ctx,w,h,distance,c){
   const ptrColor=c.pointerColor||'#5fe88a';
   const bgColor=c.bgColor||'#040810';
@@ -5008,47 +5189,66 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   ctx.fillStyle=c.bgColor||'#040810'; ctx.fillRect(0,0,w,h);
   const v=Math.max(min,Math.min(max,value));
   const vertical = c.orientation==='vertical';
+  const full = !!c.fullFill;
 
   if(!vertical){
+    // Text keeps its own padding for readability regardless of fill mode -
+    // only the bar/track/ticks/border region itself expands to the full
+    // box when fullFill is on.
     const padX=6;
-    const barY=h*0.45, barH=h*0.25;
-    if(c.showLabel!==false){
-      ctx.fillStyle=c.labelColor||'#e8eef5';
-      ctx.font=`${gSize(c,'label',Math.max(8,h*0.22))}px Space Grotesk`;
-      ctx.textAlign='left'; ctx.textBaseline='top';
-      gText(ctx,c,'label',label,padX,4);
-    }
-    if(c.showValue!==false && color!=='transparent'){
-      const valSize=gSize(c,'value',Math.max(9,h*0.25));
-      ctx.font=`bold ${valSize}px JetBrains Mono`;
-      // Unit is drawn as part of the value here; its own toggle controls it.
-      const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
-      if(c.showValueBox!==false){
-        const tw=ctx.measureText(txt).width;
-        const boxPad=valSize*0.2;
-        ctx.fillStyle=c.valueBoxColor||'#1c232e';
-        ctx.fillRect(w-padX-tw-boxPad+gDX(c,'value'),4-boxPad*0.5+gDY(c,'value'),tw+boxPad*2,valSize+boxPad);
+    const barPadX = full ? 0 : padX;
+    const barY = full ? 0 : h*0.45;
+    const barH = full ? h : h*0.25;
+
+    const drawTrackAndBar = () => {
+      if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
+        ctx.fillStyle=c.trackColor; ctx.fillRect(barPadX,barY,w-barPadX*2,barH);
       }
-      ctx.fillStyle=color;
-      ctx.textAlign='right'; ctx.textBaseline='top';
-      gText(ctx,c,'value',txt,w-padX,4);
-    }
-    if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
-      ctx.fillStyle=c.trackColor; ctx.fillRect(padX,barY,w-padX*2,barH);
-    }
-    if(c.showBar!==false && color!=='transparent'){
-      const pct=(v-min)/(max-min);
-      const area=w-padX*2, bw=area*pct;
-      // Mirrored: touches the right edge and grows leftward instead of
-      // touching the left edge and growing rightward.
-      const bx=c.mirrored ? (w-padX-bw) : padX;
-      ctx.fillStyle=color; ctx.fillRect(bx,barY,bw,barH);
-    }
-    ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
-    if(c.showTicks!==false){
-      for(let i=1;i<10;i++){const x=padX+(w-padX*2)*(i/10);ctx.beginPath();ctx.moveTo(x,barY);ctx.lineTo(x,barY+barH);ctx.stroke()}
-    }
-    if(c.showBorder!==false) ctx.strokeRect(padX+0.5,barY+0.5,w-padX*2-1,barH-1);
+      if(c.showBar!==false && color!=='transparent'){
+        const pct=(v-min)/(max-min);
+        const area=w-barPadX*2, bw=area*pct;
+        // Mirrored: touches the right edge and grows leftward instead of
+        // touching the left edge and growing rightward.
+        const bx=c.mirrored ? (w-barPadX-bw) : barPadX;
+        ctx.fillStyle=color; ctx.fillRect(bx,barY,bw,barH);
+      }
+      ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
+      if(c.showTicks!==false){
+        for(let i=1;i<10;i++){const x=barPadX+(w-barPadX*2)*(i/10);ctx.beginPath();ctx.moveTo(x,barY);ctx.lineTo(x,barY+barH);ctx.stroke()}
+      }
+      if(c.showBorder!==false) ctx.strokeRect(barPadX+0.5,barY+0.5,w-barPadX*2-1,barH-1);
+    };
+    const drawLabel = () => {
+      if(c.showLabel!==false){
+        ctx.fillStyle=c.labelColor||'#e8eef5';
+        ctx.font=`${gSize(c,'label',Math.max(8,h*0.22))}px Space Grotesk`;
+        ctx.textAlign='left'; ctx.textBaseline='top';
+        gText(ctx,c,'label',label,padX,4);
+      }
+    };
+    const drawValue = () => {
+      if(c.showValue!==false && color!=='transparent'){
+        const valSize=gSize(c,'value',Math.max(9,h*0.25));
+        ctx.font=`bold ${valSize}px JetBrains Mono`;
+        // Unit is drawn as part of the value here; its own toggle controls it.
+        const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
+        if(c.showValueBox!==false){
+          const tw=ctx.measureText(txt).width;
+          const boxPad=valSize*0.2;
+          ctx.fillStyle=c.valueBoxColor||'#1c232e';
+          ctx.fillRect(w-padX-tw-boxPad+gDX(c,'value'),4-boxPad*0.5+gDY(c,'value'),tw+boxPad*2,valSize+boxPad);
+        }
+        ctx.fillStyle=color;
+        ctx.textAlign='right'; ctx.textBaseline='top';
+        gText(ctx,c,'value',txt,w-padX,4);
+      }
+    };
+    // Full-fill: the bar covers the whole box, so it has to be drawn
+    // FIRST, with label/value layered on top of it afterward - the
+    // opposite of normal mode's order, which doesn't matter there since
+    // the smaller bar region and the text never actually overlap.
+    if(full){ drawTrackAndBar(); drawLabel(); drawValue(); }
+    else { drawLabel(); drawValue(); drawTrackAndBar(); }
     return;
   }
 
@@ -5057,51 +5257,72 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   // rotating the text itself isn't practical, so the layout adapts around
   // keeping it horizontal instead.
   const padY=4;
-  let topY=padY, botY=h-padY;
-  if(c.showLabel!==false){
-    ctx.fillStyle=c.labelColor||'#e8eef5';
-    ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Space Grotesk`;
-    ctx.textAlign='center'; ctx.textBaseline='top';
-    gText(ctx,c,'label',label,w/2,topY);
-    topY+=gSize(c,'label',Math.max(8,w*0.16))+3;
+  const barX = full ? 0 : w*0.3;
+  const barW = full ? w : w*0.4;
+  let barTop, barBottom;
+  if(full){
+    // Full-fill: the bar always spans the entire height, independent of
+    // whether label/value text is shown - unlike normal mode, where the
+    // bar's top/bottom shrink to make room for whichever text is visible.
+    barTop=0; barBottom=h;
+  } else {
+    let topY=padY, botY=h-padY;
+    if(c.showLabel!==false) topY+=gSize(c,'label',Math.max(8,w*0.16))+3;
+    let valH=0;
+    if(c.showValue!==false && color!=='transparent') valH=gSize(c,'value',Math.max(9,w*0.2))+4;
+    barTop=topY; barBottom=botY-valH;
   }
-  let valH=0;
-  if(c.showValue!==false && color!=='transparent'){
-    valH=gSize(c,'value',Math.max(9,w*0.2))+4;
-  }
-  const barX=w*0.3, barW=w*0.4;
-  const barTop=topY, barBottom=botY-valH;
   const barH2=Math.max(1,barBottom-barTop);
-  if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
-    ctx.fillStyle=c.trackColor; ctx.fillRect(barX,barTop,barW,barH2);
-  }
-  if(c.showBar!==false && color!=='transparent'){
-    const pct=(v-min)/(max-min);
-    const fillH=barH2*pct;
-    // Mirrored: touches the top edge and grows downward instead of
-    // touching the bottom edge and growing upward.
-    const fy=c.mirrored ? barTop : barBottom-fillH;
-    ctx.fillStyle=color; ctx.fillRect(barX,fy,barW,fillH);
-  }
-  ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
-  if(c.showTicks!==false){
-    for(let i=1;i<10;i++){const y=barTop+barH2*(i/10);ctx.beginPath();ctx.moveTo(barX,y);ctx.lineTo(barX+barW,y);ctx.stroke()}
-  }
-  if(c.showBorder!==false) ctx.strokeRect(barX+0.5,barTop+0.5,barW-1,barH2-1);
-  if(c.showValue!==false && color!=='transparent'){
-    const valSize=gSize(c,'value',Math.max(9,w*0.2));
-    ctx.font=`bold ${valSize}px JetBrains Mono`;
-    const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
-    if(c.showValueBox!==false){
-      const tw=ctx.measureText(txt).width;
-      const boxPad=valSize*0.2;
-      ctx.fillStyle=c.valueBoxColor||'#1c232e';
-      ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'),botY-valSize-boxPad*0.5+gDY(c,'value'),tw+boxPad*2,valSize+boxPad);
+
+  const drawTrackAndBar = () => {
+    if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
+      ctx.fillStyle=c.trackColor; ctx.fillRect(barX,barTop,barW,barH2);
     }
-    ctx.fillStyle=color;
-    ctx.textAlign='center'; ctx.textBaseline='top';
-    gText(ctx,c,'value',txt,w/2,botY-valSize);
-  }
+    if(c.showBar!==false && color!=='transparent'){
+      const pct=(v-min)/(max-min);
+      const fillH=barH2*pct;
+      // Mirrored: touches the top edge and grows downward instead of
+      // touching the bottom edge and growing upward.
+      const fy=c.mirrored ? barTop : barBottom-fillH;
+      ctx.fillStyle=color; ctx.fillRect(barX,fy,barW,fillH);
+    }
+    ctx.strokeStyle=c.borderColor||'#2a3340'; ctx.lineWidth=1;
+    if(c.showTicks!==false){
+      for(let i=1;i<10;i++){const y=barTop+barH2*(i/10);ctx.beginPath();ctx.moveTo(barX,y);ctx.lineTo(barX+barW,y);ctx.stroke()}
+    }
+    if(c.showBorder!==false) ctx.strokeRect(barX+0.5,barTop+0.5,barW-1,barH2-1);
+  };
+  const drawLabel = () => {
+    if(c.showLabel!==false){
+      ctx.fillStyle=c.labelColor||'#e8eef5';
+      ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Space Grotesk`;
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      gText(ctx,c,'label',label,w/2,padY);
+    }
+  };
+  const drawValue = () => {
+    if(c.showValue!==false && color!=='transparent'){
+      const valSize=gSize(c,'value',Math.max(9,w*0.2));
+      ctx.font=`bold ${valSize}px JetBrains Mono`;
+      const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
+      const botY=h-padY;
+      if(c.showValueBox!==false){
+        const tw=ctx.measureText(txt).width;
+        const boxPad=valSize*0.2;
+        ctx.fillStyle=c.valueBoxColor||'#1c232e';
+        ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'),botY-valSize-boxPad*0.5+gDY(c,'value'),tw+boxPad*2,valSize+boxPad);
+      }
+      ctx.fillStyle=color;
+      ctx.textAlign='center'; ctx.textBaseline='top';
+      gText(ctx,c,'value',txt,w/2,botY-valSize);
+    }
+  };
+  // Full-fill: the bar covers the whole box, so it has to be drawn FIRST,
+  // with label/value layered on top of it afterward - the opposite of
+  // normal mode's order, which doesn't matter there since the smaller bar
+  // region and the text never actually overlap.
+  if(full){ drawTrackAndBar(); drawLabel(); drawValue(); }
+  else { drawLabel(); drawTrackAndBar(); drawValue(); }
 }
 
 function drawTextValue(ctx,w,h,value,label,unit,color,digits,c){
@@ -5524,6 +5745,15 @@ function applyMavTransformCpp(expr, c, suffix){
   if(!isNaN(sub) && sub!==0) e = `(${e} - ${sub.toFixed(6)}f)`;
   return e;
 }
+// Plain 24-bit RGB for driving a NeoPixel directly - distinct from
+// hexTo565Const() below, which targets the DISPLAY's own colour depth
+// (RGB565, mono black/white, etc.) rather than a physical LED's true
+// colour, and would quantize away most of the requested colour on a mono
+// panel project even though the LED strip itself is still full-colour.
+function hexToRgb888(hex){
+  const h = (hex||'#000000').replace('#','');
+  return { r: parseInt(h.slice(0,2),16)||0, g: parseInt(h.slice(2,4),16)||0, b: parseInt(h.slice(4,6),16)||0 };
+}
 function hexTo565Const(hex){
   if (!hex || hex === 'transparent') return 'C_TRANSPARENT';
   const {base, hex:col}=parseColorValue(hex);
@@ -5715,7 +5945,7 @@ function buildArduinoCode(){
   // and overlapping instruments have a related but distinct issue: one's
   // own background fill can leave a neighbour's previously-drawn content
   // uncovered in the shared region.
-  const LIVE_ROTATING_TYPES = new Set(['artificial-horizon','turn-coordinator','compass','altimeter-dial','groundspeed-dial','arc-gauge','heading-arc']);
+  const LIVE_ROTATING_TYPES = new Set(['artificial-horizon','turn-coordinator','compass','altimeter-dial','groundspeed-dial','arc-gauge','heading-arc','radar']);
   const hasOverlap = groups.some(g=>g.length>1);
   const needsFullClear = hasOverlap || insts.some(i=>LIVE_ROTATING_TYPES.has(i.type) || (i.config&&i.config.rotation));
   const panelId=state.panelId;
@@ -5904,7 +6134,13 @@ function buildArduinoCode(){
   const debugSection=hw.debugSerial!=='none'?`#define DEBUG_SERIAL    ${hw.debugSerial}`:`// Debug serial disabled`;
   const rgbLedOn = (hw.rgbLed||'on')==='on';
   const demoModeOn = (hw.demoMode||'on')==='on';
-  const includes=(panel.gfx?panel.gfx+'\n':'')+panel.include+(isI2CPanel()?'\n#include <Wire.h>':'')+(hw.board==='rp2040'?'\n#include "hardware/clocks.h"  // for the clk_peri re-tie fix in setup()':'')+(!isU8g2&&!isTftESPI?'\n#include <Fonts/TomThumb.h>  // compact font for small instruments':'')+(rgbLedOn?'\n#include <Adafruit_NeoPixel.h>':'');
+  // Only strips with a real pin, a positive count, and at least one
+  // configured group are considered "on" - filtering here means the rest
+  // of the codegen below can just iterate this list without repeating
+  // the same validation at every single use site.
+  const validLedStrips = (state.ledStrips||[]).filter(s=>s.pin && String(s.pin).trim()!=='' && (s.count||0)>0 && s.groups && s.groups.length>0);
+  const ledStripOn = validLedStrips.length>0;
+  const includes=(panel.gfx?panel.gfx+'\n':'')+panel.include+(isI2CPanel()?'\n#include <Wire.h>':'')+(hw.board==='rp2040'?'\n#include "hardware/clocks.h"  // for the clk_peri re-tie fix in setup()':'')+(!isU8g2&&!isTftESPI?'\n#include <Fonts/TomThumb.h>  // compact font for small instruments':'')+((rgbLedOn||ledStripOn)?'\n#include <Adafruit_NeoPixel.h>':'');
   let code=`// ============================================================
 // AvionixForge - Generated Instrument Cluster Code
 // ------------------------------------------------------------
@@ -5946,6 +6182,14 @@ Adafruit_NeoPixel statusLed(1, RGB_LED_PIN, NEO_GRB + NEO_KHZ800);
 ` : `
 #define MAVLINK_TIMEOUT_MS 3000
 `}
+${ledStripOn ? `
+// Custom WS2812 LED indicator strips - each LED lights up independently
+// based on its own MAVLink/RC-channel threshold, evaluated every loop
+// alongside the rest of the instruments.
+${validLedStrips.map((strip,s)=>`#define LED_STRIP${s}_PIN ${strip.pin}
+#define LED_STRIP${s}_COUNT ${strip.count}
+Adafruit_NeoPixel ledStrip${s}(LED_STRIP${s}_COUNT, LED_STRIP${s}_PIN, NEO_GRB + NEO_KHZ800);`).join('\n')}
+` : ''}
 
 ${uartSection}
 ${debugSection}
@@ -6775,6 +7019,110 @@ float homeBearingDeg() {
   float b = atan2f(y, x) * 180.0f / PI;
   return fmodf(b + 360.0f, 360.0f);
 }
+${ledStripOn ? `
+// Evaluates each GROUP's own condition against live telemetry once, then
+// applies the resulting colour to every LED in that group's from-to range
+// - identical comparison logic to the Indicator instrument for the
+// threshold mode, just shared across a whole range of LEDs instead of
+// repeated per LED. Every group reduces to a single 0.0-1.0 "how much ON
+// colour" BASE factor (either threshold's boolean condition, or blend's
+// continuous value-based fade) - blink/flicker modes then MODULATE that
+// base factor rather than replace it, so blinking works identically for
+// both colour modes: a blend LED pulses or flickers at its current blend
+// level, not just fully on/off. Each group's own {} scope keeps its
+// variable names from colliding with any other group's, and each strip
+// gets its own function/object entirely, so strips never interfere with
+// each other.
+// getPixelColor() comparison means .show() (a relatively slow,
+// timing-sensitive bit-banging call) only fires on an actual change, not
+// every single loop iteration - though blinking/flickering LEDs will
+// naturally trigger this often, since their colour genuinely does change
+// on every transition. Later groups win over earlier ones for any
+// overlapping LED indices within the same strip, since they're applied
+// in list order.
+${validLedStrips.map((strip,s)=>`void updateLedStrip${s}() {
+  bool _ledChanged = false;
+${strip.groups.map((led,g)=>({led,g})).filter(({led})=>{
+  // Defensive against stale from/to values referencing LEDs beyond this
+  // strip's actual current count - skip entirely rather than emit a for
+  // loop whose range doesn't correspond to any real, addressable LED.
+  return Math.max(0,(led.from||1)-1) < strip.count;
+}).map(({led,g})=>{
+  const src=led.source||'SYS_STATUS.battery_remaining';
+  const op=led.op||'<';
+  const thresh=led.threshold!==undefined?led.threshold:20;
+  const isMavConn=src==='MAVLINK_CONNECTED';
+  const colorMode=led.colorMode||'threshold';
+  const blinkMode=led.blinkMode||'none';
+  const blinkSpeed=Math.max(0.1, led.blinkSpeed!==undefined?led.blinkSpeed:2);
+  const fromIdx = Math.max(0, (led.from||1)-1);
+  const toIdx = Math.min(strip.count-1, Math.max(fromIdx, (led.to||led.from||1)-1));
+  // NeoPixel wants plain 24-bit RGB, not the display-colour-depth-targeted
+  // output hexTo565Const() produces - see hexToRgb888()'s own comment.
+  const onRGB=hexToRgb888(led.onColor||'#ff5c5c');
+  const offRGB=hexToRgb888(led.offColor||'#1c232e');
+  const suf=`_s${s}_g${g}`;
+  const lines=[`  {`];
+
+  // 1. Base factor - independent of blink mode entirely. Computed ONCE
+  //    for the whole group, not per LED, since every LED in the range
+  //    shares the exact same source/threshold/colours/blink settings.
+  if(colorMode==='blend'){
+    const bMin=led.blendMin!==undefined?led.blendMin:0;
+    const bMax=led.blendMax!==undefined?led.blendMax:100;
+    lines.push(`    float _ledVal${suf} = getMavlinkValue("${src}");`);
+    if(bMin===bMax){
+      // Zero-width range - codegen-time branch avoids a division by zero
+      // at runtime entirely, rather than a defensive runtime check.
+      lines.push(`    float _ledBase${suf} = (_ledVal${suf} >= ${Number(bMax).toFixed(4)}f) ? 1.0f : 0.0f;`);
+    } else {
+      lines.push(`    float _ledBase${suf} = constrain((_ledVal${suf} - ${Number(bMin).toFixed(4)}f) / ${Number(bMax-bMin).toFixed(4)}f, 0.0f, 1.0f);`);
+    }
+  } else {
+    // Threshold mode - identical condition logic to the Indicator instrument.
+    if(isMavConn){
+      if(op==='=='||op==='!='){
+        lines.push(`    bool _ledCond${suf} = (millis() - mav.lastUpdate < MAVLINK_TIMEOUT_MS) ${op==='=='?'':'== false'};`);
+      } else {
+        lines.push(`    bool _ledCond${suf} = (millis() - mav.lastUpdate < MAVLINK_TIMEOUT_MS);`);
+      }
+    } else {
+      lines.push(`    float _ledVal${suf} = getMavlinkValue("${src}");`);
+      lines.push(`    bool _ledCond${suf} = (_ledVal${suf} ${op} ${Number(thresh).toFixed(4)}f);`);
+    }
+    lines.push(`    float _ledBase${suf} = _ledCond${suf} ? 1.0f : 0.0f;`);
+  }
+
+  // 2. Blink/flicker modulation - multiplies the base factor, works the
+  //    same way regardless of which mode produced it above.
+  if(blinkMode==='none'){
+    lines.push(`    float _ledT${suf} = _ledBase${suf};`);
+  } else if(blinkMode==='blink'){
+    lines.push(`    float _ledPeriod${suf} = 1000.0f / ${Number(blinkSpeed).toFixed(3)}f;`);
+    lines.push(`    float _ledPhase${suf} = fmodf((float)millis(), _ledPeriod${suf}) / _ledPeriod${suf};`);
+    lines.push(`    float _ledT${suf} = _ledBase${suf} * (_ledPhase${suf} < 0.5f ? 1.0f : 0.0f);`);
+  } else if(blinkMode==='double-blink'){
+    lines.push(`    float _ledPeriod${suf} = 1000.0f / ${Number(blinkSpeed).toFixed(3)}f;`);
+    lines.push(`    float _ledPhase${suf} = fmodf((float)millis(), _ledPeriod${suf}) / _ledPeriod${suf};`);
+    lines.push(`    bool _ledBlinkOn${suf} = (_ledPhase${suf} < 0.125f) || (_ledPhase${suf} >= 0.25f && _ledPhase${suf} < 0.375f);`);
+    lines.push(`    float _ledT${suf} = _ledBase${suf} * (_ledBlinkOn${suf} ? 1.0f : 0.0f);`);
+  } else { // flicker
+    lines.push(`    float _ledFlickerT${suf} = millis() / 1000.0f * ${Number(blinkSpeed).toFixed(3)}f;`);
+    lines.push(`    float _ledFlicker${suf} = 0.5f + 0.3f*sinf(_ledFlickerT${suf}*2.1f) + 0.2f*sinf(_ledFlickerT${suf}*4.7f) + 0.15f*sinf(_ledFlickerT${suf}*9.3f);`);
+    lines.push(`    float _ledT${suf} = _ledBase${suf} * constrain(_ledFlicker${suf}, 0.0f, 1.0f);`);
+  }
+
+  lines.push(`    uint32_t _ledColor${suf} = ledStrip${s}.Color((uint8_t)(${offRGB.r} + (${onRGB.r}-${offRGB.r})*_ledT${suf}), (uint8_t)(${offRGB.g} + (${onRGB.g}-${offRGB.g})*_ledT${suf}), (uint8_t)(${offRGB.b} + (${onRGB.b}-${offRGB.b})*_ledT${suf}));`);
+  // 3. Apply the one, shared colour to every LED in this group's range.
+  lines.push(`    for (int _ledIdx = ${fromIdx}; _ledIdx <= ${toIdx}; _ledIdx++) {`);
+  lines.push(`      if (ledStrip${s}.getPixelColor(_ledIdx) != _ledColor${suf}) { ledStrip${s}.setPixelColor(_ledIdx, _ledColor${suf}); _ledChanged = true; }`);
+  lines.push(`    }`);
+  lines.push(`  }`);
+  return lines.join('\n');
+}).join('\n')}
+  if (_ledChanged) ledStrip${s}.show();
+}`).join('\n\n')}
+` : ''}
 
 `;
 
@@ -6905,7 +7253,11 @@ ${rgbLedOn ? `  // Lit first, before anything else, as a hardware-alive heartbea
   statusLed.setBrightness(40);
   statusLed.setPixelColor(0, statusLed.Color(60, 0, 0));  // red: no MAVLink yet
   statusLed.show();
-` : ''}${clkPeriRetie}  ${hw.debugSerial!=='none'?`${hw.debugSerial}.begin(115200);`:``}
+` : ''}${ledStripOn ? validLedStrips.map((strip,s)=>`  ledStrip${s}.begin();
+  ledStrip${s}.setBrightness(80);
+  ledStrip${s}.clear();
+  ledStrip${s}.show();  // all off until the first loop() pass evaluates real conditions
+`).join('') : ''}${clkPeriRetie}  ${hw.debugSerial!=='none'?`${hw.debugSerial}.begin(115200);`:``}
 ${uartPinSetup}
 ${mavlinkFifoSetup}  MAVLINK_SERIAL.begin(MAVLINK_BAUD);
 ${spiPinSetup}
@@ -7051,7 +7403,7 @@ ${hw.board!=='rp2040' ? '  receiveMavlink();\n' : '  // receiveMavlink() now run
   // instruments animate instead of sitting dead at zero. Real data always
   // wins the moment it arrives - mav is updated by receiveMavlink()${hw.board!=='rp2040' ? ', called\n  // above, right before this check runs' : ' running\n  // on core1, completely independent of this loop'}.
   if (!mavOk) updateDemoValues();
-` : ''}  if (millis() - lastDraw >= DRAW_INTERVAL_MS) { drawAll(); lastDraw = millis(); }
+` : ''}${ledStripOn ? validLedStrips.map((strip,s)=>`  updateLedStrip${s}();\n`).join('') : ''}  if (millis() - lastDraw >= DRAW_INTERVAL_MS) { drawAll(); lastDraw = millis(); }
 }
 `;
 
@@ -7384,7 +7736,7 @@ function generateInstrumentCode(inst, i) {
   //    that border right after it was drawn - it would flash into view on
   //    the very first frame, then be gone for good, since _staticDone
   //    prevents it from ever being redrawn.
-  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line','altimeter-tape','airspeed-tape','tape','groundspeed-tape','vsi-tape','heading-tape','heading-arc','mode-indicator','arc-gauge','bar-gauge','static-text','text-value','home-distance'];
+  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line','altimeter-tape','airspeed-tape','tape','groundspeed-tape','vsi-tape','heading-tape','heading-arc','mode-indicator','arc-gauge','bar-gauge','static-text','text-value','home-distance','radar'];
   const isCircularShape = inst.type==='dial'
     || ((inst.type==='indicator'||inst.type==='home-arrow') && c.shape!=='rectangle');
   if(!OWN_BACKGROUND_TYPES.includes(inst.type)){
@@ -8210,6 +8562,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSize=gfxSizeF(${sizeExpr(c,'label','max(8.0f,gr*0.2f)')}); int lCharH=gfxCharH(lSize); int lMargin=max(2,(int)(lCharH*0.25f)); GFX.setTextColor(labelColor); GFX.setTextSize(lSize); GFX.setCursor(cx - (int)strlen("${c.label||''}")*gfxCharW(lSize)/2 + (${labelDX}), y + h - lCharH - lMargin + (${labelDY})); GFX.print("${c.label||''}"); }`);
   }
   else if (inst.type === 'bar-gauge') {
+    const full = !!c.fullFill;
     L.push(`  // --- Bar Gauge ---`);
     L.push(`  float value = ${mavFetch(c.mavSource)};`);
     L.push(`  float minV = ${c.min||0}, maxV = ${c.max||100};`);
@@ -8219,33 +8572,57 @@ function generateInstrumentCode(inst, i) {
     if(c.orientation!=='vertical'){
       const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
       const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
-      L.push(`  int padX = 6; int barY = y + h*0.45; int barH = h*0.25;`);
-      L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + padX + (${labelDX}), y + 4 + (${labelDY})); GFX.print("${c.label||''}"); }`);
-      L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
-      L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.25f')}); int vCurX = x + w - gfxCharW(vSz)*(digits+3) + (${valueDX});`);
-      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, y + 4 - 2 + (${valueDY}), gfxCharW(vSz)*(digits+3) + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
-      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, y + 4 + (${valueDY})); GFX.print(v, digits); GFX.print(" ${c.unit||''}");`);
-      L.push(`  }`);
-      L.push(`  if (${b(c.showTrack)} && trackColor != C_TRANSPARENT) GFX.fillRect(x + padX, barY, w - padX*2, barH, trackColor);`);
-      L.push(`  // Mirrored: touches the right edge and grows leftward instead of`);
-      L.push(`  // touching the left edge and growing rightward.`);
-      L.push(`  if (${b(c.showBar)} && color != C_TRANSPARENT) { float bw = (w - padX*2) * ((v - minV)/(maxV-minV)); float bx = ${c.mirrored?'x + w - padX - bw':'x + padX'}; GFX.fillRect(bx, barY, bw, barH, color); }`);
-      L.push(`  if (${b(c.showTicks)} && borderColor != C_TRANSPARENT) { for (int i=1;i<10;i++) { int tx = x + padX + (int)((w-padX*2)*(i/10.0f)); GFX.drawLine(tx, barY, tx, barY+barH, borderColor); } }`);
-      L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x + padX, barY, w - padX*2, barH, borderColor);`);
+      // Text keeps its own padding for readability regardless of fill
+      // mode - only the bar/track/ticks/border region itself expands to
+      // the full box when fullFill is on.
+      L.push(`  int padX = 6; int barPadX = ${full?0:'padX'}; int barY = ${full?'y':'y + h*0.45'}; int barH = ${full?'h':'h*0.25'};`);
+      const labelLines = [
+        `  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + padX + (${labelDX}), y + 4 + (${labelDY})); GFX.print("${c.label||''}"); }`
+      ];
+      const valueLines = [
+        `  if (${b(c.showValue)} && color != C_TRANSPARENT) {`,
+        `    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.25f')}); int vCurX = x + w - gfxCharW(vSz)*(digits+3) + (${valueDX});`,
+        `    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, y + 4 - 2 + (${valueDY}), gfxCharW(vSz)*(digits+3) + 4, gfxCharH(vSz) + 4, valueBoxColor);`,
+        `    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, y + 4 + (${valueDY})); GFX.print(v, digits); GFX.print(" ${c.unit||''}");`,
+        `  }`
+      ];
+      const barLines = [
+        `  if (${b(c.showTrack)} && trackColor != C_TRANSPARENT) GFX.fillRect(x + barPadX, barY, w - barPadX*2, barH, trackColor);`,
+        `  // Mirrored: touches the right edge and grows leftward instead of`,
+        `  // touching the left edge and growing rightward.`,
+        `  if (${b(c.showBar)} && color != C_TRANSPARENT) { float bw = (w - barPadX*2) * ((v - minV)/(maxV-minV)); float bx = ${c.mirrored?'x + w - barPadX - bw':'x + barPadX'}; GFX.fillRect(bx, barY, bw, barH, color); }`,
+        `  if (${b(c.showTicks)} && borderColor != C_TRANSPARENT) { for (int i=1;i<10;i++) { int tx = x + barPadX + (int)((w-barPadX*2)*(i/10.0f)); GFX.drawLine(tx, barY, tx, barY+barH, borderColor); } }`,
+        `  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x + barPadX, barY, w - barPadX*2, barH, borderColor);`
+      ];
+      // Full-fill: the bar covers the whole box, so it has to be drawn
+      // FIRST, with label/value layered on top of it afterward - the
+      // opposite of normal mode's order, which doesn't matter there since
+      // the smaller bar region and the text never actually overlap.
+      if(full){ barLines.forEach(l=>L.push(l)); labelLines.forEach(l=>L.push(l)); valueLines.forEach(l=>L.push(l)); }
+      else { labelLines.forEach(l=>L.push(l)); valueLines.forEach(l=>L.push(l)); barLines.forEach(l=>L.push(l)); }
     } else {
       L.push(`  // Vertical: fills bottom-to-top, like a thermometer/fuel gauge. Label`);
       L.push(`  // stays at the top and value at the bottom, both upright and readable -`);
       L.push(`  // rotating the text itself isn't practical, so the layout adapts`);
       L.push(`  // around keeping it horizontal instead.`);
-      L.push(`  int topY = y + 4, botY = y + h - 4;`);
       const labelDX2 = Math.round(gDX(c,'label')), labelDY2 = Math.round(gDY(c,'label'));
       const valueDX2 = Math.round(gDX(c,'value')), valueDY2 = Math.round(gDY(c,'value'));
-      L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX2}), topY + (${labelDY2})); GFX.print("${c.label||''}"); topY += gfxCharH(lSz) + 3; }`);
-      L.push(`  int valH = 0;`);
-      L.push(`  int vSz=gfxSizeF(${sizeExpr(c,'value','w*0.2f')});`);
-      L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) valH = gfxCharH(vSz) + 4;`);
-      L.push(`  int barX = x + w*0.3, barW = w*0.4;`);
-      L.push(`  int barTop = topY, barBottom = botY - valH;`);
+      L.push(`  int barX = ${full?'x':'x + w*0.3'}, barW = ${full?'w':'w*0.4'};`);
+      if(full){
+        // Full-fill: the bar always spans the entire height, independent
+        // of whether label/value text is shown - unlike normal mode,
+        // where the bar's top/bottom shrink to make room for whichever
+        // text is visible.
+        L.push(`  int barTop = y, barBottom = y + h;`);
+        L.push(`  int vSz=gfxSizeF(${sizeExpr(c,'value','w*0.2f')});`);
+      } else {
+        L.push(`  int topY = y + 4, botY = y + h - 4;`);
+        L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX2}), topY + (${labelDY2})); GFX.print("${c.label||''}"); topY += gfxCharH(lSz) + 3; }`);
+        L.push(`  int valH = 0;`);
+        L.push(`  int vSz=gfxSizeF(${sizeExpr(c,'value','w*0.2f')});`);
+        L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) valH = gfxCharH(vSz) + 4;`);
+        L.push(`  int barTop = topY, barBottom = botY - valH;`);
+      }
       L.push(`  int barH2 = max(1, barBottom - barTop);`);
       L.push(`  if (${b(c.showTrack)} && trackColor != C_TRANSPARENT) GFX.fillRect(barX, barTop, barW, barH2, trackColor);`);
       L.push(`  // Mirrored: touches the top edge and grows downward instead of`);
@@ -8253,12 +8630,20 @@ function generateInstrumentCode(inst, i) {
       L.push(`  if (${b(c.showBar)} && color != C_TRANSPARENT) { float pct=(v-minV)/(maxV-minV); int fillH=(int)(barH2*pct); int fy = ${c.mirrored?'barTop':'barBottom-fillH'}; GFX.fillRect(barX, fy, barW, fillH, color); }`);
       L.push(`  if (${b(c.showTicks)} && borderColor != C_TRANSPARENT) { for (int i=1;i<10;i++) { int ty = barTop + (int)(barH2*(i/10.0f)); GFX.drawLine(barX, ty, barX+barW, ty, borderColor); } }`);
       L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(barX, barTop, barW, barH2, borderColor);`);
+      // Full-fill: label/value are drawn AFTER the bar (which just filled
+      // the entire box), so they layer on top of it instead of the bar
+      // being sized around them.
+      if(full){
+        L.push(`  int topY = y + 4;`);
+        L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','w*0.16f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + w/2 - (int)strlen("${c.label||''}")*gfxCharW(lSz)/2 + (${labelDX2}), topY + (${labelDY2})); GFX.print("${c.label||''}"); }`);
+      }
       L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
       L.push(`    char vbuf[16]; dtostrf(v, 1, digits, vbuf);`);
       L.push(`    int vw = gfxCharW(vSz)*((int)strlen(vbuf)+${(c.unit||'').length+1});`);
       L.push(`    int vCurX = x + w/2 - vw/2 + (${valueDX2});`);
-      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, botY - gfxCharH(vSz) - 2 + (${valueDY2}), vw + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
-      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, botY - gfxCharH(vSz) + (${valueDY2})); GFX.print(vbuf); GFX.print(" ${c.unit||''}");`);
+      L.push(`    int vBotY = ${full?'y + h - 4':'botY'};`);
+      L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(vCurX - 2, vBotY - gfxCharH(vSz) - 2 + (${valueDY2}), vw + 4, gfxCharH(vSz) + 4, valueBoxColor);`);
+      L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz); GFX.setCursor(vCurX, vBotY - gfxCharH(vSz) + (${valueDY2})); GFX.print(vbuf); GFX.print(" ${c.unit||''}");`);
       L.push(`  }`);
     }
   }
@@ -8436,6 +8821,118 @@ function generateInstrumentCode(inst, i) {
     L.push(haRect
       ? `  for (int bi=0;bi<${habw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor);`
       : `  for (int bi=0;bi<${habw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
+    L.push(`  }`);
+  }
+  else if (inst.type === 'radar') {
+    const rbw = c.borderWidth!==undefined?c.borderWidth:1;
+    const rIsSquare = c.shape==='square';
+    const rIsHomeCenter = c.mode==='home-center';
+    const range = c.range!==undefined?c.range:500;
+    const blobs = ensureRadarBlobs(c); // same generator, same cached data the JS preview already used - guarantees the two match exactly
+    L.push(`  // --- Radar ---`);
+    L.push(`  uint16_t gridColor = ${hexTo565Const(c.gridColor||'#7a8898')};`);
+    L.push(`  uint16_t sweepColor = ${hexTo565Const(c.sweepColor||'#5fe88a')};`);
+    L.push(`  uint16_t blobColor = ${hexTo565Const(c.blobColor||'#708f7f')};`);
+    L.push(`  uint16_t planeColor = ${hexTo565Const(c.planeColor||'#ff9d3a')};`);
+    L.push(`  uint16_t homeColor = ${hexTo565Const(c.homeColor||'#5fe88a')};`);
+    L.push(bgFillLine(c, rIsSquare?'rect':'circle'));
+    L.push(`  // Clouds are stationary in the world - in plane-center mode the plane`);
+    L.push(`  // itself is what's moving, so the cloud field scrolls opposite to the`);
+    L.push(`  // plane's own displacement from home (the only fixed world point this`);
+    L.push(`  // tool has). Exactly home's own unclamped, heading-up, range-normalized`);
+    L.push(`  // offset from the plane - the same direction the home marker itself is`);
+    L.push(`  // plotted in below, just added to each blob's stored position. Unclamped`);
+    L.push(`  // here deliberately (the marker below clamps to the edge; the scroll`);
+    L.push(`  // needs the true, unbounded distance). Home-center mode leaves this at`);
+    L.push(`  // zero: home is the fixed center there, and clouds share that same`);
+    L.push(`  // fixed world reference frame, so nothing needs to move.`);
+    L.push(`  float cloudOffX = 0, cloudOffY = 0;`);
+    if(!rIsHomeCenter){
+      L.push(`  {`);
+      L.push(`    float relBU = fmodf((homeBearingDeg() - mav.heading) + 360.0f, 360.0f);`);
+      L.push(`    float distRatioU = homeDistanceM() / ${range}.0f;`);
+      L.push(`    float angU = (relBU - 90.0f) * PI / 180.0f;`);
+      L.push(`    cloudOffX = cosf(angU) * distRatioU;`);
+      L.push(`    cloudOffY = sinf(angU) * distRatioU;`);
+      L.push(`  }`);
+    }
+    if(c.showBlobs!==false && blobs.length>0){
+      L.push(`  if (blobColor != C_TRANSPARENT) {`);
+      L.push(`    // Fixed, baked-in decoration - simulated cloud clutter, not real`);
+      L.push(`    // weather data, so there's nothing to actually read from telemetry.`);
+      L.push(`    // Generated once at design time (matches what the editor preview`);
+      L.push(`    // already showed) rather than randomized at boot, so it's identical`);
+      L.push(`    // and stable every time the device runs, not different every reboot.`);
+      L.push(`    // Positions cover a "3x bigger square" (-3..+3, vs the radar's own`);
+      L.push(`    // -1..+1) than the visible area - the wrap below (finds each blob's`);
+      L.push(`    // nearest tiled copy to the current scroll offset) is what makes the`);
+      L.push(`    // field tile seamlessly, disappearing at one edge and reappearing at`);
+      L.push(`    // the opposite one, rather than a single field that would eventually`);
+      L.push(`    // scroll off entirely and never come back.`);
+      L.push(`    static const float radarBlobs[][3] = {`);
+      blobs.forEach((b,i)=>{
+        L.push(`      {${b.x.toFixed(3)}f, ${b.y.toFixed(3)}f, ${b.r.toFixed(3)}f}${i<blobs.length-1?',':''}`);
+      });
+      L.push(`    };`);
+      L.push(`    for (int bi=0; bi<${blobs.length}; bi++) {`);
+      L.push(`      float bx = radarBlobs[bi][0] + cloudOffX; bx -= 6.0f * roundf(bx/6.0f);`);
+      L.push(`      float by = radarBlobs[bi][1] + cloudOffY; by -= 6.0f * roundf(by/6.0f);`);
+      L.push(`      if (fabsf(bx)>1.2f || fabsf(by)>1.2f) continue; // wrapped well outside the visible area`);
+      L.push(`      GFX.fillCircle(cx+(int)(bx*r), cy+(int)(by*r), max(1,(int)(radarBlobs[bi][2]*r)), blobColor);`);
+      L.push(`    }`);
+      L.push(`  }`);
+    }
+    // Drawn AFTER blobs (not before) so the ring lines stay visible on top
+    // of any overlapping cloud clutter. Always circles, even in square
+    // mode - a traditional radar's range rings are concentric circles
+    // regardless of the screen's own outer shape; only the
+    // background/border above still follow it.
+    if(c.showRings!==false){
+      const ringCount=Math.max(1,Math.min(10,Math.round(c.ringCount!==undefined?c.ringCount:4)));
+      L.push(`  if (gridColor != C_TRANSPARENT) {`);
+      L.push(`    for (int ri=1;ri<=${ringCount};ri++) {`);
+      L.push(`      GFX.drawCircle(cx, cy, (int)(r*ri/${ringCount}.0f), gridColor);`);
+      L.push(`    }`);
+      L.push(`    GFX.drawFastHLine(cx-r, cy, r*2, gridColor);`);
+      L.push(`    GFX.drawFastVLine(cx, cy-r, r*2, gridColor);`);
+      L.push(`  }`);
+    }
+    L.push(`  // Purely decorative motion, not driven by any telemetry value.`);
+    L.push(`  if (sweepColor != C_TRANSPARENT) {`);
+    L.push(`    float sweepDeg;`);
+    if(c.sweepStyle==='pingpong'){
+      L.push(`    float t = fmodf(millis(), 3000.0f) / 3000.0f;`);
+      L.push(`    float tri = (t<0.5f) ? t*2.0f : 2.0f-t*2.0f;`);
+      L.push(`    sweepDeg = -60.0f + tri*120.0f;`);
+    } else {
+      L.push(`    sweepDeg = fmodf(millis(), 4000.0f) / 4000.0f * 360.0f;`);
+    }
+    L.push(`    float sweepRad = (sweepDeg - 90.0f) * PI / 180.0f;`);
+    L.push(`    GFX.drawLine(cx, cy, cx+(int)(cosf(sweepRad)*r), cy+(int)(sinf(sweepRad)*r), sweepColor);`);
+    L.push(`  }`);
+    L.push(`  // Off-center point's bearing: plane->home directly in plane-center mode,`);
+    L.push(`  // or the reciprocal (home->plane) bearing in home-center mode, since`);
+    L.push(`  // homeBearingDeg() is always "from the aircraft".`);
+    L.push(`  float radarRawBearing = ${rIsHomeCenter?'fmodf(homeBearingDeg() + 180.0f, 360.0f)':'homeBearingDeg()'};`);
+    // Home-center mode stays fixed north-up (no heading subtraction) - a
+    // map-style view where "up" always means true north, regardless of
+    // which way the aircraft is currently pointed. Plane-center mode
+    // stays heading-up, since that's the sensible convention for an
+    // aircraft-centered display.
+    L.push(`  float radarRelBearing = ${rIsHomeCenter?'radarRawBearing':'fmodf((radarRawBearing - mav.heading) + 360.0f, 360.0f)'};`);
+    L.push(`  float radarDist = min(homeDistanceM(), ${range.toFixed(1)}f);`);
+    L.push(`  float radarDistRatio = radarDist / ${range}.0f;`);
+    L.push(`  float radarMarkAng = (radarRelBearing - 90.0f) * PI / 180.0f;`);
+    L.push(`  int radarMarkX = cx + (int)(cosf(radarMarkAng)*radarDistRatio*r);`);
+    L.push(`  int radarMarkY = cy + (int)(sinf(radarMarkAng)*radarDistRatio*r);`);
+    L.push(`  uint16_t offCenterColor = ${rIsHomeCenter?'planeColor':'homeColor'};`);
+    L.push(`  if (offCenterColor != C_TRANSPARENT) GFX.fillCircle(radarMarkX, radarMarkY, max(2,(int)(r*0.06f)), offCenterColor);`);
+    L.push(`  uint16_t centerColor = ${rIsHomeCenter?'homeColor':'planeColor'};`);
+    L.push(`  if (centerColor != C_TRANSPARENT) { GFX.drawFastHLine(cx-4, cy, 8, centerColor); GFX.drawFastVLine(cx, cy-4, 8, centerColor); }`);
+    L.push(`  if (borderColor != C_TRANSPARENT) {`);
+    L.push(rIsSquare
+      ? `  for (int bi=0;bi<${rbw};bi++) GFX.drawRect(x+bi, y+bi, w-2*bi, h-2*bi, borderColor);`
+      : `  for (int bi=0;bi<${rbw};bi++) GFX.drawCircle(cx, cy, r-bi, borderColor);`);
     L.push(`  }`);
   }
   else if (inst.type === 'home-distance') {
@@ -8900,6 +9397,22 @@ function setupEventListeners(){
     const t0=rows.length?rows[0][timeColIdx]:0;
     rows.forEach(r=>{ r[timeColIdx]-=t0; });
 
+    // Home position for HOME_DISTANCE/HOME_BEARING (and any instrument
+    // reading HOME.lat/HOME.lon directly) - set ONCE here, from the log's
+    // first GPS fix, not per-frame. Real home position is set once (at
+    // arm or first fix) and stays fixed for the rest of a flight; without
+    // this, HOME.lat/HOME.lon would stay at their unset default of 0,0
+    // ("Null Island") for the whole log, and every distance/bearing
+    // reading against it would be meaningless. If no column was mapped
+    // to GPS.lat/GPS.lon, there's no better answer than leaving it unset,
+    // same as a log with no location data at all.
+    const latColIdx=Object.keys(columnMap).find(idx=>columnMap[idx]==='GPS.lat');
+    const lonColIdx=Object.keys(columnMap).find(idx=>columnMap[idx]==='GPS.lon');
+    if(latColIdx!==undefined && lonColIdx!==undefined && rows.length){
+      state.mavlinkValues['HOME.lat']=rows[0][parseInt(latColIdx)];
+      state.mavlinkValues['HOME.lon']=rows[0][parseInt(lonColIdx)];
+    }
+
     state.blackbox={
       loaded:true, headers:bbParsedHeaders, rows, timeColIdx, columnMap,
       playing:false, currentTime:0, duration, speed:1,
@@ -9084,7 +9597,8 @@ function setupEventListeners(){
       panelId:state.panelId, screenBgColor:state.screenBgColor,
       hw:state.hw,
       instruments:state.instruments.map(i=>({type:i.type,x:i.x,y:i.y,w:i.w,h:i.h,config:i.config})),
-      customTemplates:state.customTemplates
+      customTemplates:state.customTemplates,
+      ledStrips:state.ledStrips
     };
     const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
     const url=URL.createObjectURL(blob);
@@ -9106,6 +9620,12 @@ function setupEventListeners(){
         state.instruments.forEach(i=>i.element&&i.element.remove());
         state.instruments=[]; state.selectedId=null;
         if(data.customTemplates) state.customTemplates=data.customTemplates;
+        if(data.ledStrips) state.ledStrips=data.ledStrips;
+        else if(data.ledConfigs && data.ledConfigs.length){
+          // Older project file, saved before multi-strip support existed -
+          // migrate into the new shape as "Strip 1" rather than losing it.
+          state.ledStrips=[{ pin:(data.hw&&data.hw.ledStripPin)||'', count:parseInt((data.hw&&data.hw.ledStripCount)||'0',10)||0, groups:data.ledConfigs }];
+        }
         if(data.panelId) state.panelId=data.panelId;
         if(data.screenBgColor) state.screenBgColor=data.screenBgColor;
         if(data.hw) state.hw={...HW_DEFAULTS,...data.hw};
@@ -9409,6 +9929,16 @@ window.addEventListener('load',init);
         </div>
       </div>
 
+      <!-- Custom LED Strips -->
+      <div class="setup-section">
+        <div class="setup-section-title"><i class="fa fa-grip-lines"></i> WS2812 LED Indicator Strips</div>
+        <div id="ledStripsList"></div>
+        <div class="setup-row">
+          <button class="btn" id="ledStripAddBtn" type="button" style="width:100%"><i class="fa fa-plus"></i> Add LED Strip</button>
+          <span class="field-hint">Each strip has its own data pin and LED count. Each LED lights up independently based on a MAVLink value or RC channel crossing a threshold - same condition logic as the Indicator instrument.</span>
+        </div>
+      </div>
+
       <!-- Demo Mode -->
       <div class="setup-section">
         <div class="setup-section-title"><i class="fa fa-wand-magic-sparkles"></i> Demo Mode</div>
@@ -9645,6 +10175,23 @@ window.addEventListener('load',init);
   </div>
 </div>
 
+<div class="modal-backdrop" id="ledConfigModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title"><i class="fa fa-sliders"></i> &nbsp;LED Indicator Setup</div>
+      <button class="modal-close" id="ledConfigModalClose"><i class="fa fa-times"></i></button>
+    </div>
+    <div class="modal-body">
+      <div id="ledConfigList"></div>
+      <div id="ledConfigEmpty" class="field-hint" style="display:none;padding:20px 0;text-align:center">Set an LED Count above 0 in Hardware Setup to configure LEDs here.</div>
+    </div>
+    <div class="modal-footer">
+      <div class="spacer"></div>
+      <button class="btn btn-primary" id="ledConfigModalDone"><i class="fa fa-check"></i> Done</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-backdrop" id="multiPageModal">
   <div class="modal">
     <div class="modal-header">
@@ -9709,7 +10256,7 @@ const HW_DEFAULTS = {
   protocol:'mavlink',
   uart:'Serial1', baud:'57600', debugSerial:'Serial', rx:'1', tx:'0',
   cs:'5', dc:'4', rst:'6', sck:'2', mosi:'3', bl:'7', spiMhz:'62.5',
-  rgbLed:'on', rgbLedPin:'16',
+  rgbLed:'on', rgbLedPin:'16', ledStripPin:'', ledStripCount:'0',
   demoMode:'on',
   colorDepth:'16', useFramebuffer:'auto',
   sda:'4', scl:'5', i2cAddr:'0x3C',
@@ -9757,6 +10304,7 @@ function openSetupModal(){
   document.getElementById('hw_rgbLed').value = hw.rgbLed||'on';
   document.getElementById('hw_demoMode').value = hw.demoMode||'on';
   document.getElementById('hw_rgbLedPin').value = hw.rgbLedPin||'16';
+  renderLedStripsList();
   // Only offer depths whose framebuffer fits this panel.
   {
     const sel=document.getElementById('hw_colorDepth');
@@ -9810,6 +10358,220 @@ function openSetupModal(){
 }
 
 function closeSetupModal(){ document.getElementById('setupModal').classList.remove('open'); }
+
+// ── WS2812 LED Indicator Strips ─────────────────────────────────
+// Each STRIP has its own data pin, LED count, and independent list of
+// GROUPS (a from/to range within that strip sharing one MAVLink/RC-
+// channel condition and on/off colour) - identical condition logic to
+// the Indicator instrument (same shared INDICATOR_SOURCES/INDICATOR_OPS
+// list), applied to every LED in a group's range via a loop rather than
+// requiring the same effect to be configured on each LED individually.
+if(!state.ledStrips){
+  // Migrate the older single-strip format (hw.ledStripPin/ledStripCount +
+  // a flat state.ledConfigs array of groups) into the new multi-strip
+  // shape as "Strip 1", rather than silently discarding any LED setup
+  // already done under the old format.
+  state.ledStrips = [];
+  if((state.hw && state.hw.ledStripPin) || (state.ledConfigs && state.ledConfigs.length)){
+    state.ledStrips.push({
+      pin: (state.hw && state.hw.ledStripPin) || '',
+      count: parseInt((state.hw && state.hw.ledStripCount) || '0', 10) || 0,
+      groups: state.ledConfigs || []
+    });
+  }
+}
+let currentLedStripIndex = 0;
+function ledConfigDefault(from, to){
+  return { from: from!==undefined?from:1, to: to!==undefined?to:1,
+    source:'SYS_STATUS.battery_remaining', op:'<', threshold:20, onColor:'#ff5c5c', offColor:'#1c232e',
+    colorMode:'threshold', blendMin:0, blendMax:100, blinkMode:'none', blinkSpeed:2 };
+}
+function ledStripDefault(){
+  return { pin:'', count:0, groups:[] };
+}
+function currentStrip(){
+  return state.ledStrips[currentLedStripIndex];
+}
+function renderLedStripsList(){
+  document.getElementById('ledStripsList').innerHTML = state.ledStrips.map((strip,s)=>`
+    <div class="setup-row" data-strip-index="${s}">
+      <div class="setup-field">
+        <label>Strip ${s+1} Data Pin</label>
+        <input type="text" class="strip-field" data-field="pin" placeholder="e.g. 17" value="${strip.pin||''}">
+      </div>
+      <div class="setup-field">
+        <label>LED Count</label>
+        <input type="number" class="strip-field" data-field="count" min="0" max="256" value="${strip.count||0}">
+      </div>
+      <div class="setup-field" style="flex:0 0 auto;align-self:flex-end;display:flex;gap:6px">
+        <button class="btn strip-configure-btn" type="button">Configure...</button>
+        <button class="btn btn-ghost strip-remove-btn" type="button">Remove</button>
+      </div>
+    </div>`).join('');
+}
+document.getElementById('ledStripsList').addEventListener('input', e=>{
+  const field = e.target.closest('.strip-field');
+  if(!field) return;
+  const row = e.target.closest('[data-strip-index]');
+  const idx = parseInt(row.dataset.stripIndex, 10);
+  const strip = state.ledStrips[idx];
+  if(!strip) return;
+  strip[field.dataset.field] = field.dataset.field==='count' ? (Math.max(0,Math.min(256,parseInt(field.value,10)||0))) : field.value;
+  generateCode();
+});
+document.getElementById('ledStripsList').addEventListener('click', e=>{
+  const row = e.target.closest('[data-strip-index]');
+  if(!row) return;
+  const idx = parseInt(row.dataset.stripIndex, 10);
+  if(e.target.closest('.strip-configure-btn')){
+    currentLedStripIndex = idx;
+    openLedConfigModal();
+  } else if(e.target.closest('.strip-remove-btn')){
+    state.ledStrips.splice(idx, 1);
+    renderLedStripsList();
+    generateCode();
+  }
+});
+document.getElementById('ledStripAddBtn').addEventListener('click', ()=>{
+  state.ledStrips.push(ledStripDefault());
+  renderLedStripsList();
+  generateCode();
+});
+function syncLedConfigsToCount(){
+  // Groups are independent of the LED count (each defines its own
+  // range), so existing groups are preserved across a count change -
+  // just clamped so none can reference an LED index that no longer
+  // exists, rather than being discarded and forcing reconfiguration.
+  const strip = currentStrip();
+  const count = strip.count||0;
+  if(count>0){
+    strip.groups.forEach(g=>{
+      g.from = Math.max(1, Math.min(g.from, count));
+      g.to = Math.max(g.from, Math.min(g.to, count));
+    });
+    if(strip.groups.length===0) strip.groups.push(ledConfigDefault(1, count));
+  }
+  return count;
+}
+function renderLedConfigList(){
+  const strip = currentStrip();
+  const ledCount = strip.count||0;
+  document.getElementById('ledConfigEmpty').style.display = ledCount===0 ? '' : 'none';
+  document.getElementById('ledConfigList').innerHTML = strip.groups.map((led,i)=>{
+    const srcOpts=INDICATOR_SOURCES.map(([v,l])=>`<option value="${v}" ${(led.source||'SYS_STATUS.battery_remaining')===v?'selected':''}>${l}</option>`).join('');
+    const opOpts=INDICATOR_OPS.map(op=>`<option value="${op}" ${(led.op||'<')===op?'selected':''}>${op}</option>`).join('');
+    const colorMode = led.colorMode||'threshold';
+    const blinkMode = led.blinkMode||'none';
+    const conditionFields = colorMode==='blend'
+      ? `<div class="setup-row">
+          <div class="setup-field"><label>Condition Source</label><select class="led-field" data-field="source">${srcOpts}</select></div>
+        </div>
+        <div class="setup-row">
+          <div class="setup-field"><label>Min Value (= OFF color)</label><input type="number" class="led-field" data-field="blendMin" value="${led.blendMin!==undefined?led.blendMin:0}" step="any"></div>
+          <div class="setup-field"><label>Max Value (= ON color)</label><input type="number" class="led-field" data-field="blendMax" value="${led.blendMax!==undefined?led.blendMax:100}" step="any"></div>
+        </div>
+        <span class="field-hint" style="display:block;margin-bottom:8px">Color fades gradually between OFF and ON as the value moves from min to max - values outside this range clamp to the nearest end color.</span>`
+      : `<div class="setup-row">
+          <div class="setup-field"><label>Condition Source</label><select class="led-field" data-field="source">${srcOpts}</select></div>
+        </div>
+        <div class="setup-row">
+          <div class="setup-field"><label>Operator</label><select class="led-field" data-field="op">${opOpts}</select></div>
+          <div class="setup-field"><label>Threshold</label><input type="number" class="led-field" data-field="threshold" value="${led.threshold!==undefined?led.threshold:20}" step="any"></div>
+        </div>`;
+    const blinkFields = `<div class="setup-row">
+        <div class="setup-field"><label>Blink Mode</label><select class="led-field" data-field="blinkMode">
+          <option value="none" ${blinkMode==='none'?'selected':''}>Solid (no blink)</option>
+          <option value="blink" ${blinkMode==='blink'?'selected':''}>Standard blink</option>
+          <option value="double-blink" ${blinkMode==='double-blink'?'selected':''}>Double blink</option>
+          <option value="flicker" ${blinkMode==='flicker'?'selected':''}>Flame flicker</option>
+        </select></div>
+        ${blinkMode!=='none' ? `<div class="setup-field"><label>Blink Speed (Hz)</label><input type="number" class="led-field" data-field="blinkSpeed" value="${led.blinkSpeed!==undefined?led.blinkSpeed:2}" min="0.1" step="0.1"></div>` : ''}
+      </div>
+      ${blinkMode!=='none' && colorMode==='blend' ? `<span class="field-hint" style="display:block;margin-bottom:8px">Blink/flicker modulates the current blend level - a value near the max still pulses brighter than one near the min.</span>` : ''}`;
+    const rangeLabel = led.from===led.to ? `LED ${led.from}` : `LEDs ${led.from}\u2013${led.to}`;
+    return `<div class="setup-section" data-led-index="${i}">
+      <div class="setup-section-title" style="display:flex;align-items:center;justify-content:space-between">
+        <span>${rangeLabel}</span>
+        <button class="btn btn-ghost led-remove-btn" type="button" style="padding:2px 10px;font-size:12px">Remove</button>
+      </div>
+      <div class="setup-row">
+        <div class="setup-field"><label>From LED #</label><input type="number" class="led-field" data-field="from" value="${led.from}" min="1" max="${ledCount||1}"></div>
+        <div class="setup-field"><label>To LED #</label><input type="number" class="led-field" data-field="to" value="${led.to}" min="1" max="${ledCount||1}"></div>
+      </div>
+      <div class="setup-row">
+        <div class="setup-field"><label>Color Mode</label><select class="led-field" data-field="colorMode">
+          <option value="threshold" ${colorMode==='threshold'?'selected':''}>Threshold (on/off)</option>
+          <option value="blend" ${colorMode==='blend'?'selected':''}>Blend (gradual, by value)</option>
+        </select></div>
+      </div>
+      ${conditionFields}
+      ${blinkFields}
+      <div class="setup-row">
+        <div class="setup-field"><label>ON Color</label><input type="color" class="led-field" data-field="onColor" value="${led.onColor||'#ff5c5c'}"></div>
+        <div class="setup-field"><label>OFF Color</label><input type="color" class="led-field" data-field="offColor" value="${led.offColor||'#1c232e'}"></div>
+      </div>
+    </div>`;
+  }).join('') + (ledCount>0 ? `<button class="btn" id="ledGroupAddBtn" type="button" style="width:100%;margin-top:4px"><i class="fa fa-plus"></i> Add Another Effect Group</button>` : '');
+}
+document.getElementById('ledConfigList').addEventListener('input', e=>{
+  const field = e.target.closest('.led-field');
+  if(!field) return;
+  const row = e.target.closest('[data-led-index]');
+  const idx = parseInt(row.dataset.ledIndex, 10);
+  const led = currentStrip().groups[idx];
+  const key = field.dataset.field;
+  if(!led) return;
+  if(key==='from' || key==='to'){
+    const ledCount = Math.max(1, currentStrip().count||1);
+    let v = Math.round(parseFloat(field.value));
+    if(isNaN(v)) v = led[key];
+    v = Math.max(1, Math.min(ledCount, v));
+    led[key] = v;
+    // Keep from<=to always - whichever end the user just moved past the
+    // other one drags the other end along with it, rather than silently
+    // producing an inverted, invalid range.
+    if(led.from > led.to){ if(key==='from') led.to = led.from; else led.from = led.to; }
+  } else {
+    led[key] = (key==='threshold'||key==='blendMin'||key==='blendMax'||key==='blinkSpeed') ? parseFloat(field.value) : field.value;
+  }
+  // colorMode/blinkMode/from/to all change what's shown or displayed in
+  // the group's own title - same reasoning as the Radar instrument's
+  // sweepStyle field - so the whole list needs rebuilding, not just the
+  // underlying data updated.
+  if(key==='colorMode' || key==='blinkMode' || key==='from' || key==='to') renderLedConfigList();
+  generateCode();
+});
+document.getElementById('ledConfigList').addEventListener('click', e=>{
+  if(e.target.closest('.led-remove-btn')){
+    const row = e.target.closest('[data-led-index]');
+    const idx = parseInt(row.dataset.ledIndex, 10);
+    currentStrip().groups.splice(idx, 1);
+    renderLedConfigList();
+    generateCode();
+  } else if(e.target.closest('#ledGroupAddBtn')){
+    const strip = currentStrip();
+    const ledCount = Math.max(1, strip.count||1);
+    // New group defaults to a single LED right after the last existing
+    // group's range, so adding several groups in a row naturally tiles
+    // across the strip instead of every new group starting back at LED 1.
+    const lastTo = strip.groups.length ? strip.groups[strip.groups.length-1].to : 0;
+    const start = Math.min(ledCount, lastTo+1);
+    strip.groups.push(ledConfigDefault(start, start));
+    renderLedConfigList();
+    generateCode();
+  }
+});
+function openLedConfigModal(){
+  syncLedConfigsToCount();
+  renderLedConfigList();
+  document.getElementById('ledConfigModal').classList.add('open');
+}
+function closeLedConfigModal(){
+  document.getElementById('ledConfigModal').classList.remove('open');
+  generateCode();
+}
+document.getElementById('ledConfigModalClose').addEventListener('click', closeLedConfigModal);
+document.getElementById('ledConfigModalDone').addEventListener('click', closeLedConfigModal);
 
 function applySetupModal(){
   state.hw = {
