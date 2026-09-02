@@ -559,13 +559,21 @@ const state = {
 
 const SENSOR_SOURCES = [
   {id:'CUSTOM_VALUE',label:'Custom Fixed Value',unit:'',sim:()=>0},
-  {id:'Roll',label:'Roll Angle (attitude)',unit:'°',sim:()=>Math.sin(Date.now()/3000)*25},
-  {id:'Ptch',label:'Pitch Angle (attitude)',unit:'°',sim:()=>Math.sin(Date.now()/4200)*15},
-  {id:'Yaw',label:'Yaw Angle (attitude)',unit:'°',sim:()=>((Date.now()/120)%360)},
+  // Simulated in RADIANS (the true raw value CRSF/ELRS actually reports),
+  // not degrees - these sensors auto-apply a Multiply By of 57.29578 the
+  // moment they're selected (see the mavSource change handler), which
+  // converts back to a realistic-looking degree range for preview. If
+  // this simulated straight in degrees instead, that same auto-applied
+  // multiply would double-convert it, producing a wildly oversized,
+  // spinning value in the preview despite being numerically consistent
+  // with what the exported Lua does with a genuine raw-radians sensor.
+  {id:'Roll',label:'Roll Angle (attitude)',unit:'°',sim:()=>Math.sin(Date.now()/3000)*25*Math.PI/180},
+  {id:'Ptch',label:'Pitch Angle (attitude)',unit:'°',sim:()=>Math.sin(Date.now()/4200)*15*Math.PI/180},
+  {id:'Yaw',label:'Yaw Angle (attitude)',unit:'°',sim:()=>((Date.now()/120)%360)*Math.PI/180},
   {id:'Alt',label:'Altitude',unit:'m',sim:()=>150+Math.sin(Date.now()/8000)*60},
   {id:'ASpd',label:'Airspeed (pitot)',unit:'m/s',sim:()=>18+Math.sin(Date.now()/4500)*7},
   {id:'GSpd',label:'Ground Speed (GPS)',unit:'m/s',sim:()=>15+Math.sin(Date.now()/5000)*8},
-  {id:'Hdg',label:'Heading',unit:'°',sim:()=>((Date.now()/120)%360)},
+  {id:'Hdg',label:'Heading',unit:'°',sim:()=>((Date.now()/120)%360)*Math.PI/180},
   {id:'VSpd',label:'Vertical Speed (vario)',unit:'m/s',sim:()=>Math.sin(Date.now()/7000)*4},
   {id:'RxBt',label:'Rx Battery Voltage',unit:'V',sim:()=>11.8+Math.sin(Date.now()/9000)*0.8},
   {id:'CELL_VOLTAGE',label:'Cell Voltage (RxBt ÷ cells)',unit:'V',sim:()=>(11.8+Math.sin(Date.now()/9000)*0.8)/3},
@@ -619,17 +627,17 @@ const SENSOR_SOURCES = [
 const DEMO_FLIGHT_MODES = ['ANGL','HOR','ACRO','STAB','ALTH','POSH','RTH','WAYP','CRUZ','LAND'];
 
 const STANDARD_INSTRUMENTS = [
-  {type:'artificial-horizon',name:'Artificial Horizon',desc:'Attitude indicator',icon:'fa-circle-half-stroke',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',mavSource2:'Ptch',ahShape:'circle',bgColor:'#3a6db5',groundColor:'#6b4226',lineColor:'#ffffff',refColor:'#4fc3f7',borderColor:'#3a4555',showPitchLadder:true,showRollTicks:true,showRollTriangle:true,rotation:0}},
+  {type:'artificial-horizon',name:'Artificial Horizon',desc:'Attitude indicator',icon:'fa-circle-half-stroke',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',mavSource2:'Ptch',mavMultiply:57.29578,mavMultiply2:57.29578,ahShape:'circle',bgColor:'#3a6db5',groundColor:'#6b4226',lineColor:'#ffffff',refColor:'#4fc3f7',borderColor:'#3a4555',showPitchLadder:true,showRollTicks:true,showRollTriangle:true,rotation:0}},
   {type:'turn-coordinator',name:'Turn Coordinator',desc:'Turn rate & slip',icon:'fa-arrows-rotate',defaultSize:{w:120,h:120},defaults:{mavSource:'Roll',slipSource:'CUSTOM_VALUE',bgColor:'#040810',pointerColor:'#4fc3f7',markColor:'#ffffff',tubeColor:'#1c232e',ballColor:'#ffffff',borderColor:'#3a4555',rotation:0}},
-  {type:'compass',name:'Compass',desc:'Heading rose',icon:'fa-compass',defaultSize:{w:120,h:120},defaults:{mavSource:'Hdg',showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',northColor:'#ff5c5c',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',valueBoxColor:'#1c232e',showHub:true,rotation:0}},
+  {type:'compass',name:'Compass',desc:'Heading rose',icon:'fa-compass',defaultSize:{w:120,h:120},defaults:{mavSource:'Hdg',mavMultiply:57.29578,showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',northColor:'#ff5c5c',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',valueBoxColor:'#1c232e',showHub:true,rotation:0}},
   {type:'altimeter-dial',name:'Altimeter Dial',desc:'Traditional altimeter',icon:'fa-clock',defaultSize:{w:120,h:120},defaults:{mavSource:'Alt',mavMultiply:1,unit:'m',tickEdgeDistance:0,labelInset:0,bgColor:'#040810',handColorOnes:'#ffffff',handColorTens:'#4fc3f7',handColorHundreds:'#ffd93a',digitalColor:'#5fe88a',tickColor:'#e8eef5',minorTickColor:'#5a6878',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#3a4555',valueBoxColor:'#1c232e',showHub:true,showDigital:true,showLabels:true,showHundredsHand:true,rotation:0}},
   {type:'altimeter-tape',name:'Altimeter Tape',desc:'Vertical altitude',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'Alt',min:0,max:1000,unit:'m',bgColor:'#040810',pointerColor:'#4dd2c9',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4dd2c9',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'vsi-tape',name:'VSI Tape',desc:'Vertical speed tape',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'VSpd',min:-10,max:10,unit:'m/s',bgColor:'#040810',pointerColor:'#4dd2c9',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4dd2c9',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'static-text',name:'Static Text',desc:'Custom fixed text label',icon:'fa-font',defaultSize:{w:100,h:30},defaults:{text:'Label',textColor:'#ffffff',bgColor:'transparent',accentColor:'#4fc3f7',showAccent:true,borderColor:'#3a4555',showBorder:false,align:'center',rotation:0}},
   {type:'airspeed-tape',name:'Airspeed Tape',desc:'Vertical speed tape',icon:'fa-gauge-simple-high',defaultSize:{w:60,h:200},defaults:{mavSource:'ASpd',min:0,max:50,unit:'m/s',bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#5fe88a',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
   {type:'vsi',name:'VSI',desc:'Vertical speed',icon:'fa-circle-notch',defaultSize:{w:90,h:90},defaults:{mavSource:'VSpd',min:-10,max:10,unit:'m/s',labelInset:0,sweepAngle:180,startAngle:-90,tickDivisions:5,bgColor:'#040810',pointerColor:'#4fc3f7',tickColor:'#7a8898',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#4fc3f7',showHub:true,showLabels:true,rotation:0}},
-  {type:'heading-tape',name:'Heading Tape',desc:'Horizontal heading',icon:'fa-grip-lines',defaultSize:{w:200,h:40},defaults:{mavSource:'Hdg',bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4fc3f7',valueTextColor:'#040810',showValue:true,showLabels:true,rotation:0}},
-  {type:'heading-arc',name:'Heading Arc',desc:'Curved heading strip',icon:'fa-compass',defaultSize:{w:220,h:80},defaults:{mavSource:'Hdg',bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4fc3f7',valueTextColor:'#040810',showValue:true,showLabels:true,rotation:0}},
+  {type:'heading-tape',name:'Heading Tape',desc:'Horizontal heading',icon:'fa-grip-lines',defaultSize:{w:200,h:40},defaults:{mavSource:'Hdg',mavMultiply:57.29578,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4fc3f7',valueTextColor:'#040810',showValue:true,showLabels:true,rotation:0}},
+  {type:'heading-arc',name:'Heading Arc',desc:'Curved heading strip',icon:'fa-compass',defaultSize:{w:220,h:80},defaults:{mavSource:'Hdg',mavMultiply:57.29578,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#4fc3f7',valueTextColor:'#040810',showValue:true,showLabels:true,rotation:0}},
   {type:'mode-indicator',name:'Flight Mode',desc:'Current mode',icon:'fa-plane',defaultSize:{w:100,h:30},defaults:{mavSource:'FM',bgColor:'#040810',borderColor:'#5fe88a',textColor:'#5fe88a',showText:true,rotation:0}},
   {type:'groundspeed-dial',name:'Groundspeed Dial',desc:'Ground speed km/h',icon:'fa-gauge-high',defaultSize:{w:120,h:120},defaults:{mavSource:'GSpd',bgColor:'#040810',pointerColor:'#5fa8ff',arcColor:'#5fa8ff',trackColor:'#2a3340',tickColor:'#7a8898',labelColor:'#e8eef5',hubColor:'#3a4555',borderColor:'#3a4555',maxSpeed:200,sweepAngle:220,startAngle:160,majorStep:40,minorStep:20,needleLength:80,showHub:true,showValue:true,showUnit:true,showLabel:true,showLabels:true,label:'GND SPD',rotation:0}},
   {type:'groundspeed-tape',name:'Groundspeed Tape',desc:'Ground speed tape km/h',icon:'fa-ruler-vertical',defaultSize:{w:60,h:200},defaults:{mavSource:'GSpd',min:0,max:200,bgColor:'#040810',pointerColor:'#5fa8ff',textColor:'#ffffff',tickColor:'#7a8898',borderColor:'#2a3340',boxBgColor:'#5fa8ff',valueTextColor:'#040810',showValue:true,showUnit:true,showLabels:true,rotation:0}},
@@ -827,8 +835,8 @@ function init(){
 }
 
 function addDefaultInstruments(){
-  addInstrument('artificial-horizon',10,10,100,100,{mavSource:'Roll',mavSource2:'Ptch',ahShape:'circle',bgColor:'#3a6db5',groundColor:'#6b4226',lineColor:'#ffffff',refColor:'#4fc3f7',showPitchLadder:true,rotation:0});
-  addInstrument('compass',120,10,90,90,{mavSource:'Hdg',showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,rotation:0});
+  addInstrument('artificial-horizon',10,10,100,100,{mavSource:'Roll',mavSource2:'Ptch',mavMultiply:57.29578,mavMultiply2:57.29578,ahShape:'circle',bgColor:'#3a6db5',groundColor:'#6b4226',lineColor:'#ffffff',refColor:'#4fc3f7',showPitchLadder:true,rotation:0});
+  addInstrument('compass',120,10,90,90,{mavSource:'Hdg',mavMultiply:57.29578,showLabels:true,showHeadingText:true,showTicks:true,tickEdgeDistance:0,labelInset:0,bgColor:'#040810',pointerColor:'#4fc3f7',textColor:'#ffffff',tickColor:'#ffffff',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,rotation:0});
   addInstrument('altimeter-dial',220,10,100,100,{mavSource:'Alt',mavMultiply:1,unit:'m',tickEdgeDistance:0,labelInset:0,bgColor:'#040810',handColorOnes:'#ffffff',handColorTens:'#4fc3f7',handColorHundreds:'#ffd93a',digitalColor:'#5fe88a',tickColor:'#e8eef5',labelColor:'#e8eef5',borderColor:'#3a4555',hubColor:'#3a4555',showHub:true,showDigital:true,showLabels:true,showHundredsHand:true,rotation:0});
   addInstrument('turn-coordinator',10,120,100,100,{mavSource:'Roll',slipSource:'CUSTOM_VALUE',bgColor:'#040810',pointerColor:'#4fc3f7',markColor:'#ffffff',tubeColor:'#1c232e',ballColor:'#ffffff',rotation:0});
   addInstrument('arc-gauge',265,120,50,50,{mavSource:'RxBt',min:9,max:13,unit:'V',label:'BAT',color:'#5fe88a',bgColor:'#040810',trackColor:'#2a3340',labelColor:'#e8eef5',tickColor:'#7a8898',digits:1,arcSweep:'270',sweepAngle:270,valuePos:'center',showLabels:false,rotation:0});
@@ -1988,6 +1996,7 @@ function renderProperties(){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Text Color','textColor',c.textColor||'#5fe88a');
     html+=colorField('Border Color','borderColor',c.borderColor||'#5fe88a');
+    html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:2}" min="0" max="20"></div>`;
     html+=checkboxField('showText','Show Text',c.showText!==false);
     html+=gaugeTextSection(c,[['mode','Mode Text']],true);
   } else if(inst.type==='groundspeed-dial'){
@@ -2095,6 +2104,7 @@ function renderProperties(){
     html+=`<div class="field">${propGroupLabel('radar','Radar Behaviour')}<label class="field-label">Center Point</label><select data-cfg="mode"><option value="plane-center" ${(c.mode||'plane-center')==='plane-center'?'selected':''}>Aircraft in the middle</option><option value="home-center" ${c.mode==='home-center'?'selected':''}>Home in the middle</option></select><span class="field-hint">The other point (home, or the aircraft) is plotted relative to whichever is centered, using its live bearing and distance.</span></div>`;
     html+=`<div class="field"><label class="field-label">Range (m)</label><input type="number" data-cfg="range" value="${c.range!==undefined?c.range:500}" min="10" step="10"><span class="field-hint">Distance represented by the outer edge - the off-center point is clamped to the edge if it's actually farther away than this.</span></div>`;
     html+=`<div class="field"><label class="field-label">Sweep Style</label><select data-cfg="sweepStyle"><option value="rotate" ${(c.sweepStyle||'rotate')==='rotate'?'selected':''}>Rotating (full circle)</option><option value="pingpong" ${c.sweepStyle==='pingpong'?'selected':''}>Sweeping (left-right, sonar-style)</option></select></div>`;
+    html+=checkboxField('showSweep','Show Sweep Line',c.showSweep!==false);
     html+=checkboxField('showRings','Show Range Rings',c.showRings!==false);
     html+=`<div class="field"><label class="field-label">Number of Rings</label><input type="number" data-cfg="ringCount" value="${c.ringCount!==undefined?c.ringCount:4}" min="1" max="10"></div>`;
     html+=checkboxField('showBlobs','Show Simulated Cloud Clutter',c.showBlobs!==false);
@@ -2188,6 +2198,7 @@ function renderProperties(){
     html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
     html+=checkboxField('showTxPower','Show TX Power',c.showTxPower!==false);
     html+=checkboxField('showRfMode','Show RF Mode',c.showRfMode!==false);
+    html+=`<div class="field"><label class="field-label">ELRS Version (for RF Mode text)</label><select data-cfg="elrsVersion"><option value="v3" ${(c.elrsVersion||'v3')==='v3'?'selected':''}>ELRS 3.x</option><option value="v4" ${c.elrsVersion==='v4'?'selected':''}>ELRS 4.x</option></select><span class="field-hint">The RF Mode telemetry value is a raw numeric index, not text - which packet-rate name each number means changed between ELRS 3.x and 4.x, so this picks the matching lookup table for the "PWR/MODE" footer text.</span></div>`;
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
     html+=gaugeTextSection(c,[['title','LINK Title / LQ%'],['value','RSSI Value'],['rssiLabel','RSSI Label'],['footer','PWR / MODE Footer']]);
   } else if(inst.type==='gps-coords'){
@@ -2336,7 +2347,28 @@ function renderProperties(){
           inst.element.style.pointerEvents = v ? 'none' : '';
         }
         if(key==='tickSweep' || key==='arcSweep') renderProperties();
-        if(key==='mavSource'||key==='mavSource2') renderProperties(); // show/hide CELL_VOLTAGE cell count / Custom Value fields
+        if(key==='mavSource'||key==='mavSource2'){
+          // CRSF (the protocol ELRS uses) always reports Roll/Pitch/
+          // Heading/Yaw in radians, never degrees - selecting one of
+          // these sensors, on ANY instrument (not just Artificial
+          // Horizon/Compass/Heading Tape/Heading Arc, which already
+          // default to this at creation time), sets the standard
+          // radians-to-degrees factor automatically here too. This is
+          // the single place every source dropdown funnels through, so
+          // it catches every instrument that can read an angle - a
+          // bar-gauge or arc-gauge showing Roll gets the same fix as the
+          // AH does, without a separate default for each instrument
+          // type. Only applied if this specific multiply field hasn't
+          // already been touched, so switching sources on an
+          // already-tuned instrument never overwrites a deliberate
+          // value, and switching away from an angle sensor never clears
+          // one either.
+          const suffix = key==='mavSource2' ? '2' : '';
+          if(['Roll','Ptch','Hdg','Yaw'].includes(v) && inst.config['mavMultiply'+suffix]===undefined){
+            inst.config['mavMultiply'+suffix] = 57.29578;
+          }
+          renderProperties(); // show/hide CELL_VOLTAGE cell count / Custom Value fields
+        }
         // Repaint immediately rather than relying on the continuous
         // animation loop's next tick to pick this up - that loop stops
         // scheduling itself entirely once telemetry simulation is paused,
@@ -4687,7 +4719,7 @@ function drawModeIndicator(ctx,w,h,mode,c){
   const color=c.modeColor||colors[modeIdx%colors.length]||'#7a8898';
   ctx.fillStyle=c.bgColor||'#040810'; ctx.fillRect(0,0,w,h);
   ctx.fillStyle=withAlpha(color,'20'); ctx.fillRect(0,0,w,h);
-  ctx.strokeStyle=c.borderColor||color; ctx.lineWidth=2; ctx.strokeRect(1,1,w-2,h-2);
+  ctx.strokeStyle=c.borderColor||color; ctx.lineWidth=c.borderWidth!==undefined?c.borderWidth:2; ctx.strokeRect(1,1,w-2,h-2);
   if(c.showText!==false){
     ctx.fillStyle=c.textColor||color;
     ctx.font=`bold ${Math.max(9,gSize(c,'mode',h*0.4))}px Montserrat`;
@@ -4811,19 +4843,47 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   if(lq>66) lqColor=c.goodColor||'#5fe88a';
   else if(lq>33) lqColor=c.warnColor||'#ffd93a';
 
-  // Every section from here down is stacked sequentially off a running Y
-  // cursor, sized from its own actual font size - the previous version
-  // computed the footer's position as a fixed fraction up from the
-  // BOTTOM while everything above it grew independently down from the
-  // TOP, with neither aware of the other. That works out fine at the one
-  // size it was eyeballed against, but at smaller heights the two
-  // sections collide instead of ever being aware of each other - this
-  // was a real, reproducible bug in the editor itself, not just the Lua
-  // export drifting from it.
   const pad=Math.max(3,w*0.05);
+  const showFooter = c.showTxPower!==false || c.showRfMode!==false;
+
+  // Compute each section's own natural height first, independent of
+  // layout - all four text sizes are derived purely from h, not from
+  // where anything ends up drawn - so the total "tight" height needed
+  // (and how much slack space is left over) is known before any cursor
+  // position is decided.
+  const titleSize=gSize(c,'title',Math.max(7,h*0.14));
+  const barH=Math.max(3,Math.min(h*0.12,8));
+  const section1H = titleSize*1.15 + pad*0.35 + barH;
+
+  const valSize=gSize(c,'value',Math.max(10,h*0.24));
+  const rssiLabelSize=gSize(c,'rssiLabel',Math.max(6,valSize*0.36));
+  const section2H = valSize*1.1 + rssiLabelSize*1.15;
+
+  const footSize=gSize(c,'footer',Math.max(6,Math.min(h*0.11,12)));
+  const footBlockH = footSize*2.3;
+  const section3H = showFooter ? footBlockH : 0;
+
+  // Extra space beyond what's tightly needed is split evenly across the
+  // gaps BETWEEN the three logical sections (title+bar, RSSI readout,
+  // footer) - not within a section's own internal spacing, which stays
+  // fixed - so a tall box spreads its content out evenly instead of
+  // bunching everything at the top with one large leftover gap right
+  // before the footer, which is what "anchor the footer near the bottom"
+  // used to produce.
+  const numGaps = showFooter ? 2 : 1;
+  const baseGap = pad*0.6; // matches the previous bar->value gap, used as the section-to-section gap unit
+  // tightTotal must include the base gaps themselves, not just the section
+  // content heights - these baseGap amounts are ALWAYS added between
+  // sections when drawing (even when extraGap is 0), so leaving them out
+  // here made slack (and therefore the total actual content height used
+  // for drawing) systematically larger than what was actually available,
+  // overflowing past the bottom of the box by roughly numGaps*baseGap.
+  const tightTotal = pad + section1H + section2H + section3H + numGaps*baseGap;
+  const slack = Math.max(0, h - tightTotal);
+  const extraGap = slack / numGaps;
+
   let cursorY = pad*0.5;
 
-  const titleSize=gSize(c,'title',Math.max(7,h*0.14));
   ctx.font=`bold ${titleSize}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=labelCol;
@@ -4833,34 +4893,26 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   gText(ctx,c,'title',Math.round(lq)+'% LQ',w-pad,cursorY);
   cursorY += titleSize*1.15 + pad*0.35;
 
-  const barH=Math.max(3,Math.min(h*0.12,8));
   ctx.fillStyle=c.trackColor||'#1c232e';
   ctx.fillRect(pad,cursorY,w-pad*2,barH);
   ctx.fillStyle=lqColor;
   ctx.fillRect(pad,cursorY,(w-pad*2)*Math.max(0,Math.min(1,lq/100)),barH);
-  cursorY += barH + pad*0.6;
+  cursorY += barH + baseGap + extraGap;
 
-  const valSize=gSize(c,'value',Math.max(10,h*0.24));
   ctx.font=`bold ${valSize}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=textCol;
   gText(ctx,c,'value',Math.round(rssi)+'dB',pad,cursorY);
   cursorY += valSize*1.1;
 
-  const rssiLabelSize=gSize(c,'rssiLabel',Math.max(6,valSize*0.36));
   ctx.font=`${rssiLabelSize}px Montserrat`;
   ctx.fillStyle=labelCol;
   gText(ctx,c,'rssiLabel','RSSI',pad,cursorY);
-  cursorY += rssiLabelSize*1.15 + pad*0.3;
+  cursorY += rssiLabelSize*1.15;
 
-  // Footer (PWR / MODE): anchored near the bottom when there's slack, like
-  // before, but never allowed to start above where the RSSI block above it
-  // actually ended - so it shifts down (rather than overlapping) whenever
-  // the box is too short for both to sit at their "usual" fixed spots.
-  if(c.showTxPower!==false || c.showRfMode!==false){
-    const footSize=gSize(c,'footer',Math.max(6,Math.min(h*0.11,12)));
-    const footBlockH=footSize*2.3;
-    const footLabelY=Math.max(cursorY, h-pad*0.5-footBlockH);
+  if(showFooter){
+    cursorY += baseGap + extraGap;
+    const footLabelY=cursorY;
     const footValueY=footLabelY+footSize*1.15;
     ctx.font=`${footSize}px Montserrat`;
     ctx.textBaseline='top';
@@ -5372,19 +5424,21 @@ function drawRadar(ctx,w,h,bearing,distance,heading,c){
   // Purely decorative motion, not driven by any telemetry value - a
   // simple time-based angle, ping-ponging within a narrow wedge for the
   // sonar-style sweep or going all the way around for the classic style.
-  const now=performance.now();
-  let sweepAngleDeg;
-  if(c.sweepStyle==='pingpong'){
-    const period=3000;
-    const t=(now%period)/period;
-    const tri=t<0.5?t*2:2-t*2;
-    sweepAngleDeg=-60+tri*120;
-  } else {
-    const period=4000;
-    sweepAngleDeg=((now%period)/period)*360;
+  if(c.showSweep!==false){
+    const now=performance.now();
+    let sweepAngleDeg;
+    if(c.sweepStyle==='pingpong'){
+      const period=3000;
+      const t=(now%period)/period;
+      const tri=t<0.5?t*2:2-t*2;
+      sweepAngleDeg=-60+tri*120;
+    } else {
+      const period=4000;
+      sweepAngleDeg=((now%period)/period)*360;
+    }
+    const sweepRad=(sweepAngleDeg-90)*Math.PI/180;
+    bresenhamLine(ctx,cx,cy,cx+Math.cos(sweepRad)*r,cy+Math.sin(sweepRad)*r,sweepColor);
   }
-  const sweepRad=(sweepAngleDeg-90)*Math.PI/180;
-  bresenhamLine(ctx,cx,cy,cx+Math.cos(sweepRad)*r,cy+Math.sin(sweepRad)*r,sweepColor);
 
   // The off-center point's bearing: plane->home directly in plane-center
   // mode, or the reciprocal (home->plane) bearing in home-center mode,
@@ -6452,6 +6506,30 @@ local function offsetXY(cfg,key,x,y)
   return x+(cfg[key.."DX"] or 0), y+(cfg[key.."DY"] or 0)
 end
 
+-- RFMD (RF mode/packet rate) is a raw numeric index on ELRS, not a
+-- human-readable string - the actual packet rate depends on looking that
+-- index up in a table that varies by ELRS firmware version, and the two
+-- major versions' numbering genuinely collides (index 8 is "333Hz Full"
+-- on 3.x but unused on 4.x, for example) - they can't be merged into one
+-- table safely. Both taken directly from ExpressLRS's own official docs
+-- (expresslrs.org/info/signal-health, RF Mode Indexes section). Selected
+-- via the "ELRS Version" field below; whichever index isn't found in the
+-- selected table falls back to showing the raw number rather than
+-- guessing, since a wrong label would be worse than an honest one.
+local RFMD_NAMES_V3 = {
+  [1]="25Hz",[2]="50Hz",[3]="100Hz",[4]="100Hz Full",[5]="150Hz",[6]="200Hz",
+  [7]="250Hz",[8]="333Hz Full",[9]="500Hz",[10]="D250",[11]="D500",[12]="F500",
+  [13]="F1000",[14]="D50",[16]="DK500",[19]="K1000 Full",
+}
+local RFMD_NAMES_V4 = {
+  [0]="25Hz",[1]="50Hz",[2]="100Hz",[3]="100Hz Full",[5]="200Hz",[6]="200Hz Full",
+  [7]="250Hz",[10]="D50",[11]="K1000 Full",
+  [21]="50Hz",[23]="100Hz Full",[24]="150Hz",[27]="250Hz",[28]="333Hz Full",
+  [29]="500Hz",[30]="D250",[31]="D500",[32]="F500",[33]="F1000",
+  [34]="DK250",[35]="DK500",[36]="K1000",
+  [100]="100Hz Full",[101]="150Hz",
+}
+
 -- lcd.drawCircle has no thickness parameter on EdgeTX (only drawRectangle
 -- does, via its own [,t] argument, used natively wherever this script draws
 -- a rectangular border) - so a thick ring is built the same way the editor
@@ -6920,11 +6998,20 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
   -- extend beyond the widget's own bounds, at any roll or pitch.
   local diag = math.sqrt((w/2)*(w/2)+(h/2)*(h/2)) + 2
   local pxPerDeg = r/25
-  local ox,oy = sA*pitch*pxPerDeg, -cA*pitch*pxPerDeg
+  -- oy's sign must match the pitch ladder's own formula below (ly =
+  -- pxPerDeg*(pitch-p), whose implied horizon position at p=0 is
+  -- +pitch*pxPerDeg, then transformed through the same +ly*cA term the
+  -- ladder itself uses) - this previously used the opposite sign, so the
+  -- ground fill and horizon line moved the correct DISTANCE for a given
+  -- pitch, but in the opposite vertical direction from the ladder, most
+  -- visible once pitch values were actually large enough to notice (the
+  -- CRSF radians-to-degrees fix elsewhere made pitch swings large enough
+  -- for this to become obvious rather than a few sub-pixel degrees).
+  local ox,oy = sA*pitch*pxPerDeg, cA*pitch*pxPerDeg
   local hcx, hcy = cx+ox, cy+oy
   -- Ground direction (perpendicular to horizon, pointing "down" into the
   -- ground) - matches the sign convention the rest of this function uses.
-  local gdx, gdy = -sA, cA
+  local gdx, gdy = sA, cA
   local function sideOf(px,py) return (px-hcx)*gdx + (py-hcy)*gdy end
   -- When circular, clip against a many-sided polygon approximating the
   -- disc itself, not the box it's inscribed in - clipping against the
@@ -6970,10 +7057,17 @@ DRAW["artificial-horizon"] = function(x,y,w,h,cfg)
   -- it's visibly poking out past the drawn disc's edge, which is exactly
   -- what was reported.
   local len = diag
+  -- Direction must match the pitch ladder rungs' own transform below
+  -- exactly (screenY = cy - localX*sA + localY*cA) - this previously used
+  -- +sA*len instead of -sA*len, so once the ground-fill's clipping plane
+  -- was corrected to actually match the ladder (the roll-direction fix),
+  -- this line no longer lay on the boundary it's supposed to be drawing:
+  -- correct distance from center, wrong angle, cutting across the fill
+  -- diagonally instead of sitting exactly on its edge.
   local hx1=cx-cA*len+ox
-  local hy1=cy-sA*len+oy
+  local hy1=cy+sA*len+oy
   local hx2=cx+cA*len+ox
-  local hy2=cy+sA*len+oy
+  local hy2=cy-sA*len+oy
   local drawHorizonLine = true
   if isCircle then
     local dx,dy = hx2-hx1, hy2-hy1
@@ -7799,7 +7893,13 @@ end
 -- sensors, same reasoning as Home Arrow/Radar - this panel's whole point is
 -- showing that specific set at a glance.
 DRAW["link-stats"]=function(x,y,w,h,cfg)
-  local rssi = readRaw("RSSI"); if type(rssi)~="number" then rssi=0 end
+  -- getRSSI() is EdgeTX's own dedicated RF-module-level function for this
+  -- specifically because the underlying telemetry sensor's exact name
+  -- varies by protocol/receiver - reading a hardcoded "RSSI" sensor name
+  -- via getValue worked only when that happened to be the real name, and
+  -- silently returned nothing (shown as 0dB) otherwise despite a genuinely
+  -- good link.
+  local rssi = getRSSI(); if type(rssi)~="number" then rssi=0 end
   local lq = readRaw("RQly"); if type(lq)~="number" then lq=0 end
   local txPower = readRaw("TPWR"); if type(txPower)~="number" then txPower=0 end
   local rfMode = readRaw("RFMD")
@@ -7808,21 +7908,53 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   if lq>66 then lqColor = cfg.goodColor
   elseif lq>33 then lqColor = cfg.warnColor end
 
-  -- Every section from here down is stacked sequentially off a running Y
-  -- cursor, using each line's own actually-measured height via
-  -- lcd.sizeText - the previous version computed the footer's position as
-  -- a fixed fraction up from the BOTTOM while everything above it grew
-  -- independently down from the TOP, with neither aware of the other.
-  -- That happened to work at the one size it was eyeballed against, but
-  -- at smaller heights the two sections collided instead of ever being
-  -- aware of each other - a real, reproducible layout bug, not just the
-  -- Lua export drifting from the editor (the editor had the same bug).
   local pad = math.max(3,w*0.05)
-  local cursorY = y+pad*0.5
+  local showFooter = cfg.showTxPower~=false or cfg.showRfMode~=false
 
+  -- Compute each section's own natural height first, independent of
+  -- layout - matches the editor's own gSize/section-height computation
+  -- exactly, so the two stay in sync. Extra space beyond what's tightly
+  -- needed is split evenly across the gaps BETWEEN the three logical
+  -- sections (title+bar, RSSI readout, footer), not within a section's
+  -- own internal spacing, which stays fixed - so a tall box spreads its
+  -- content out evenly instead of bunching everything at the top with one
+  -- large leftover gap right before the footer.
   local titleF = sizeFlag(cfg,"title",math.max(7,h*0.14))
   local okT,twT,thT = pcall(lcd.sizeText,"LINK",titleF)
   if not okT or type(thT)~="number" then thT=16 end
+  local barH = math.max(3,math.min(h*0.12,8))
+  local section1H = thT + pad*0.35 + barH
+
+  local valSize = math.max(10,h*0.24)
+  local valF = sizeFlag(cfg,"value",valSize)
+  local rssiTxt = string.format("%.0f",rssi).."dB"
+  local okR,twR,thR = pcall(lcd.sizeText,rssiTxt,valF)
+  if not okR or type(thR)~="number" then thR=16 end
+  local rssiLabelF = sizeFlag(cfg,"rssiLabel",math.max(6,valSize*0.36))
+  local okRL,twRL,thRL = pcall(lcd.sizeText,"RSSI",rssiLabelF)
+  if not okRL or type(thRL)~="number" then thRL=12 end
+  local section2H = thR + thRL
+
+  local footF = sizeFlag(cfg,"footer",math.max(6,math.min(h*0.11,12)))
+  local okF,twF,thF = pcall(lcd.sizeText,"PWR",footF)
+  if not okF or type(thF)~="number" then thF=12 end
+  local footBlockH = thF*2.3
+  local section3H = showFooter and footBlockH or 0
+
+  local numGaps = showFooter and 2 or 1
+  local baseGap = pad*0.6
+  -- tightTotal must include the base gaps themselves, not just the section
+  -- content heights - these baseGap amounts are ALWAYS added between
+  -- sections when drawing (even when extraGap is 0), so leaving them out
+  -- here made slack (and therefore the total actual content height used
+  -- for drawing) systematically larger than what was actually available,
+  -- overflowing past the bottom of the box by roughly numGaps*baseGap.
+  local tightTotal = pad + section1H + section2H + section3H + numGaps*baseGap
+  local slack = math.max(0, h - tightTotal)
+  local extraGap = slack / numGaps
+
+  local cursorY = y+pad*0.5
+
   if cfg.labelColor then
     local tx,ty = offsetXY(cfg,"title",x+pad,cursorY)
     lcd.drawText(tx,ty,"LINK",VTOP+titleF+cfg.labelColor)
@@ -7833,41 +7965,25 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   end
   cursorY = cursorY + thT + pad*0.35
 
-  local barH = math.max(3,math.min(h*0.12,8))
   if cfg.trackColor then lcd.drawFilledRectangle(x+pad,cursorY,w-pad*2,barH, cfg.trackColor) end
   if lqColor then lcd.drawFilledRectangle(x+pad,cursorY,(w-pad*2)*clamp(lq/100,0,1),barH,lqColor) end
-  cursorY = cursorY + barH + pad*0.6
+  cursorY = cursorY + barH + baseGap + extraGap
 
-  local valSize = math.max(10,h*0.24)
-  local valF = sizeFlag(cfg,"value",valSize)
-  local rssiTxt = string.format("%.0f",rssi).."dB"
-  local okR,twR,thR = pcall(lcd.sizeText,rssiTxt,valF)
-  if not okR or type(thR)~="number" then thR=16 end
   if cfg.textColor then
     local tx,ty = offsetXY(cfg,"value",x+pad,cursorY)
     lcd.drawText(tx,ty,rssiTxt,VTOP+valF+cfg.textColor)
   end
   cursorY = cursorY + thR
 
-  local rssiLabelF = sizeFlag(cfg,"rssiLabel",math.max(6,valSize*0.36))
-  local okRL,twRL,thRL = pcall(lcd.sizeText,"RSSI",rssiLabelF)
-  if not okRL or type(thRL)~="number" then thRL=12 end
   if cfg.labelColor then
     local tx,ty = offsetXY(cfg,"rssiLabel",x+pad,cursorY)
     lcd.drawText(tx,ty,"RSSI",VTOP+rssiLabelF+cfg.labelColor)
   end
-  cursorY = cursorY + thRL + pad*0.3
+  cursorY = cursorY + thRL
 
-  -- Footer (PWR / MODE): anchored near the bottom when there's slack, like
-  -- before, but never allowed to start above where the RSSI block above it
-  -- actually ended - so it shifts down (rather than overlapping) whenever
-  -- the box is too short for both to sit at their "usual" fixed spots.
-  if cfg.showTxPower~=false or cfg.showRfMode~=false then
-    local footF = sizeFlag(cfg,"footer",math.max(6,math.min(h*0.11,12)))
-    local okF,twF,thF = pcall(lcd.sizeText,"PWR",footF)
-    if not okF or type(thF)~="number" then thF=12 end
-    local footBlockH = thF*2
-    local footLabelY = math.max(cursorY, y+h-pad*0.5-footBlockH)
+  if showFooter then
+    cursorY = cursorY + baseGap + extraGap
+    local footLabelY = cursorY
     local footValueY = footLabelY + thF
     if cfg.showTxPower~=false then
       if cfg.labelColor then
@@ -7880,7 +7996,11 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
       end
     end
     if cfg.showRfMode~=false then
-      local rfText = (type(rfMode)=="string") and rfMode or tostring(rfMode)
+      local rfmdTable = (cfg.elrsVersion=="v4") and RFMD_NAMES_V4 or RFMD_NAMES_V3
+      local rfText
+      if type(rfMode)=="string" then rfText=rfMode
+      elseif type(rfMode)=="number" and rfmdTable[math.floor(rfMode)] then rfText=rfmdTable[math.floor(rfMode)]
+      else rfText=tostring(rfMode) end
       if cfg.labelColor then
         local tx,ty = offsetXY(cfg,"footer",x+w-pad,footLabelY)
         lcd.drawText(tx,ty,"MODE",RIGHT+VTOP+footF+cfg.labelColor)
