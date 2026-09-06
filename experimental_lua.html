@@ -1769,6 +1769,14 @@ function renderProperties(){
     // Always reads the GPS sensor (and Sats) directly - no selectable source.
   } else if(inst.type==='qr-code'){
     // Always encodes the live GPS position - no selectable source.
+  } else if(inst.type==='home-distance'){
+    // Always computed from GPS position vs. home position internally
+    // (homeCalc("HOME_DISTANCE")) - no user-selectable source. Was falling
+    // through to the generic Telemetry Source dropdown below, which then
+    // showed "Custom Fixed Value" selected (SENSOR_SOURCES' first entry)
+    // purely because cfg.mavSource was never set on this instrument to
+    // begin with - implying a data source that could be changed, when
+    // there was never one to select in the first place.
   } else {
   html+=`<div class="prop-section"><div class="prop-section-title"><i class="fa fa-${inst.type==='static-text'?'font':'satellite-dish'}"></i> ${inst.type==='static-text'?'Text Content':'Data Source'}</div>`;
   if(inst.type==='static-text'){
@@ -1894,6 +1902,7 @@ function renderProperties(){
     html+=`${propGroupLabel('geom','Sizing & Geometry')}<div class="field-row"><div class="field"><label class="field-label">Tick Edge Distance (px)</label><input type="number" data-cfg="tickEdgeDistance" value="${c.tickEdgeDistance||0}" min="0" max="100"></div><div class="field"><label class="field-label">Tick Label Inset (px)</label><input type="number" data-cfg="labelInset" value="${c.labelInset||0}" min="-20" max="100"></div></div>`;
     html+=`<div class="field-row"><div class="field"><label class="field-label">Major Tick Length</label><input type="number" data-cfg="majorTickLen" value="${c.majorTickLen!==undefined?c.majorTickLen:10}" min="1" max="40"></div><div class="field"><label class="field-label">Minor Tick Length</label><input type="number" data-cfg="minorTickLen" value="${c.minorTickLen!==undefined?c.minorTickLen:4}" min="1" max="40"></div></div>`;
     html+=`<div class="field-row"><div class="field"><label class="field-label">Label Font Size</label>${gfxSizeDropdown('cardinalSize', c.cardinalSize)}</div><div class="field"><label class="field-label">Label Distance (px)</label><input type="number" data-cfg="cardinalDist" value="${c.cardinalDist!==undefined?c.cardinalDist:''}" placeholder="auto" min="0" max="200"></div></div>`;
+    html+=`<div class="field"><label class="field-label">Heading Readout Font Size</label>${gfxSizeDropdown('headingSize', c.headingSize)}</div>`;
     html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
   } else if(inst.type==='altimeter-dial'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
@@ -2067,6 +2076,7 @@ function renderProperties(){
     html+=colorField('Label Color','labelColor',c.labelColor||'#ffffff');
     html+=`<div class="field"><label class="field-label">Label Text</label><input type="text" data-cfg="label" value="${c.label||''}"></div>`;
     html+=checkboxField('showLabel','Show Label',c.showLabel!==false&&!!c.label);
+    html+=gaugeTextSection(c,[['text','Label Text Size']],true);
   } else if(inst.type==='home-arrow'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Arrow Color','pointerColor',c.pointerColor||'#5fe88a');
@@ -2081,7 +2091,7 @@ function renderProperties(){
     html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
     html+=colorField('Value Box Color','valueBoxColor',c.valueBoxColor||'#1c232e');
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
-    html+=checkboxField('showUnit','Show Unit',c.showUnit!==false);
+    html+=checkboxField('showUnit','Show Extra Unit Line (redundant - the value already shows its own unit, e.g. "1.03 km")',!!c.showUnit);
     html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
     html+=`<div class="field"><label class="field-label">Unit of Measure</label>
       <select data-cfg="distanceUnit">
@@ -2091,6 +2101,7 @@ function renderProperties(){
         <option value="ft" ${c.distanceUnit==='ft'?'selected':''}>Feet</option>
         <option value="mi" ${c.distanceUnit==='mi'?'selected':''}>Miles</option>
       </select></div>`;
+    html+=gaugeTextSection(c,[['label','"HOME DIST" Label'],['value','Distance Value'],['unit','Extra Unit Line']],true);
   } else if(inst.type==='radar'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Grid/Rings Color','gridColor',c.gridColor||'#7a8898');
@@ -2126,9 +2137,10 @@ function renderProperties(){
       html+=checkboxField('showTicks','Show Scale Tick Marks',c.showTicks!==false);
       html+=checkboxField('showTrack','Show Track Arc',c.showTrack!==false);
       html+=checkboxField('showArc','Show Value Arc',c.showArc!==false);
-      html+=checkboxField('showEndCaps','Show Rounded End Caps',c.showEndCaps!==false);
+      html+=checkboxField('showEndCaps','Show Rounded End Caps (arc + track)',c.showEndCaps!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
       html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
+      html+=checkboxField('fixedCenter','Fixed Center (as if full circle, for easier alignment)',c.fixedCenter!==false);
       html+=`<div class="prop-group-label">Threshold Colors</div>`;
       html+=checkboxField('useZones','Recolor Arc by Threshold (like a redline)',!!c.useZones);
       if(c.useZones){
@@ -2187,6 +2199,7 @@ function renderProperties(){
     html+=colorField('Border Color','borderColor',c.borderColor||'transparent');
     html+=checkboxField('showValue','Show Value Text',c.showValue!==false);
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=gaugeTextSection(c,[['value','Value Text']],true);
   } else if(inst.type==='link-stats'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Text Color','textColor',c.textColor||'#ffffff');
@@ -2224,6 +2237,7 @@ function renderProperties(){
     html+=`${propGroupLabel('geom','Sizing & Geometry')}<div class="field-row"><div class="field"><label class="field-label">Decimal Places</label><input type="number" data-cfg="decimals" value="${c.decimals!==undefined?c.decimals:5}" min="1" max="7" step="1"></div><div class="field"><label class="field-label">Quiet Zone (modules)</label><input type="number" data-cfg="quietZone" value="${c.quietZone!==undefined?c.quietZone:2}" min="0" max="8" step="1"></div></div>
       <span class="field-hint">Keep this instrument at least ~120x120px - each square "module" needs to be a few real pixels across for a phone camera to focus on and read reliably. Shrinking it too far is the most common reason a QR code won't scan.</span>`;
     html+=`<div class="field"><label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+    html+=gaugeTextSection(c,[['status','"Waiting for GPS Fix" Text']],true);
   }
   html+=`</div>`;
   }
@@ -3831,27 +3845,26 @@ function outlinedFillCircleJS(ctx,cx,cy,r,mainColor,outlineColor){
 // (default 1, matching the original single-stroke look) is drawn as
 // concentric rings centered on the requested radius, mirroring the C++
 // drawArc() implementation exactly.
+// Filled ring-segment path (outer arc forward, inner arc backward, closed)
+// via canvas's own arc primitive, instead of approximating the shape from
+// many short straight line segments - a true smooth curve, matching what
+// lcd.drawAnnulus (the native EdgeTX primitive the Lua export now uses for
+// this exact shape) actually draws on real hardware, rather than a
+// faceted polygon standing in for it. "radius" is the stroke's own
+// centerline, same as before, so every existing caller's positioning is
+// unchanged - only how the shape itself gets drawn.
 function bresenhamArc(ctx,cx,cy,radius,startDeg,endDeg,color,thickness=1){
-  if(radius<=0) return;
-  const D2R=Math.PI/180;
-  const sweep=endDeg-startDeg;
-  let segs=Math.floor(Math.abs(sweep)*radius/180);
-  if(segs<2) segs=2;
-  if(segs>160) segs=160;
-  const step=sweep/segs;
-  const rStart=radius-Math.floor(thickness/2);
-  for(let t=0;t<thickness;t++){
-    const rr=rStart+t;
-    if(rr<=0) continue;
-    let a=startDeg*D2R;
-    let px=cx+Math.cos(a)*rr, py=cy+Math.sin(a)*rr;
-    for(let i=1;i<=segs;i++){
-      a=(startDeg+step*i)*D2R;
-      const nx=cx+Math.cos(a)*rr, ny=cy+Math.sin(a)*rr;
-      bresenhamLine(ctx,px,py,nx,ny,color);
-      px=nx; py=ny;
-    }
-  }
+  if(radius<=0 || !color || color==='transparent') return;
+  const rOuter = radius + thickness/2;
+  const rInner = Math.max(0, radius - thickness/2);
+  const a0 = startDeg*Math.PI/180, a1 = endDeg*Math.PI/180;
+  ctx.beginPath();
+  ctx.arc(cx,cy,rOuter,a0,a1,false);
+  if(rInner>0) ctx.arc(cx,cy,rInner,a1,a0,true);
+  else ctx.lineTo(cx,cy);
+  ctx.closePath();
+  ctx.fillStyle=color;
+  ctx.fill();
 }
 
 // Rotated rectangle: computes the 4 corners directly (no native GFX concept
@@ -4066,7 +4079,7 @@ function drawAI(ctx,w,h,roll,pitch,c){
     const ladderLineColorUp=c.ladderLineColorUp||lineColor;
     const ladderLineColorDown=c.ladderLineColorDown||lineColor;
     const showPitchLabels=c.showPitchLabels!==false;
-    ctx.font=`${gSize(c,'ladder',Math.max(7,r*0.12))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'ladder',Math.max(7,r*0.12)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const pitchRange = c.pitchLadderRange>0 ? c.pitchLadderRange : 30;
     // Only compute rungs that could plausibly land within the visible box
@@ -4267,9 +4280,9 @@ function drawCompass(ctx,w,h,heading,c){
   }
   if(c.showLabels!==false){
     const cardinals=[['N',0,c.northColor||'#ff5c5c'],['E',90,txtColor],['S',180,txtColor],['W',270,txtColor]];
-    const labelSize=c.cardinalSize!==undefined?c.cardinalSize:snapFontSize(Math.max(9,r*0.18));
+    const labelSize=gSize(c,'cardinal',Math.max(9,r*0.18));
     const labelDist=c.cardinalDist!==undefined?c.cardinalDist:r-labelSize*1.4-edgeDist-labelInset;
-    ctx.font=`bold ${labelSize}px Montserrat`;
+    ctx.font=`${fontWeight(labelSize)}${fontCSS(labelSize)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     // Real hardware (GFX) cannot rotate glyphs, so the letters stay upright
     // and only their POSITION moves around the ring - matching the panel
@@ -4293,8 +4306,8 @@ function drawCompass(ctx,w,h,heading,c){
 
   if(c.showHeadingText!==false){
     const hdgTxt=Math.round(((heading%360)+360)%360).toString().padStart(3,'0');
-    const hdgSize=snapFontSize(Math.max(9,r*0.2));
-    ctx.font=`bold ${hdgSize}px Montserrat`;
+    const hdgSize=gSize(c,'heading',Math.max(9,r*0.2));
+    ctx.font=`${fontWeight(hdgSize)}${fontCSS(hdgSize)}px Montserrat`;
     if(c.showValueBox!==false){
       const tw=ctx.measureText(hdgTxt).width;
       const boxPad=hdgSize*0.3;
@@ -4325,7 +4338,7 @@ function drawAltimeterDial(ctx,w,h,altitude,c){
   const bw=c.borderWidth!==undefined?c.borderWidth:2;
   for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r-bi,borderColor);
 
-  ctx.font=`bold ${gSize(c,'scale',Math.max(8,r*0.16))}px Montserrat`;
+  ctx.font=`${fontWeight(gSize(c,'scale',Math.max(8,r*0.16)))}${fontCSS(gSize(c,'scale',Math.max(8,r*0.16)))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let i=0;i<50;i++){
     const angle=-Math.PI/2+(i/50)*Math.PI*2;
@@ -4385,7 +4398,7 @@ function drawAltimeterDial(ctx,w,h,altitude,c){
     const unitLabel=c.unit!==undefined&&c.unit!==''?c.unit:'m';
     const digTxt=Math.round(altitude)+' '+unitLabel;
     const digSize=gSize(c,'digital',Math.max(8,r*0.14));
-    ctx.font=`bold ${digSize}px Montserrat`;
+    ctx.font=`${fontWeight(digSize)}${fontCSS(digSize)}px Montserrat`;
     if(c.showValueBox!==false){
       const tw=ctx.measureText(digTxt).width;
       const boxPad=digSize*0.35;
@@ -4417,7 +4430,8 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
   const range=max-min;
   const pxPerUnit=h/Math.max(1,range*0.4);
   const cy=h/2;
-  ctx.font=`${gSize(c,'scale',Math.max(7,w*0.14))}px Montserrat`;
+  const scaleFontPx = gSize(c,'scale',Math.max(7,w*0.14));
+  ctx.font=`${fontCSS(scaleFontPx)}px Montserrat`;
   ctx.textAlign=mirrored?'left':'right'; ctx.textBaseline='middle';
   const step=(c.labelStep>0)?c.labelStep:(range>500?100:range>100?50:range>20?5:1);
   const startV=Math.floor((value-range*0.2)/step)*step;
@@ -4432,6 +4446,13 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
 
   const fineStep = step/subDiv;
   const nSteps = Math.ceil((range*0.4)/fineStep)+subDiv*2;
+  // Half the label's own real rendered height - the visibility check below
+  // needs this, not just the label's center Y, since textBaseline='middle'
+  // means the glyph extends this far above AND below that center point.
+  // Checking only the center let a label sitting right at y=0 or y=h keep
+  // drawing in full, with roughly its top or bottom half actually crossing
+  // past the border instead of disappearing right at it.
+  const labelHalfH = realTextHeight(scaleFontPx)/2;
   for(let i=0;i<=nSteps;i++){
     const v = startV + i*fineStep;
     if(v > value+range*0.2) break;
@@ -4448,7 +4469,7 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
         hSpan(ctx,x0,w*outerFrac,y+ti-half,isMajor?tickCol:subCol);
       }
     }
-    if(isMajor && c.showLabels!==false){
+    if(isMajor && c.showLabels!==false && y-labelHalfH>=0 && y+labelHalfH<=h){
       ctx.fillStyle=txtColor;
       const labelX = mirrored ? w*tickInEff+w*0.05 : w*tickInEff-w*0.05;
       gText(ctx,c,'scale',v.toString(),labelX,y);
@@ -4465,7 +4486,7 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
     // looks oversized for a short reading or clipped for a long one.
     const valTxt=value.toFixed(0);
     const vSize=gSize(c,'value',Math.max(8,w*0.16));
-    ctx.font=`bold ${vSize}px Montserrat`;
+    ctx.font=`${fontWeight(vSize)}${fontCSS(vSize)}px Montserrat`;
     const tw=ctx.measureText(valTxt).width;
     const bh=Math.max(8*Math.round(vSize/8)+4, h*0.09);
     const boxW=tw+vSize*0.5;
@@ -4477,7 +4498,7 @@ function drawTape(ctx,w,h,value,min,max,unit,c){
   }
   if(c.showUnit!==false && unit){
     ctx.fillStyle=tickCol;
-    ctx.font=`${gSize(c,'unit',Math.max(7,w*0.12))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'unit',Math.max(7,w*0.12)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'unit',unit,w/2,h-Math.max(6,h*0.04));
   }
@@ -4510,7 +4531,7 @@ function drawVSI(ctx,w,h,value,min,max,unit,c){
   const fineStep=(range/divisions)/subDiv;
   const subCol=c.subTickColor||tickCol;
 
-  ctx.font=`${gSize(c,'scale',Math.max(7,r*0.14))}px Montserrat`;
+  ctx.font=`${fontCSS(gSize(c,'scale',Math.max(7,r*0.14)))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   const totalSteps=Math.round(divisions*subDiv);
   for(let i=-totalSteps;i<=totalSteps;i++){
@@ -4550,7 +4571,7 @@ function drawHeadingTape(ctx,w,h,heading,c){
   }
   const pxPerDeg=w/90;
   const cx=w/2;
-  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.28))}px Montserrat`;
+  ctx.font=`${fontCSS(gSize(c,'scale',Math.max(8,h*0.28)))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   const startH=Math.floor((heading-45)/10)*10;
   const showTicks=c.showTicks!==false;
@@ -4584,8 +4605,18 @@ function drawHeadingTape(ctx,w,h,heading,c){
     }
     if(isMajor && norm%(c.labelStep>0?c.labelStep:30)===0 && c.showLabels!==false){
       const label=norm===0?'N':norm===90?'E':norm===180?'S':norm===270?'W':norm.toString().padStart(3,'0');
-      ctx.fillStyle=norm===0?(c.northColor||'#ff5c5c'):txtColor;
-      gText(ctx,c,'scale',label,x,h*0.78);
+      // Half the label's own measured width - checked against x before
+      // drawing, not just x itself, since textAlign='center' means the
+      // glyphs extend this far left AND right of x. A label centered
+      // right at the x=0 or x=w edge used to keep drawing in full, with
+      // roughly its left or right half actually crossing past the
+      // border instead of disappearing right at it - same issue as the
+      // vertical tapes' label height, mirrored onto width here.
+      const labelHalfW = ctx.measureText(label).width/2;
+      if(x-labelHalfW>=0 && x+labelHalfW<=w){
+        ctx.fillStyle=norm===0?(c.northColor||'#ff5c5c'):txtColor;
+        gText(ctx,c,'scale',label,x,h*0.78);
+      }
     }
   }
   if(c.showPointer!==false){
@@ -4602,7 +4633,7 @@ function drawHeadingTape(ctx,w,h,heading,c){
     // the printed character count rather than an independent fixed fraction.
     const valTxt=Math.round(heading).toString().padStart(3,'0');
     const vSize=gSize(c,'value',Math.max(9,h*0.3));
-    ctx.font=`bold ${vSize}px Montserrat`;
+    ctx.font=`${fontWeight(vSize)}${fontCSS(vSize)}px Montserrat`;
     const tw=ctx.measureText(valTxt).width;
     const bw=Math.max(28,tw+vSize*0.5), bh=Math.max(8*Math.round(vSize/8)+4, h*0.33);
     ctx.fillStyle=c.boxBgColor||ptrColor; ctx.fillRect(cx-bw/2+gDX(c,'value'),h-bh-1+gDY(c,'value'),bw,bh);
@@ -4645,7 +4676,7 @@ function drawHeadingArc(ctx,w,h,heading,c){
   const apexAngle=flipped?90:270;
   const angSign=flipped?-1:1;
 
-  ctx.font=`${gSize(c,'scale',Math.max(8,h*0.22))}px Montserrat`;
+  ctx.font=`${fontCSS(gSize(c,'scale',Math.max(8,h*0.22)))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   const startH=Math.floor((heading-45)/10)*10;
   const showTicks=c.showTicks!==false;
@@ -4696,7 +4727,7 @@ function drawHeadingArc(ctx,w,h,heading,c){
   if(c.showValue!==false){
     const valTxt=Math.round(heading).toString().padStart(3,'0');
     const vSize=gSize(c,'value',Math.max(9,h*0.24));
-    ctx.font=`bold ${vSize}px Montserrat`;
+    ctx.font=`${fontWeight(vSize)}${fontCSS(vSize)}px Montserrat`;
     const tw=ctx.measureText(valTxt).width;
     const bw2=Math.max(28,tw+vSize*0.5), bh=Math.max(8*Math.round(vSize/8)+4, h*0.26);
     // Value box sits opposite the arc's apex - bottom of the box normally
@@ -4722,7 +4753,7 @@ function drawModeIndicator(ctx,w,h,mode,c){
   ctx.strokeStyle=c.borderColor||color; ctx.lineWidth=c.borderWidth!==undefined?c.borderWidth:2; ctx.strokeRect(1,1,w-2,h-2);
   if(c.showText!==false){
     ctx.fillStyle=c.textColor||color;
-    ctx.font=`bold ${Math.max(9,gSize(c,'mode',h*0.4))}px Montserrat`;
+    ctx.font=`${fontWeight(Math.max(9,gSize(c,'mode',h*0.4)))}${fontCSS(Math.max(9,gSize(c,'mode',h*0.4)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'mode',modeName,w/2,h/2);
   }
@@ -4789,7 +4820,7 @@ function drawIndicator(ctx,w,h,c){
 
   if(c.showLabel!==false&&c.label){
     ctx.fillStyle=resolveCol(c.labelColor||'#ffffff');
-    ctx.font=`bold ${gSize(c,'text',Math.max(7,Math.min(w,h)*0.28))}px Montserrat`;
+    ctx.font=`${fontWeight(gSize(c,'text',Math.max(7,Math.min(w,h)*0.28)))}${fontCSS(gSize(c,'text',Math.max(7,Math.min(w,h)*0.28)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(c.label,cx,cy);
   }
@@ -4806,9 +4837,15 @@ function drawRssiBars(ctx,w,h,value,c){
   const filled=Math.max(0,Math.min(bars,Math.round(frac*bars)));
   if(c.bgColor&&c.bgColor!=='transparent'){ ctx.fillStyle=fillColor(ctx,c.bgColor); ctx.fillRect(0,0,w,h); }
   const showValue=c.showValue!==false;
-  const labelH=showValue?Math.max(11,h*0.24):0;
-  const chartH=h-labelH-2;
   const gap=Math.max(2,w*0.05);
+  // Chart height is sized around the value text's own measured height,
+  // not a fixed fraction of the box - a fixed reserve was usually bigger
+  // than the text actually needed, especially with an explicit small
+  // size override, leaving a visibly larger gap above the text than the
+  // gap between the bars themselves.
+  const valueFontPx = showValue ? gSize(c,'value',Math.max(8,h*0.18)) : 0;
+  const th = showValue ? valueFontPx*1.2 : 0; // canvas has no direct text-height query; font-size*1.2 approximates cap-to-descender height, consistent with this codebase's other JS-side text-height estimates
+  const chartH=showValue ? Math.max(4, h-gap-th) : h;
   const barW=(w-gap*(bars-1))/bars;
   let activeColor=c.badColor||'#ff5c5c';
   if(frac>0.66) activeColor=c.goodColor||'#5fe88a';
@@ -4816,15 +4853,15 @@ function drawRssiBars(ctx,w,h,value,c){
   for(let i=0;i<bars;i++){
     const bh=Math.max(2,chartH*((i+1)/bars));
     const bx=i*(barW+gap);
-    const by=chartH-bh+1;
+    const by=chartH-bh;
     ctx.fillStyle = i<filled ? activeColor : (c.offColor||'#232b38');
     ctx.fillRect(bx,by,barW,bh);
   }
   if(showValue){
     ctx.fillStyle=c.textColor||'#ffffff';
-    ctx.font=`bold ${gSize(c,'value',Math.max(8,labelH*0.75))}px Montserrat`;
-    ctx.textAlign='center'; ctx.textBaseline='bottom';
-    ctx.fillText(Math.round(value)+(c.unit!==undefined?c.unit:'%'), w/2, h-1);
+    ctx.font=`${fontWeight(valueFontPx)}${fontCSS(valueFontPx)}px Montserrat`;
+    ctx.textAlign='center'; ctx.textBaseline='top';
+    ctx.fillText(Math.round(value)+(c.unit!==undefined?c.unit:'%'), w/2, chartH+gap);
   }
   if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
 }
@@ -4845,22 +4882,41 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
 
   const pad=Math.max(3,w*0.05);
   const showFooter = c.showTxPower!==false || c.showRfMode!==false;
+  const rssiTxt = Math.round(rssi)+'dB';
 
   // Compute each section's own natural height first, independent of
   // layout - all four text sizes are derived purely from h, not from
   // where anything ends up drawn - so the total "tight" height needed
   // (and how much slack space is left over) is known before any cursor
   // position is decided.
+  //
+  // Each height below is measureTextH() on the EXACT string that section
+  // draws ("LINK", the real rssiTxt like "91dB", "RSSI", "PWR") - matching
+  // what the Lua export measures via lcd.sizeText() on those same exact
+  // strings, not a generic per-tier lookup. Different characters measure
+  // a few px differently even at the same font size, and this section's
+  // rows are tight enough for that gap to show as visible overlap between
+  // the value and the label under it - confirmed against a real hardware
+  // screenshot showing exactly that, next to an editor preview where they
+  // collided.
   const titleSize=gSize(c,'title',Math.max(7,h*0.14));
+  ctx.font=`${fontWeight(titleSize)}${fontCSS(titleSize)}px Montserrat`;
+  const titleH = measureTextH(ctx,'LINK');
   const barH=Math.max(3,Math.min(h*0.12,8));
-  const section1H = titleSize*1.15 + pad*0.35 + barH;
+  const section1H = titleH + pad*0.35 + barH;
 
   const valSize=gSize(c,'value',Math.max(10,h*0.24));
+  ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
+  const valH = measureTextH(ctx,rssiTxt);
   const rssiLabelSize=gSize(c,'rssiLabel',Math.max(6,valSize*0.36));
-  const section2H = valSize*1.1 + rssiLabelSize*1.15;
+  ctx.font=`${fontCSS(rssiLabelSize)}px Montserrat`;
+  const rssiLabelH = measureTextH(ctx,'RSSI');
+  const section2H = valH + rssiLabelH;
 
   const footSize=gSize(c,'footer',Math.max(6,Math.min(h*0.11,12)));
-  const footBlockH = footSize*2.3;
+  ctx.font=`${fontCSS(footSize)}px Montserrat`;
+  const footH = measureTextH(ctx,'PWR');
+  const footBlockH = footH*2.3;
   const section3H = showFooter ? footBlockH : 0;
 
   // Extra space beyond what's tightly needed is split evenly across the
@@ -4871,27 +4927,38 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   // before the footer, which is what "anchor the footer near the bottom"
   // used to produce.
   const numGaps = showFooter ? 2 : 1;
-  const baseGap = pad*0.6; // matches the previous bar->value gap, used as the section-to-section gap unit
-  // tightTotal must include the base gaps themselves, not just the section
-  // content heights - these baseGap amounts are ALWAYS added between
-  // sections when drawing (even when extraGap is 0), so leaving them out
-  // here made slack (and therefore the total actual content height used
-  // for drawing) systematically larger than what was actually available,
-  // overflowing past the bottom of the box by roughly numGaps*baseGap.
-  const tightTotal = pad + section1H + section2H + section3H + numGaps*baseGap;
+  const baseGapFull = pad*0.6; // matches the previous bar->value gap, used as the section-to-section gap unit
+  const titleGapFull = pad*0.35;
+  const topPadFull = pad*0.5;
+  // Fixed content (the text/bar sizes themselves) vs flexible gaps (the
+  // padding and inter-section spacing) are kept separate here - at the
+  // DEFAULT instrument size (140x90) the content's own minimum height,
+  // even using the tightest possible gaps, already exceeds the box
+  // (measured: ~110.65px of content in a 90px-tall box), so clamping
+  // slack to 0 alone wasn't enough - the gaps themselves need to actively
+  // shrink, not just stop growing. Text sizes are never touched here,
+  // since shrinking those further risks illegibility; only the spacing
+  // between elements compresses.
+  const fixedContent = titleH + barH + valH + rssiLabelH + section3H;
+  const flexibleGapsFull = topPadFull + titleGapFull + numGaps*baseGapFull;
+  const gapScale = flexibleGapsFull>0 ? Math.min(1, Math.max(0,h-fixedContent)/flexibleGapsFull) : 1;
+  const topPad = topPadFull*gapScale;
+  const titleGap = titleGapFull*gapScale;
+  const baseGap = baseGapFull*gapScale;
+  const tightTotal = fixedContent + topPad + titleGap + numGaps*baseGap;
   const slack = Math.max(0, h - tightTotal);
   const extraGap = slack / numGaps;
 
-  let cursorY = pad*0.5;
+  let cursorY = topPad;
 
-  ctx.font=`bold ${titleSize}px Montserrat`;
+  ctx.font=`${fontWeight(titleSize)}${fontCSS(titleSize)}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=labelCol;
   gText(ctx,c,'title','LINK',pad,cursorY);
   ctx.textAlign='right';
   ctx.fillStyle=lqColor;
   gText(ctx,c,'title',Math.round(lq)+'% LQ',w-pad,cursorY);
-  cursorY += titleSize*1.15 + pad*0.35;
+  cursorY += titleH + titleGap;
 
   ctx.fillStyle=c.trackColor||'#1c232e';
   ctx.fillRect(pad,cursorY,w-pad*2,barH);
@@ -4899,22 +4966,22 @@ function drawLinkStats(ctx,w,h,rssi,lq,txPower,rfMode,c){
   ctx.fillRect(pad,cursorY,(w-pad*2)*Math.max(0,Math.min(1,lq/100)),barH);
   cursorY += barH + baseGap + extraGap;
 
-  ctx.font=`bold ${valSize}px Montserrat`;
+  ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
   ctx.textAlign='left'; ctx.textBaseline='top';
   ctx.fillStyle=textCol;
-  gText(ctx,c,'value',Math.round(rssi)+'dB',pad,cursorY);
-  cursorY += valSize*1.1;
+  gText(ctx,c,'value',rssiTxt,pad,cursorY);
+  cursorY += valH;
 
-  ctx.font=`${rssiLabelSize}px Montserrat`;
+  ctx.font=`${fontCSS(rssiLabelSize)}px Montserrat`;
   ctx.fillStyle=labelCol;
   gText(ctx,c,'rssiLabel','RSSI',pad,cursorY);
-  cursorY += rssiLabelSize*1.15;
+  cursorY += rssiLabelH;
 
   if(showFooter){
     cursorY += baseGap + extraGap;
     const footLabelY=cursorY;
-    const footValueY=footLabelY+footSize*1.15;
-    ctx.font=`${footSize}px Montserrat`;
+    const footValueY=footLabelY+footH;
+    ctx.font=`${fontCSS(footSize)}px Montserrat`;
     ctx.textBaseline='top';
     if(c.showTxPower!==false){
       ctx.textAlign='left';
@@ -4951,17 +5018,17 @@ function drawGpsCoords(ctx,w,h,lat,lon,sats,c){
   // fixed, so the default layout is identical to before and existing
   // designs don't shift when this field is left untouched.
   const rowGap = c.rowSpacing!==undefined ? c.rowSpacing : 1;
-  const latY = rowH*0.9;
+  const latY = rowH*0.55;
   const lonY = latY + rowH*1.1*rowGap;
-  const satsY = lonY + rowH*1.0*rowGap;
+  const satsY = lonY + rowH*1.1*rowGap;
   const valSize=gSize(c,'value',Math.max(9,rowH*0.62));
-  ctx.font=`bold ${valSize}px Montserrat`;
+  ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
   ctx.fillStyle=textCol;
   ctx.textAlign='left'; ctx.textBaseline='middle';
   gText(ctx,c,'value','LAT '+latTxt,pad,latY);
   gText(ctx,c,'value','LON '+lonTxt,pad,lonY);
   if(c.showSats!==false){
-    ctx.font=`${gSize(c,'sats',Math.max(7,valSize*0.6))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'sats',Math.max(7,valSize*0.6)))}px Montserrat`;
     ctx.fillStyle=labelCol;
     gText(ctx,c,'sats','SATS '+Math.round(sats),pad,satsY);
   }
@@ -5249,7 +5316,7 @@ function drawQrCode(ctx,w,h,lat,lon,sats,c,inst){
 
   if(c.showOnlyWithFix!==false && (!sats || sats<3)){
     ctx.fillStyle=c.labelColor||'#7a8898';
-    ctx.font=`${gSize(c,'status',Math.max(8,Math.min(w,h)*0.09))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'status',Math.max(8,Math.min(w,h)*0.09)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('WAITING FOR GPS FIX',w/2,h/2);
     if(c.borderColor){ const bw=c.borderWidth!==undefined?c.borderWidth:1; ctx.strokeStyle=c.borderColor; ctx.lineWidth=bw; ctx.strokeRect(bw/2,bw/2,w-bw,h-bw); }
@@ -5275,7 +5342,7 @@ function drawQrCode(ctx,w,h,lat,lon,sats,c,inst){
   const result=inst._qrCache.result;
   if(!result){
     ctx.fillStyle=c.labelColor||'#7a8898';
-    ctx.font=`${gSize(c,'status',Math.max(8,Math.min(w,h)*0.08))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'status',Math.max(8,Math.min(w,h)*0.08)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText('URL TOO LONG (max 53 chars)',w/2,h/2);
     return;
@@ -5474,12 +5541,6 @@ function drawHomeDistance(ctx,w,h,distance,c){
   ctx.strokeStyle=c.borderColor||'#3a4555'; ctx.lineWidth=c.borderWidth||1;
   ctx.strokeRect(0.5,0.5,w-1,h-1);
 
-  // Label
-  ctx.fillStyle=labelCol;
-  ctx.font=`${gSize(c,'label',Math.max(7,h*0.18))}px Montserrat`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('HOME DIST',w/2,h*0.22);
-
   // Value
   const distUnit=c.distanceUnit||'auto';
   let disp;
@@ -5489,7 +5550,8 @@ function drawHomeDistance(ctx,w,h,distance,c){
   else if(distUnit==='ft') disp=Math.round(distance*3.28084)+' ft';
   else if(distUnit==='mi') disp=(distance*0.000621371).toFixed(2)+' mi';
   const valSize=gSize(c,'value',Math.max(10,h*0.38));
-  ctx.font=`bold ${valSize}px Montserrat`;
+  ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
+  const valH = measureTextH(ctx,disp);
   if(c.showValueBox!==false){
     const tw=ctx.measureText(disp).width;
     const boxPad=valSize*0.25;
@@ -5500,14 +5562,35 @@ function drawHomeDistance(ctx,w,h,distance,c){
   ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(disp,w/2,h*0.55);
 
-  // Unit footer
-  if(c.showUnit!==false){
+  // Unit footer - defaults OFF (must be explicitly turned on), unlike
+  // most show* flags here which default on. The value text above already
+  // includes its own unit suffix (e.g. "1.03 km"), so this second line
+  // was showing the same information twice by default - kept available
+  // for anyone who wants the extra line, just not assumed.
+  if(c.showUnit===true){
     ctx.fillStyle=labelCol;
-    ctx.font=`${gSize(c,'unit',Math.max(7,h*0.14))}px Montserrat`;
+    const unitSize = gSize(c,'unit',Math.max(7,h*0.14));
+    ctx.font=`${fontCSS(unitSize)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     const unitCaption=distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
-    ctx.fillText(unitCaption,w/2,h*0.82);
+    // Pushed below the value's own real bottom edge (not just a fixed
+    // fraction of h) when the value's actual font is tall enough to reach
+    // it - a fixed 0.82 was tuned for a modest value font, but the auto-
+    // size formula above can produce a noticeably taller one depending on
+    // h, and at those sizes the unit line collided with the value's own
+    // descender space. Falls back to the original 0.82 position whenever
+    // there's already enough room, so nothing shifts for the common case.
+    const unitH = measureTextH(ctx,unitCaption);
+    const minUnitY = h*0.55 + valH/2 + unitH/2 + 2;
+    const unitY = Math.max(h*0.82, minUnitY);
+    ctx.fillText(unitCaption,w/2,unitY);
   }
+
+  // Label - drawn last (on top of everything else), per explicit request
+  ctx.fillStyle=labelCol;
+  ctx.font=`${fontCSS(gSize(c,'label',Math.max(7,h*0.18)))}px Montserrat`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('HOME DIST',w/2,h*0.22);
 }
 
 // ---- Groundspeed Dial ----
@@ -5540,7 +5623,7 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
     bresenhamArc(ctx,cx,cy,r-Math.max(3,r*0.05),startDeg,startDeg+pct*sweepDeg,c.arcColor);
   }
 
-  ctx.font=`${gSize(c,'scale',Math.max(7,r*0.15))}px Montserrat`;
+  ctx.font=`${fontCSS(gSize(c,'scale',Math.max(7,r*0.15)))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
   for(let v=0;v<=maxKmh;v+=minorStep){
     const pct=v/maxKmh;
@@ -5571,10 +5654,12 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
     bresenhamCircle(ctx,cx,cy,hubR,ptrColor);
   }
 
+  let valueBottomY = undefined;
   if(c.showValue!==false){
     const valTxt=Math.round(kmh).toString();
     const valSize=gSize(c,'value',Math.max(12,r*0.38));
-    ctx.font=`bold ${valSize}px Montserrat`;
+    ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
+    const valH = measureTextH(ctx,valTxt);
     if(c.showValueBox!==false){
       const tw=ctx.measureText(valTxt).width;
       const boxPad=r*0.08;
@@ -5584,20 +5669,34 @@ function drawGroundspeedDial(ctx,w,h,valueMs,c){
     ctx.fillStyle=ptrColor;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'value',valTxt,cx,cy+r*0.25);
+    // Remembered so the unit line below can push itself clear of whatever
+    // the value's actual rendered height turned out to be.
+    valueBottomY = cy+r*0.25 + valH/2;
   }
 
   // Unit label
   if(c.showUnit!==false){
     ctx.fillStyle=tickCol;
-    ctx.font=`${gSize(c,'unit',Math.max(7,r*0.14))}px Montserrat`;
+    const unitSize = gSize(c,'unit',Math.max(7,r*0.14));
+    ctx.font=`${fontCSS(unitSize)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    gText(ctx,c,'unit','km/h',cx,cy+r*0.52);
+    // Pushed below the value's own real bottom edge (not just a fixed
+    // r*0.52 below center) when the value's actual font is tall enough to
+    // reach it - a fixed offset was tuned for a modest value font, but
+    // the auto-size formula can produce a noticeably taller one depending
+    // on r, and at those sizes the unit line collided with the value's
+    // own descender space. Falls back to the original position whenever
+    // there's already enough room, so nothing shifts for the common case.
+    const defaultUnitY = cy+r*0.52;
+    const unitH = measureTextH(ctx,'km/h');
+    const unitY = (valueBottomY!==undefined) ? Math.max(defaultUnitY, valueBottomY+unitH/2+2) : defaultUnitY;
+    gText(ctx,c,'unit','km/h',cx,unitY);
   }
 
   // "GS" label at top
   if(c.showLabel!==false){
     ctx.fillStyle=lblCol;
-    ctx.font=`${gSize(c,'label',Math.max(7,r*0.15))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'label',Math.max(7,r*0.15)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'label',c.label||'GND SPD',cx,cy-r*0.52);
   }
@@ -5671,6 +5770,79 @@ function snapFontSize(px){ return nearestFontTier(px,true).px; }
 // current dimensions, so the preview never implies a size the exported Lua
 // script can't actually produce. An explicit choice is used exactly as
 // picked - only the auto-fit path gets the extra size-down step.
+// The nominal EdgeTX font tiers (8/12/16/21/28/54px) are what every
+// layout/spacing calculation is built around, matching the exact same
+// tier sizes the Lua export snaps to via sizeFlag() - so gSize() itself
+// must keep returning these nominal values unchanged, or the editor's
+// own spacing would drift out of sync with what the real export actually
+// produces.
+//
+// But those nominal numbers were never accurate as CSS font-size inputs
+// for how tall a character actually renders. Measured directly (the
+// digit "8", canvas actualBoundingBox height) against a real radio's own
+// rendered output at each tier:
+//   tier px | editor renders at | real radio renders at
+//      8    |        6px        |         9px
+//     12    |        8px        |        13px
+//     16    |       11px        |        16px
+//     21    |       14px        |        24px
+//     28    |       18px (bold) |        32px (bold)
+//     54    |       37px (bold) |        64px (bold)
+// The gap grows with size, so a single flat multiplier doesn't fit - this
+// is a per-tier lookup, found by binary-searching for the CSS font-size
+// that makes THIS canvas's own measured "8" height match the real
+// radio's rendered height at each tier. Small/Mid/Double/Jumbo land on
+// an exact match; Tiny and Standard's exact target heights (9px, 16px)
+// turn out to be mathematically unreachable at any CSS size - the font's
+// own rasterization jumps straight from 8px to 10px, and 15px to 17px,
+// skipping the target entirely - so those two round up to the next
+// achievable height rather than down, since the original problem was
+// the editor rendering too SMALL relative to hardware.
+// Applied ONLY where ctx.font is actually set (via fontCSS() below) -
+// never substituted into gSize()'s own return value, so spacing math
+// elsewhere stays keyed to the real tier, not this correction.
+const FONT_RENDER_CORRECTION = {8:13.6, 12:17.8, 16:24.2, 21:34.8, 28:47.5, 54:92.1};
+function fontCSS(nominalPx){
+  return FONT_RENDER_CORRECTION[nominalPx] || nominalPx;
+}
+// Only DBLSIZE (28) and XXLSIZE (54) render bold on real EdgeTX hardware -
+// Tiny/Small/Standard/Mid are all regular weight there. Many instruments
+// were hardcoding "bold " unconditionally in their ctx.font string
+// regardless of which tier actually got resolved, making everything look
+// bold in the editor even at small explicit sizes where hardware doesn't.
+function fontWeight(nominalPx){
+  return nominalPx>=28 ? 'bold ' : '';
+}
+// The real, on-hardware rendered line height for each tier (measured
+// directly against a real radio - see FONT_RENDER_CORRECTION above for
+// the same source data). Layout code that estimates line height for
+// spacing (gaps between elements, box sizing) should use THIS, not a
+// fixed multiplier against the nominal tier size - those multipliers
+// were tuned against the editor's own old, too-small rendering, so once
+// fontCSS() started correcting the actual glyph size upward, spacing
+// tuned the old way fell out of sync with what's actually drawn - most
+// visibly on link-stats, where several lines are packed tightly enough
+// for the mismatch to show.
+const FONT_REAL_HEIGHT = {8:9, 12:13, 16:16, 21:24, 28:32, 54:64};
+function realTextHeight(nominalPx){
+  return FONT_REAL_HEIGHT[nominalPx] || nominalPx*0.7;
+}
+// Measures the actual rendered height of a SPECIFIC string (assumes
+// ctx.font is already set to the font it'll be drawn with) - matches how
+// the Lua export measures its own spacing via lcd.sizeText() on the exact
+// text being drawn, rather than a generic per-tier lookup. Uses
+// fontBoundingBoxAscent/Descent, not actualBoundingBox - actualBoundingBox
+// is tight to the specific glyphs drawn and undershoots real, on-screen
+// line spacing badly (measured: 21px vs the 33px fontBoundingBox actually
+// reserves for "95dB" at 30px bold) - with textBaseline='top', the next
+// line drawn at cursorY+actualBoundingBoxHeight was still landing inside
+// the previous line's real visual footprint, confirmed against a real
+// hardware screenshot next to an editor preview showing exactly that
+// overlap between a value and the label under it.
+function measureTextH(ctx,text){
+  const m=ctx.measureText(text);
+  return m.fontBoundingBoxAscent+m.fontBoundingBoxDescent;
+}
 function gSize(c,key,auto){
   const v=parseFloat(c[key+'Size']);
   return (isFinite(v)&&v>0)?v:snapFontSize(auto);
@@ -5714,7 +5886,20 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   const availW = Math.max(10, w - pad*2);
   const availH = Math.max(10, h - pad*2 - bottomReserve);
 
-  const bb = arcUnitBBox(arcStartDeg, sweep);
+  // A partial sweep's own bounding box isn't symmetric, so the center
+  // point normally drifts depending on sweep angle and start offset -
+  // annoying when aligning several arc-gauges, or aligning one against
+  // other instruments, since the visual center isn't where the box's own
+  // center is. Defaults to a fixed center (the full circle's own,
+  // always-symmetric bounding box) for exactly this reason - this also
+  // matches what the Lua export has always unconditionally done (a plain
+  // center-of-box, radius-of-box calculation with no sweep-dependent
+  // shifting at all), so this default doesn't just add the option, it
+  // corrects a real pre-existing mismatch between what the editor showed
+  // and what actually rendered on hardware. Turning it off opts into the
+  // tighter, sweep-fitted layout instead - larger radius for narrow
+  // sweeps, at the cost of the center moving depending on the sweep.
+  const bb = c.fixedCenter!==false ? {x0:-1,x1:1,y0:-1,y1:1} : arcUnitBBox(arcStartDeg, sweep);
   // The label ring pads the arc outward by a constant radial amount, so expand
   // each edge additively — scaling about the origin would be wrong for sweeps
   // whose bounding box does not straddle the centre.
@@ -5750,6 +5935,17 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   ctx.fillStyle=c.bgColor||'#040810'; ctx.fillRect(0,0,w,h);
   if(c.showTrack!==false && c.trackColor && c.trackColor!=='transparent'){
     bresenhamArc(ctx,cx,cy,r,arcStartDeg,arcStartDeg+sweep,c.trackColor,thickness);
+    // Same rounded-end-cap option as the value arc below, applied here too
+    // (was previously value-arc-only) - a track that's flat-ended while its
+    // own value arc sits rounded on top reads as inconsistent, especially
+    // right at the two ends of the full sweep where the track's own caps
+    // would otherwise be the only flat edges left showing.
+    if(c.showEndCaps!==false){
+      const capR=Math.max(1,thickness/2);
+      const rd0=arcStartDeg*Math.PI/180, rd1=(arcStartDeg+sweep)*Math.PI/180;
+      bresenhamFillCircle(ctx,cx+Math.cos(rd0)*r,cy+Math.sin(rd0)*r,capR,c.trackColor);
+      bresenhamFillCircle(ctx,cx+Math.cos(rd1)*r,cy+Math.sin(rd1)*r,capR,c.trackColor);
+    }
   }
   // Minor tick marks along the full sweep, evenly spaced - gives the gauge
   // a real instrument-scale feel instead of a bare unmarked arc.
@@ -5776,7 +5972,11 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     bresenhamArc(ctx,cx,cy,r,a0,a1,liveColor,thickness);
     // Rounded end-caps on the filled portion - a plain butt-end arc reads
     // as a rendering glitch at a glance, a capped one reads as a gauge.
-    if(c.showEndCaps!==false && pct>0.01){
+    // Always shown, even at the minimum value (pct=0, where a0 and a1
+    // land on the exact same point) - a single dot marking the zero
+    // position reads better than the caps just vanishing right as the
+    // value bottoms out, which looked like a rendering glitch of its own.
+    if(c.showEndCaps!==false){
       const capR=Math.max(1,thickness/2);
       const rd0=a0*Math.PI/180, rd1=a1*Math.PI/180;
       bresenhamFillCircle(ctx,cx+Math.cos(rd0)*r,cy+Math.sin(rd0)*r,capR,liveColor);
@@ -5786,7 +5986,7 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   if(showScale){
     const scaleGap=r*0.16+thickness*0.3;
     ctx.fillStyle=c.tickColor||'#7a8898';
-    ctx.font=`${gSize(c,'scale',Math.max(7,r*0.18))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'scale',Math.max(7,r*0.18)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     // Swapped when mirrored, so "Min" still sits at the end the arc fills
     // from and "Max" at the end it fills toward - matching the reversed
@@ -5796,14 +5996,17 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     gText(ctx,c,'scale',min.toString(), cx+Math.cos(minRad)*(r+scaleGap), cy+Math.sin(minRad)*(r+scaleGap));
     gText(ctx,c,'scale',max.toString(), cx+Math.cos(maxRad)*(r+scaleGap), cy+Math.sin(maxRad)*(r+scaleGap));
   }
+  let valH = 0;
+  let valueBottomY = undefined;
   if(c.showValue!==false && liveColor!=='transparent'){
     const vSize=gSize(c,'value',Math.max(10,r*0.42));
-    ctx.font=`bold ${vSize}px Montserrat`;
+    ctx.font=`${fontWeight(vSize)}${fontCSS(vSize)}px Montserrat`;
     let vy = cy - r*0.15;
     if(c.valuePos==='top') vy = cy - r*0.4;
     else if(c.valuePos==='center') vy = cy;
     else if(c.valuePos==='bottom') vy = cy + r*0.4;
     const valTxt=v.toFixed(digits);
+    valH = measureTextH(ctx,valTxt);
     if(c.showValueBox!==false){
       const tw=ctx.measureText(valTxt).width;
       const boxPad=vSize*0.25;
@@ -5813,23 +6016,43 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     ctx.fillStyle=liveColor;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,c,'value',valTxt, cx, vy);
+    // Remembered so the unit line below can push itself clear of
+    // whatever the value's actual rendered position/height turned out to
+    // be - valuePos has 4 different settings, so a single fixed offset
+    // for the unit can't account for all of them consistently.
+    valueBottomY = vy + valH/2;
   }
   if(c.showUnit!==false && unit){
     ctx.fillStyle=c.tickColor||'#7a8898';
-    ctx.font=`${gSize(c,'unit',Math.max(7,r*0.16))}px Montserrat`;
+    const unitSize = gSize(c,'unit',Math.max(7,r*0.16));
+    ctx.font=`${fontCSS(unitSize)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    gText(ctx,c,'unit',unit, cx, cy+r*0.2);
+    // Pushed below the value's own real bottom edge (not just a fixed
+    // r*0.2 below center) when the value's actual font is tall enough to
+    // reach it - a fixed offset was tuned for a modest value font, but
+    // the auto-size formula can produce a noticeably taller one depending
+    // on r, and at those sizes the unit line collided with the value's
+    // own descender space. Falls back to the original position whenever
+    // there's already enough room, so nothing shifts for the common case.
+    const defaultUnitY = cy+r*0.2;
+    const unitH = measureTextH(ctx,unit);
+    const unitY = (valueBottomY!==undefined) ? Math.max(defaultUnitY, valueBottomY+unitH/2+2) : defaultUnitY;
+    gText(ctx,c,'unit',unit, cx, unitY);
   }
   if(showName){
     const fs=gSize(c,'label',Math.max(8,r*0.2));
     ctx.fillStyle=c.labelColor||'#e8eef5';
-    ctx.font=`${fs}px Montserrat`;
+    ctx.font=`${fontCSS(fs)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='alphabetic';
     gText(ctx,c,'label',label, w/2, h-Math.max(2,fs*0.25));
   }
   if(c.borderColor && c.borderColor!=='transparent'){
     const bw=c.borderWidth!==undefined?c.borderWidth:1;
-    for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r-bi,c.borderColor);
+    // Drawn just OUTSIDE the arc's own outer edge (r), not overlapping
+    // into it - r itself is the arc's outer radius (matching strokeArc's
+    // own convention), so a border centered/inward at r used to eat into
+    // the arc's own outermost pixels instead of enclosing it.
+    for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r+bw-bi,c.borderColor);
   }
 }
 
@@ -5872,13 +6095,13 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
 
     if(c.showLabel!==false){
       ctx.fillStyle=c.labelColor||'#e8eef5';
-      ctx.font=`${gSize(c,'label',Math.max(8,h*0.22))}px Montserrat`;
+      ctx.font=`${fontCSS(gSize(c,'label',Math.max(8,h*0.22)))}px Montserrat`;
       ctx.textAlign='left'; ctx.textBaseline='top';
       gText(ctx,c,'label',label,padX,4);
     }
     if(c.showValue!==false && color!=='transparent'){
       const valSize=gSize(c,'value',Math.max(9,h*0.25));
-      ctx.font=`bold ${valSize}px Montserrat`;
+      ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
       // Unit is drawn as part of the value here; its own toggle controls it.
       const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
       if(c.showValueBox!==false){
@@ -5936,13 +6159,13 @@ function drawBarGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   }
   if(c.showLabel!==false){
     ctx.fillStyle=c.labelColor||'#e8eef5';
-    ctx.font=`${gSize(c,'label',Math.max(8,w*0.16))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(c,'label',Math.max(8,w*0.16)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='top';
     gText(ctx,c,'label',label,w/2,padY);
   }
   if(c.showValue!==false && color!=='transparent'){
     const valSize=gSize(c,'value',Math.max(9,w*0.2));
-    ctx.font=`bold ${valSize}px Montserrat`;
+    ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
     const txt=v.toFixed(digits)+((c.showUnit!==false&&unit)?' '+unit:'');
     const valY = h-padY-valSize;
     if(c.showValueBox!==false){
@@ -5990,7 +6213,7 @@ function drawTextValue(ctx,w,h,value,label,unit,color,digits,c){
   if(c.showLabel!==false){
     ctx.fillStyle=c.labelColor||'#7a8898';
     const lfs=gSize(c,'label',Math.max(7,h*0.2));
-    ctx.font=`${lfs}px Montserrat`;
+    ctx.font=`${fontCSS(lfs)}px Montserrat`;
     ctx.textAlign='left'; ctx.textBaseline='top';
     gText(ctx,c,'label',(label||'').toUpperCase(),leftInset,4);
     labelBottom=4+lfs*1.15;
@@ -5998,7 +6221,7 @@ function drawTextValue(ctx,w,h,value,label,unit,color,digits,c){
   if(c.showValue!==false && color!=='transparent'){
     ctx.fillStyle=color;
     const vfs=gSize(c,'value',Math.max(11,h*0.52));
-    ctx.font=`bold ${vfs}px Montserrat`;
+    ctx.font=`${fontWeight(vfs)}${fontCSS(vfs)}px Montserrat`;
     ctx.textAlign='left'; ctx.textBaseline='alphabetic';
     const valTxt=value.toFixed(digits);
     const valueBaselineY=Math.max(h-Math.max(4,h*0.14), labelBottom+vfs*0.85);
@@ -6006,7 +6229,7 @@ function drawTextValue(ctx,w,h,value,label,unit,color,digits,c){
     if(c.showUnit!==false && unit){
       const vw=ctx.measureText(valTxt).width;
       ctx.fillStyle=c.labelColor||'#7a8898';
-      ctx.font=`${gSize(c,'unit',Math.max(7,vfs*0.42))}px Montserrat`;
+      ctx.font=`${fontCSS(gSize(c,'unit',Math.max(7,vfs*0.42)))}px Montserrat`;
       ctx.textAlign='left'; ctx.textBaseline='alphabetic';
       gText(ctx,c,'unit',' '+unit,leftInset+vw,valueBaselineY);
     }
@@ -6036,7 +6259,7 @@ function drawStaticText(ctx,w,h,c){
   if(c.textColor && c.textColor!=='transparent'){
     ctx.fillStyle=c.textColor;
     const fs=gSize(c,'text',Math.max(8,h*0.5));
-    ctx.font=`${c.bold?'bold ':''}${fs}px Montserrat`;
+    ctx.font=`${c.bold?'bold ':''}${fontCSS(fs)}px Montserrat`;
     const align=c.align||'center';
     ctx.textAlign=align; ctx.textBaseline='middle';
     const inset=hasAccent?Math.max(6,w*0.08):4;
@@ -6103,7 +6326,7 @@ function drawDial(ctx,w,h,value,min,max,label,unit,color,digits,config){
   if(showTicks){
     const numMinor=Math.max(1,Math.round(range/minorStep));
     const ticksPerMajor=Math.max(1,Math.round(majorStep/minorStep));
-    ctx.font=`${gSize(config,'scale',Math.max(7,r*0.12))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(config,'scale',Math.max(7,r*0.12)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     for(let i=0;i<=numMinor;i++){
       const pct=i/numMinor;
@@ -6144,11 +6367,13 @@ function drawDial(ctx,w,h,value,min,max,label,unit,color,digits,config){
     bresenhamCircle(ctx,cx,cy,hubR,config.hubBorderColor||color);
   }
 
+  let valueBottomY = undefined;
   if(showValue && color!=='transparent'){
     const v=Math.max(min,Math.min(max,value));
     const valTxt=v.toFixed(digits);
     const vSize=gSize(config,'value',Math.max(9,r*0.2));
-    ctx.font=`bold ${vSize}px Montserrat`;
+    ctx.font=`${fontWeight(vSize)}${fontCSS(vSize)}px Montserrat`;
+    const valH = measureTextH(ctx,valTxt);
     if(config.showValueBox!==false){
       const tw=ctx.measureText(valTxt).width;
       const boxPad=vSize*0.3;
@@ -6158,18 +6383,26 @@ function drawDial(ctx,w,h,value,min,max,label,unit,color,digits,config){
     ctx.fillStyle=color;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,config,'value',valTxt,cx,cy+r*0.42);
+    valueBottomY = cy+r*0.42 + valH/2;
   }
   if(config.showLabel!==false && label){
     ctx.fillStyle=config.labelColor||'#e8eef5';
-    ctx.font=`${gSize(config,'label',Math.max(8,r*0.13))}px Montserrat`;
+    ctx.font=`${fontCSS(gSize(config,'label',Math.max(8,r*0.13)))}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
     gText(ctx,config,'label',label,cx,cy-r*0.35);
   }
   if(config.showUnit!==false && unit){
     ctx.fillStyle=config.labelColor||'#7a8898';
-    ctx.font=`${gSize(config,'unit',Math.max(7,r*0.11))}px Montserrat`;
+    const unitSize = gSize(config,'unit',Math.max(7,r*0.11));
+    ctx.font=`${fontCSS(unitSize)}px Montserrat`;
     ctx.textAlign='center'; ctx.textBaseline='middle';
-    gText(ctx,config,'unit',unit,cx,cy+r*0.62);
+    // Pushed below the value's own real bottom edge when the value's
+    // actual font is tall enough to reach it - see arc-gauge's own
+    // version of this same fix for the full reasoning.
+    const defaultUnitY = cy+r*0.62;
+    const unitH = measureTextH(ctx,unit);
+    const unitY = (valueBottomY!==undefined) ? Math.max(defaultUnitY, valueBottomY+unitH/2+2) : defaultUnitY;
+    gText(ctx,config,'unit',unit,cx,unitY);
   }
   if(config.showBorder!==false){
     const bw=config.borderWidth!==undefined?config.borderWidth:1;
@@ -6434,22 +6667,130 @@ local function polar(cx,cy,r,deg)
   return cx+r*math.sin(a), cy-r*math.cos(a)
 end
 
--- Stroked arc built from short line segments - there's no single arc
--- primitive guaranteed consistent across EdgeTX versions, so this is done
--- by hand for reliable results everywhere.
+-- Same shape as the editor's own arcUnitBBox, but in this script's own
+-- compass convention (0deg=up, clockwise, matching polar() above) rather
+-- than the editor's math convention - the unit-circle bounding box of
+-- just the swept portion of an arc, used by the arc-gauge to size/center
+-- itself tightly around only the part of the circle it actually draws,
+-- when Fixed Center is turned off.
+local function arcUnitBBox(startDeg, sweep)
+  local pts = {}
+  local function push(d)
+    local r = math.rad(d)
+    table.insert(pts, {math.sin(r), -math.cos(r)})
+  end
+  push(startDeg); push(startDeg+sweep)
+  -- Axis extremes in this convention: 0=up(0,-1), 90=right(1,0),
+  -- 180=down(0,1), 270=left(-1,0) - same idea as the editor's own
+  -- "check every multiple of 90 the sweep passes through", just walked
+  -- across a wider k range since startDeg here can be negative.
+  for k=-4,8 do
+    local d = k*90
+    if d>=startDeg and d<=startDeg+sweep then push(d) end
+  end
+  local x0,x1,y0,y1 = pts[1][1],pts[1][1],pts[1][2],pts[1][2]
+  for i=2,#pts do
+    local px,py = pts[i][1],pts[i][2]
+    if px<x0 then x0=px end
+    if px>x1 then x1=px end
+    if py<y0 then y0=py end
+    if py>y1 then y1=py end
+  end
+  return x0,x1,y0,y1
+end
+
+-- Stroked arc: uses lcd.drawAnnulus (a single native call drawing a
+-- filled ring segment, EdgeTX 2.4.0+) when available - dramatically
+-- cheaper than manually building the same shape from many short line
+-- segments (measured: up to ~1770 drawLine calls for one large, thick
+-- arc-gauge track before this fix; a single native call replaces all of
+-- them). Falls back to the manual segment approach below on anything
+-- older than 2.4.0.
+--
+-- Angle convention: this script's own convention (via polar() above) is
+-- 0deg = straight up, increasing clockwise. An initial -90 offset was
+-- derived from LVGL's general documented arc behavior but not confirmed
+-- against EdgeTX's own compiled source directly. Testing on real hardware
+-- showed the arc rendered with its gap on the RIGHT side of the circle
+-- where it should have been at the BOTTOM (for a 270deg sweep with no
+-- start offset) - a -90deg shift between intended and actual. Since the
+-- code was already subtracting 90 before this point, that -90 shift IS
+-- the bug: drawAnnulus's own convention appears to be identical to this
+-- script's (0deg=up, clockwise), needing no conversion at all. The
+-- offset is removed entirely; only wraparound normalization into [0,360)
+-- remains.
 local function strokeArc(cx,cy,r,a0,a1,color,thickness)
   if not color then return end
   thickness = thickness or 1
+  if lcd.drawAnnulus then
+    local rOuter = math.max(1,r)
+    local rInner = math.max(0, rOuter-thickness)
+    -- Both s and e are kept strictly within [0,360) here - a previous
+    -- version added 360 to e whenever e<=s to represent "wraps through
+    -- 0deg", but that could push e past 360 (e.g. s=135, e=405 for a
+    -- 270deg sweep starting past due south), which is outside the range
+    -- the docs describe ("start, end (positive numbers)") and appears to
+    -- make real hardware draw a full circle instead of the intended
+    -- partial sweep - confirmed against an actual uploaded project file
+    -- showing exactly this symptom. drawAnnulus is expected to treat
+    -- end<start as "wrap through 0" on its own, the standard convention
+    -- for LVGL-style arc widgets, so no manual adjustment should be
+    -- needed for a genuine partial sweep. A true full-circle sweep (a1-a0
+    -- >= 360) is kept as an explicit special case instead, since s and e
+    -- would otherwise land on the exact same angle - ambiguous between
+    -- "zero sweep" and "the whole circle" rather than clearly the latter.
+    local s = a0 % 360
+    local e
+    if a1-a0 >= 360 then e = s + 360
+    else e = a1 % 360 end
+    lcd.drawAnnulus(cx,cy,rInner,rOuter,s,e,color)
+    return
+  end
   local span=a1-a0
-  local steps=math.max(2,math.floor(math.abs(span)/4))
-  for t=0,thickness-1 do
-    local rr=r-t
-    local px,py=polar(cx,cy,rr,a0)
-    for i=1,steps do
-      local ang=a0+span*i/steps
-      local x,y=polar(cx,cy,rr,ang)
-      lcd.drawLine(px,py,x,y,SOLID,color)
-      px,py=x,y
+  local arcLen = math.abs(span)*math.pi/180*math.max(1,r)
+  -- Two genuinely different shapes to fill the same band, and which one
+  -- is cheaper depends on thickness: tangential segments (tracing the
+  -- outer edge, thickness layers deep) cost (span/4)*thickness - fine
+  -- when thickness is small, but that scales badly for a THICK arc
+  -- (measured: a 941-call arc-gauge track at 9px thick). Radial segments
+  -- (one line per angular step, each spanning the full thickness at
+  -- once) cost roughly arcLen regardless of thickness - cheap for thick
+  -- arcs, but wasteful for a thin one at large radius, since a thin arc
+  -- barely needs radial fill at all (measured: 317 calls for the custom
+  -- Dial gauge's 2px-thick track alone, worse than the original). Pick
+  -- whichever actually costs less for these specific numbers rather than
+  -- assuming one approach always wins.
+  --
+  -- Both paths are also capped at 260 steps regardless of arc length -
+  -- measured a genuinely extreme case (a near-fullscreen 794x473
+  -- arc-gauge, radius ~234px) costing 1771 drawLine calls on its own from
+  -- this function alone, since radial cost scales linearly with radius
+  -- with no ceiling. Past a few hundred pixels of arc length, more
+  -- segments stop being visually distinguishable on any real radio
+  -- screen - this trades a small amount of theoretical smoothness at
+  -- extreme sizes for a hard ceiling on worst-case cost.
+  local MAX_STEPS = 260
+  local tangentialSteps = math.min(MAX_STEPS, math.max(2,math.floor(math.abs(span)/4)))
+  local tangentialCost = tangentialSteps*thickness
+  local radialSteps = math.min(MAX_STEPS, math.max(2,math.floor(arcLen)))
+  if tangentialCost <= radialSteps then
+    for t=0,thickness-1 do
+      local rr=r-t
+      local px,py=polar(cx,cy,rr,a0)
+      for i=1,tangentialSteps do
+        local ang=a0+span*i/tangentialSteps
+        local x,y=polar(cx,cy,rr,ang)
+        lcd.drawLine(px,py,x,y,SOLID,color)
+        px,py=x,y
+      end
+    end
+  else
+    local rOuter, rInner = r, r-thickness+1
+    for i=0,radialSteps do
+      local ang=a0+span*i/radialSteps
+      local ox,oy = polar(cx,cy,rOuter,ang)
+      local ix,iy = polar(cx,cy,rInner,ang)
+      lcd.drawLine(ix,iy,ox,oy,SOLID,color)
     end
   end
 end
@@ -6473,7 +6814,7 @@ end
 -- Letting the firmware center it natively removes that whole class of
 -- guesswork.
 local function centerText(cx,cy,text,sizeFlags,color)
-  lcd.drawText(cx,cy,text,CENTER+VCENTER+sizeFlags+color)
+  lcd.drawText(cx,cy,text,bit32.bor(CENTER,VCENTER,sizeFlags,color))
 end
 
 -- Nil-safe wrappers around drawText/centerText: EdgeTX has no real concept
@@ -6490,7 +6831,7 @@ end
 -- borders, boxes) already behaves via a plain "if cfg.X then" guard.
 local function drawTextIf(x,y,text,flags,color)
   if not color then return end
-  lcd.drawText(x,y,text,flags+color)
+  lcd.drawText(x,y,text,bit32.bor(flags,color))
 end
 local function centerTextIf(cx,cy,text,sizeFlags,color)
   if not color then return end
@@ -6531,9 +6872,11 @@ local RFMD_NAMES_V4 = {
 }
 
 -- lcd.drawCircle has no thickness parameter on EdgeTX (only drawRectangle
--- does, via its own [,t] argument, used natively wherever this script draws
--- a rectangular border) - so a thick ring is built the same way the editor
--- preview builds one: concentric 1px circles stepping inward.
+-- does, via its own [,t] argument). Uses drawAnnulus (a full 0-360deg
+-- ring, see strokeArc above for the version/angle-convention notes) when
+-- available, reducing what used to be one drawCircle call per pixel of
+-- thickness down to a single call regardless of thickness. Falls back to
+-- the original concentric-circles approach on older EdgeTX versions.
 -- The artificial horizon's center reference symbol has 5 selectable
 -- visual styles, each a small set of line segments (in -1..1 normalized
 -- coordinates, scaled by the instrument's own radius) plus an optional
@@ -6547,6 +6890,16 @@ local REF_SYMBOL_STYLES = {
   ["chevron"] = {lines={{-0.35,0.1,-0.08,-0.02},{0.08,-0.02,0.35,0.1}}, dot=1.5, circle=0},
   ["dot-circle"] = {lines={{-0.35,0,-0.15,0},{0.15,0,0.35,0}}, dot=1.5, circle=0.1}
 }
+-- Always uses the plain lcd.drawCircle loop, never drawAnnulus - unlike
+-- strokeArc, a full-circle border has no partial-sweep to gain speed
+-- from, and drawAnnulus's exact (0,360) full-circle case is genuinely
+-- unconfirmed territory (start and end represent the identical angle
+-- modulo 360, which could plausibly normalize to a zero-degree sweep on
+-- real hardware instead of a full one - the same ambiguity strokeArc's
+-- own full-sweep case guards against explicitly). Borders are typically
+-- 1-3px thick, so the call-count savings drawAnnulus would offer here
+-- are marginal at best - not worth risking borders vanishing outright
+-- for it.
 local function strokeCircle(cx,cy,r,color,thickness)
   if not color then return end
   thickness = math.max(1,math.floor(thickness or 1))
@@ -7419,7 +7772,9 @@ DRAW["altimeter-dial"] = function(x,y,w,h,cfg)
     local dcx,dcy = offsetXY(cfg,"digital",cx,cy+r*0.55)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,digTxt,digSize)
-      if not ok then tw=#digTxt*10; th=16 end
+      -- Fallback scales with the actual auto-fit size rather than a fixed
+      -- guess - see the tape-family fallback for the same reasoning.
+      if not ok then tw=#digTxt*digAutoPx*0.55; th=16 end
       local boxPad = digAutoPx*0.35
       lcd.drawFilledRectangle(dcx-(tw or 30)/2-boxPad, dcy-(th or 16)/2-boxPad*0.5, (tw or 30)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
     end
@@ -7467,6 +7822,16 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
   local fineStep = step/subDiv
   local nSteps = math.ceil((range*0.4)/fineStep)+subDiv*2
   local sf = sizeFlag(cfg,"scale",math.max(7,w*0.14))
+  -- Half the label's own real rendered height - measured once here since
+  -- height doesn't vary by which digits a given tick actually shows.
+  -- Checked against ty below (not just ty itself) since VCENTER means the
+  -- glyph extends this far above AND below ty - checking only ty let a
+  -- label sitting right at y or y+h keep drawing in full, with roughly
+  -- its top or bottom half actually crossing past the border instead of
+  -- disappearing right at it.
+  local okLH,_,labelH = pcall(lcd.sizeText,"0",sf)
+  if not okLH or type(labelH)~="number" then labelH=16 end
+  local labelHalfH = labelH/2
 
   local i=0
   while i<=nSteps do
@@ -7483,12 +7848,12 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
         local tw = math.max(1, math.floor((cfg.tickWidth or 1)+0.5))
         strokeLine(x0,ty,x+w*outerFrac,ty, thisTickCol, tw)
       end
-      if isMajor and cfg.showLabels~=false and txtColor then
+      if isMajor and cfg.showLabels~=false and txtColor and ty-labelHalfH>=y and ty+labelHalfH<=y+h then
         local labelX = mirrored and (x+w*tickInEff+w*0.05) or (x+w*tickInEff-w*0.05)
         local flags = mirrored and LEFT or RIGHT
         local labelTxt = string.format("%.0f",v)
         local ltx,lty = offsetXY(cfg,"scale",labelX,ty)
-        lcd.drawText(ltx,lty,labelTxt,flags+VCENTER+sf+txtColor)
+        lcd.drawText(ltx,lty,labelTxt,bit32.bor(flags,VCENTER,sf,txtColor))
       end
     end
     i=i+1
@@ -7507,17 +7872,23 @@ local function drawTapeGeneric(x,y,w,h,cfg,defMin,defMax,defUnit)
     -- fraction of the tape width - never looks oversized for a short
     -- reading or clipped for a long one.
     local valTxt=string.format("%.0f",value)
-    local vf = sizeFlag(cfg,"value",math.max(8,w*0.16))
+    local vAutoPx = math.max(8,w*0.16)
+    local vf = sizeFlag(cfg,"value",vAutoPx)
     local ok,tw,thh = pcall(lcd.sizeText,valTxt,vf)
     if not ok then tw=nil; thh=nil end
-    tw = tw or (#valTxt*10)
+    -- Fallback (lcd.sizeText should always succeed on real hardware, but
+    -- just in case): scales with the font size actually in use rather
+    -- than a fixed guess, using Montserrat's own roughly-0.55x-height
+    -- average character width - EdgeTX's own compiled font is generated
+    -- from this exact same source TTF, so this ratio carries over.
+    tw = tw or (#valTxt*vAutoPx*0.55)
     local bh = math.max((thh or 16)+4, h*0.09)
     local boxW = tw + 10
     local boxX = mirrored and (x+w*0.95-boxW) or (x+w*0.05)
     lcd.drawFilledRectangle(boxX,cy-bh/2,boxW,bh, cfg.boxBgColor or ptrColor)
     if cfg.valueTextColor then
       local vtx,vty = offsetXY(cfg,"value",boxX+5,cy)
-      lcd.drawText(vtx,vty,valTxt, VCENTER+vf+cfg.valueTextColor)
+      lcd.drawText(vtx,vty,valTxt, bit32.bor(VCENTER,vf,cfg.valueTextColor))
     end
   end
 
@@ -7647,9 +8018,22 @@ local function drawHeadingTapeGeneric(x,y,w,h,cfg)
         if norm==0 then label="N" elseif norm==90 then label="E"
         elseif norm==180 then label="S" elseif norm==270 then label="W"
         else label=string.format("%03d",norm) end
-        local col = (norm==0) and (cfg.northColor or txtColor) or txtColor
-        local stx,sty = offsetXY(cfg,"scale",xx,y+h*0.78)
-        centerTextIf(stx,sty,label,sf,col)
+        -- Half the label's own real measured width - checked against xx
+        -- before drawing, not just xx itself, since centerTextIf uses
+        -- center alignment, meaning the glyphs extend this far left AND
+        -- right of xx. A label centered right at the x or x+w edge used
+        -- to keep drawing in full, with roughly its left or right half
+        -- actually crossing past the border instead of disappearing
+        -- right at it - same issue as the vertical tapes' label height,
+        -- mirrored onto width here.
+        local okLW,labelW = pcall(lcd.sizeText,label,sf)
+        if not okLW or type(labelW)~="number" then labelW=20 end
+        local labelHalfW = labelW/2
+        if xx-labelHalfW>=x and xx+labelHalfW<=x+w then
+          local col = (norm==0) and (cfg.northColor or txtColor) or txtColor
+          local stx,sty = offsetXY(cfg,"scale",xx,y+h*0.78)
+          centerTextIf(stx,sty,label,sf,col)
+        end
       end
     end
     i=i+1
@@ -7865,9 +8249,21 @@ DRAW["rssi-bars"]=function(x,y,w,h,cfg)
   local filled=math.floor(frac*bars+0.5)
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
   local showValue = cfg.showValue~=false
-  local labelH = showValue and math.max(11,h*0.24) or 0
-  local chartH = h-labelH-2
   local gap = math.max(2,w*0.05)
+  -- Chart height is now sized around the VALUE's own measured height, not
+  -- a fixed fraction of the box (the old "labelH" estimate) - that fixed
+  -- reserve was usually bigger than the text actually needed, especially
+  -- with an explicit small size override, leaving a visibly larger gap
+  -- above the text than the gap between the bars themselves.
+  local vf, txt, th
+  if showValue then
+    local unit = cfg.unit~=nil and cfg.unit or "%"
+    txt = string.format("%.0f",value)..unit
+    vf = sizeFlag(cfg,"value",math.max(8,h*0.18))
+    local okT,_,thh = pcall(lcd.sizeText,txt,vf)
+    th = (okT and type(thh)=="number") and thh or 16
+  end
+  local chartH = showValue and math.max(4, h-gap-(th or 0)) or h
   local barW = (w-gap*(bars-1))/bars
   local activeColor = cfg.badColor
   if frac>0.66 then activeColor = cfg.goodColor
@@ -7875,15 +8271,25 @@ DRAW["rssi-bars"]=function(x,y,w,h,cfg)
   for i=0,bars-1 do
     local bh=math.max(2,chartH*((i+1)/bars))
     local bx=x+i*(barW+gap)
-    local by=y+chartH-bh+1
+    local by=y+chartH-bh
     local col = (i<filled) and activeColor or cfg.offColor
     if col then lcd.drawFilledRectangle(bx,by,barW,bh,col) end
   end
   if showValue and cfg.textColor then
-    local unit = cfg.unit~=nil and cfg.unit or "%"
-    local txt = string.format("%.0f",value)..unit
-    local vf = sizeFlag(cfg,"value",math.max(8,labelH*0.75))
-    lcd.drawText(x+w/2, y+h-1, txt, CENTER+VBOTTOM+vf+cfg.textColor)
+    -- bit32.bor() instead of + for combining flags: the official docs
+    -- warn that adding the SAME flag twice "carries over" into the next
+    -- bit (e.g. INVERS+INVERS=VCENTER), and EdgeTX's own GitHub tracker
+    -- documents font-size values occupying a multi-bit field rather than
+    -- a single independent bit - confirmed against a real hardware
+    -- screenshot showing an explicit Tiny-size value rendering LARGER
+    -- than Double, exactly the kind of corruption a silent bit carry
+    -- from ordinary addition would produce. bor() is bitwise-safe
+    -- regardless of the exact layout, where + is not.
+    -- VTOP (not VBOTTOM) since the text's own top edge is now placed
+    -- directly at chartH+gap - matching that gap to the inter-bar gap
+    -- is the whole point of measuring th above, and anchoring from the
+    -- top is what makes that position exact rather than approximate.
+    lcd.drawText(x+w/2, y+chartH+gap, txt, bit32.bor(CENTER,VTOP,vf,cfg.textColor))
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -7942,28 +8348,39 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
   local section3H = showFooter and footBlockH or 0
 
   local numGaps = showFooter and 2 or 1
-  local baseGap = pad*0.6
-  -- tightTotal must include the base gaps themselves, not just the section
-  -- content heights - these baseGap amounts are ALWAYS added between
-  -- sections when drawing (even when extraGap is 0), so leaving them out
-  -- here made slack (and therefore the total actual content height used
-  -- for drawing) systematically larger than what was actually available,
-  -- overflowing past the bottom of the box by roughly numGaps*baseGap.
-  local tightTotal = pad + section1H + section2H + section3H + numGaps*baseGap
+  local baseGapFull = pad*0.6
+  local titleGapFull = pad*0.35
+  local topPadFull = pad*0.5
+  -- Fixed content (the text/bar sizes themselves) vs flexible gaps (the
+  -- padding and inter-section spacing) are kept separate here - at the
+  -- DEFAULT instrument size (140x90) the content's own minimum height,
+  -- even using the tightest possible gaps, already exceeds the box
+  -- (measured: ~110.65px of content in a 90px-tall box), so clamping
+  -- slack to 0 alone wasn't enough - the gaps themselves need to actively
+  -- shrink, not just stop growing. Text sizes are never touched here,
+  -- since shrinking those further risks illegibility; only the spacing
+  -- between elements compresses.
+  local fixedContent = thT + barH + thR + thRL + section3H
+  local flexibleGapsFull = topPadFull + titleGapFull + numGaps*baseGapFull
+  local gapScale = (flexibleGapsFull>0) and math.min(1, math.max(0,h-fixedContent)/flexibleGapsFull) or 1
+  local topPad = topPadFull*gapScale
+  local titleGap = titleGapFull*gapScale
+  local baseGap = baseGapFull*gapScale
+  local tightTotal = fixedContent + topPad + titleGap + numGaps*baseGap
   local slack = math.max(0, h - tightTotal)
   local extraGap = slack / numGaps
 
-  local cursorY = y+pad*0.5
+  local cursorY = y+topPad
 
   if cfg.labelColor then
     local tx,ty = offsetXY(cfg,"title",x+pad,cursorY)
-    lcd.drawText(tx,ty,"LINK",VTOP+titleF+cfg.labelColor)
+    lcd.drawText(tx,ty,"LINK",bit32.bor(VTOP,titleF,cfg.labelColor))
   end
   if lqColor then
     local tx,ty = offsetXY(cfg,"title",x+w-pad,cursorY)
-    lcd.drawText(tx,ty,string.format("%.0f",lq).."% LQ",RIGHT+VTOP+titleF+lqColor)
+    lcd.drawText(tx,ty,string.format("%.0f",lq).."% LQ",bit32.bor(RIGHT,VTOP,titleF,lqColor))
   end
-  cursorY = cursorY + thT + pad*0.35
+  cursorY = cursorY + thT + titleGap
 
   if cfg.trackColor then lcd.drawFilledRectangle(x+pad,cursorY,w-pad*2,barH, cfg.trackColor) end
   if lqColor then lcd.drawFilledRectangle(x+pad,cursorY,(w-pad*2)*clamp(lq/100,0,1),barH,lqColor) end
@@ -7971,13 +8388,13 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
 
   if cfg.textColor then
     local tx,ty = offsetXY(cfg,"value",x+pad,cursorY)
-    lcd.drawText(tx,ty,rssiTxt,VTOP+valF+cfg.textColor)
+    lcd.drawText(tx,ty,rssiTxt,bit32.bor(VTOP,valF,cfg.textColor))
   end
   cursorY = cursorY + thR
 
   if cfg.labelColor then
     local tx,ty = offsetXY(cfg,"rssiLabel",x+pad,cursorY)
-    lcd.drawText(tx,ty,"RSSI",VTOP+rssiLabelF+cfg.labelColor)
+    lcd.drawText(tx,ty,"RSSI",bit32.bor(VTOP,rssiLabelF,cfg.labelColor))
   end
   cursorY = cursorY + thRL
 
@@ -7988,11 +8405,11 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
     if cfg.showTxPower~=false then
       if cfg.labelColor then
         local tx,ty = offsetXY(cfg,"footer",x+pad,footLabelY)
-        lcd.drawText(tx,ty,"PWR",VTOP+footF+cfg.labelColor)
+        lcd.drawText(tx,ty,"PWR",bit32.bor(VTOP,footF,cfg.labelColor))
       end
       if cfg.textColor then
         local tx,ty = offsetXY(cfg,"footer",x+pad,footValueY)
-        lcd.drawText(tx,ty,string.format("%.0f",txPower).."mW",VTOP+footF+cfg.textColor)
+        lcd.drawText(tx,ty,string.format("%.0f",txPower).."mW",bit32.bor(VTOP,footF,cfg.textColor))
       end
     end
     if cfg.showRfMode~=false then
@@ -8003,11 +8420,11 @@ DRAW["link-stats"]=function(x,y,w,h,cfg)
       else rfText=tostring(rfMode) end
       if cfg.labelColor then
         local tx,ty = offsetXY(cfg,"footer",x+w-pad,footLabelY)
-        lcd.drawText(tx,ty,"MODE",RIGHT+VTOP+footF+cfg.labelColor)
+        lcd.drawText(tx,ty,"MODE",bit32.bor(RIGHT,VTOP,footF,cfg.labelColor))
       end
       if cfg.textColor then
         local tx,ty = offsetXY(cfg,"footer",x+w-pad,footValueY)
-        lcd.drawText(tx,ty,rfText,RIGHT+VTOP+footF+cfg.textColor)
+        lcd.drawText(tx,ty,rfText,bit32.bor(RIGHT,VTOP,footF,cfg.textColor))
       end
     end
   end
@@ -8045,15 +8462,15 @@ DRAW["gps-coords"]=function(x,y,w,h,cfg)
   local textColor = cfg.textColor
   if textColor then
     local tx1,ty1 = offsetXY(cfg,"value",x+pad,latY)
-    lcd.drawText(tx1,ty1,"LAT "..latTxt,VCENTER+vf+textColor)
+    lcd.drawText(tx1,ty1,"LAT "..latTxt,bit32.bor(VCENTER,vf,textColor))
     local tx2,ty2 = offsetXY(cfg,"value",x+pad,lonY)
-    lcd.drawText(tx2,ty2,"LON "..lonTxt,VCENTER+vf+textColor)
+    lcd.drawText(tx2,ty2,"LON "..lonTxt,bit32.bor(VCENTER,vf,textColor))
   end
   if showSats and cfg.labelColor then
     local satsF = sizeFlag(cfg,"sats",math.max(7,valueResolvedPx*0.6))
     local satsTxt = "SATS "..string.format("%.0f",sats)
     local tx3,ty3 = offsetXY(cfg,"sats",x+pad,satsY)
-    lcd.drawText(tx3,ty3,satsTxt,VCENTER+satsF+cfg.labelColor)
+    lcd.drawText(tx3,ty3,satsTxt,bit32.bor(VCENTER,satsF,cfg.labelColor))
   end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 end
@@ -8201,9 +8618,6 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
   if cfg.bgColor then lcd.drawFilledRectangle(x,y,w,h,cfg.bgColor) end
   if cfg.borderColor then lcd.drawRectangle(x,y,w,h,cfg.borderColor,cfg.borderWidth or 1) end
 
-  local lf = sizeFlag(cfg,"label",math.max(7,h*0.18))
-  centerTextIf(x+w/2,y+h*0.22,"HOME DIST",lf,labelCol)
-
   local distUnit = cfg.distanceUnit or "auto"
   local disp
   if distUnit=="m" then disp=string.format("%.0f m",dist)
@@ -8216,6 +8630,8 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
   end
 
   local vf = sizeFlag(cfg,"value",math.max(10,h*0.38))
+  local okV,_,valH = pcall(lcd.sizeText,disp,vf)
+  if not okV or type(valH)~="number" then valH=20 end
   if cfg.showValueBox~=false and cfg.valueBoxColor then
     local ok,tw,thh = pcall(lcd.sizeText,disp,vf)
     if not ok then tw=nil; thh=nil end
@@ -8224,7 +8640,11 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
   end
   centerTextIf(x+w/2,y+h*0.55,disp,vf,ptrColor)
 
-  if cfg.showUnit~=false then
+  -- Defaults OFF (must be explicitly turned on), unlike most show* flags
+  -- here which default on. The value text above already includes its own
+  -- unit suffix (e.g. "1.03 km"), so this second line was showing the
+  -- same information twice by default.
+  if cfg.showUnit==true then
     local uf = sizeFlag(cfg,"unit",math.max(7,h*0.14))
     local unitCaption
     if distUnit=="m" then unitCaption="meters"
@@ -8232,8 +8652,23 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
     elseif distUnit=="ft" then unitCaption="feet"
     elseif distUnit=="mi" then unitCaption="miles"
     else unitCaption="m / km" end
-    centerTextIf(x+w/2,y+h*0.82,unitCaption,uf,labelCol)
+    -- Pushed below the value's own real bottom edge (not just a fixed
+    -- fraction of h) when the value's actual font is tall enough to reach
+    -- it - a fixed 0.82 was tuned for a modest value font, but the auto-
+    -- size formula above can produce a noticeably taller one depending on
+    -- h, and at those sizes the unit line collided with the value's own
+    -- descender space. Falls back to the original 0.82 position whenever
+    -- there's already enough room, so nothing shifts for the common case.
+    local okU,_,unitH = pcall(lcd.sizeText,unitCaption,uf)
+    if not okU or type(unitH)~="number" then unitH=16 end
+    local minUnitY = h*0.55 + valH/2 + unitH/2 + 2
+    local unitY = math.max(h*0.82, minUnitY)
+    centerTextIf(x+w/2,y+unitY,unitCaption,uf,labelCol)
   end
+
+  -- Label - drawn last (on top of everything else), per explicit request
+  local lf = sizeFlag(cfg,"label",math.max(7,h*0.18))
+  centerTextIf(x+w/2,y+h*0.22,"HOME DIST",lf,labelCol)
 end
 
 DRAW["radar"]=function(x,y,w,h,cfg)
@@ -8271,7 +8706,6 @@ DRAW["radar"]=function(x,y,w,h,cfg)
     cloudOffsetY = math.sin(angUnclamped)*distRatioUnclamped
   end
   local TILE=6
-  local function wrap(v) return v-TILE*math.floor(v/TILE+0.5) end
 
   -- Blob positions are generated once by the editor and saved into the
   -- project (cfg.cloudBlobs), so this just replays that same fixed list -
@@ -8280,12 +8714,31 @@ DRAW["radar"]=function(x,y,w,h,cfg)
   -- blob to the radar's outline, only its center needs to land inside the
   -- shape - close enough for small decorative dots, and exactly matches
   -- the "skip clearly-outside" bounds check the editor itself does first.
+  --
+  -- wrap() is inlined per-blob instead of called as a function - a
+  -- measured, real cost with many blobs: two function calls per blob (80
+  -- for a 40-blob radar) add up when this loop runs before several other
+  -- elements (rings, crosshairs, sweep, border) that were reported
+  -- missing specifically on a screen combining many instruments at once,
+  -- while working fine with the radar alone - the signature of running
+  -- into EdgeTX's per-frame instruction budget partway through, not a
+  -- logic bug. Blob count is also hard-capped at 40 regardless of how
+  -- many the project actually has saved, for the same reason arc
+  -- segments were capped earlier - a firm ceiling on worst-case cost
+  -- rather than letting an unusually large blob field scale unbounded.
   if cfg.showBlobs~=false and cfg.blobColor and type(cfg.cloudBlobs)=="table" then
-    for _,b in ipairs(cfg.cloudBlobs) do
-      local bx,by = wrap(b.x+cloudOffsetX), wrap(b.y+cloudOffsetY)
-      if math.abs(bx)<=1.2 and math.abs(by)<=1.2 then
+    local blobs = cfg.cloudBlobs
+    local n = #blobs
+    if n>40 then n=40 end
+    for i=1,n do
+      local b = blobs[i]
+      local bxr = b.x+cloudOffsetX
+      local byr = b.y+cloudOffsetY
+      local bx = bxr-TILE*math.floor(bxr/TILE+0.5)
+      local by = byr-TILE*math.floor(byr/TILE+0.5)
+      if bx>-1.2 and bx<1.2 and by>-1.2 and by<1.2 then
         local inShape
-        if isSquare then inShape = (math.abs(bx)<=1 and math.abs(by)<=1)
+        if isSquare then inShape = (bx>=-1 and bx<=1 and by>=-1 and by<=1)
         else inShape = (bx*bx+by*by<=1) end
         if inShape then
           lcd.drawFilledCircle(cx+bx*r,cy+by*r,math.max(1,b.r*r),cfg.blobColor)
@@ -8413,10 +8866,13 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
     if hubCol then lcd.drawFilledCircle(cx,cy,math.max(4,r*0.08), hubCol) end
   end
 
+  local valueBottomY = nil
   if cfg.showValue~=false and ptrColor then
     local valTxt=string.format("%.0f",kmh)
     local vf = sizeFlag(cfg,"value",math.max(12,r*0.38))
     local vcx,vcy = offsetXY(cfg,"value",cx,cy+r*0.25)
+    local okVH,_,valH = pcall(lcd.sizeText,valTxt,vf)
+    if not okVH or type(valH)~="number" then valH=r*0.38*1.3 end
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,thh = pcall(lcd.sizeText,valTxt,vf)
       if not ok then tw=nil; thh=nil end
@@ -8424,11 +8880,25 @@ DRAW["groundspeed-dial"]=function(x,y,w,h,cfg)
       lcd.drawFilledRectangle(vcx-(tw or 30)/2-boxPad, vcy-(thh or 20)/2-boxPad*0.5, (tw or 30)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
     end
     centerText(vcx,vcy,valTxt,vf,ptrColor)
+    -- Remembered so the unit line below can push itself clear of whatever
+    -- the value's actual rendered height turned out to be.
+    valueBottomY = cy+r*0.25 + valH/2
   end
 
   if cfg.showUnit~=false then
     local uf = sizeFlag(cfg,"unit",math.max(7,r*0.14))
-    local ucx,ucy = offsetXY(cfg,"unit",cx,cy+r*0.52)
+    -- Pushed below the value's own real bottom edge (not just a fixed
+    -- r*0.52 below center) when the value's actual font is tall enough to
+    -- reach it - see arc-gauge's own version of this same fix for the
+    -- full reasoning.
+    local defaultUnitY = cy+r*0.52
+    local okUH,_,unitH = pcall(lcd.sizeText,"km/h",uf)
+    if not okUH or type(unitH)~="number" then unitH=16 end
+    local unitY = defaultUnitY
+    if valueBottomY~=nil then
+      unitY = math.max(defaultUnitY, valueBottomY+unitH/2+2)
+    end
+    local ucx,ucy = offsetXY(cfg,"unit",cx,unitY)
     centerTextIf(ucx,ucy,"km/h",uf,tickCol)
   end
 
@@ -8571,7 +9041,7 @@ DRAW["static-text"]=function(x,y,w,h,cfg)
   else align=CENTER end
   if cfg.textColor then
     local ttx,tty = offsetXY(cfg,"text",tx,y+h/2)
-    lcd.drawText(ttx,tty,cfg.text or "",align+VCENTER+sizeF+cfg.textColor)
+    lcd.drawText(ttx,tty,cfg.text or "",bit32.bor(align,VCENTER,sizeF,cfg.textColor))
   end
 end
 
@@ -8587,17 +9057,25 @@ local function drawValueLabel(x,y,w,h,value,cfg)
   local r = math.max(8, math.min(w,h)/2-2)
   local digits=cfg.digits or 0
   local text=string.format("%."..digits.."f",value)
+  local valueBottomY = nil
   if cfg.showValue~=false and cfg.color then
     local vAutoPx = math.max(9,r*0.2)
     local vSize=sizeFlag(cfg,"value",vAutoPx)
     local vtx,vty = offsetXY(cfg,"value",cx,cy+r*0.42)
+    local okVH,_,valH = pcall(lcd.sizeText,text,vSize)
+    if not okVH or type(valH)~="number" then valH=vAutoPx*1.3 end
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,text,vSize)
-      if not ok then tw=#text*10; th=16 end
+      -- Fallback scales with the actual auto-fit size rather than a fixed
+      -- guess - see the tape-family fallback for the same reasoning.
+      if not ok then tw=#text*vAutoPx*0.55; th=16 end
       local boxPad = vAutoPx*0.3
       lcd.drawFilledRectangle(vtx-(tw or 20)/2-boxPad, vty-(th or 16)/2-boxPad*0.5, (tw or 20)+boxPad*2, (th or 16)+boxPad, cfg.valueBoxColor)
     end
     centerText(vtx,vty,text,vSize,cfg.color)
+    -- Remembered so the unit line below can push itself clear of whatever
+    -- the value's actual rendered height turned out to be.
+    valueBottomY = cy+r*0.42 + valH/2
   end
   if cfg.showLabel~=false and cfg.label and cfg.label~="" and cfg.labelColor then
     local lSize=sizeFlag(cfg,"label",math.max(8,r*0.13))
@@ -8606,7 +9084,17 @@ local function drawValueLabel(x,y,w,h,value,cfg)
   end
   if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
     local uSize=sizeFlag(cfg,"unit",math.max(7,r*0.11))
-    local utx,uty = offsetXY(cfg,"unit",cx,cy+r*0.62)
+    -- Pushed below the value's own real bottom edge when the value's
+    -- actual font is tall enough to reach it - see arc-gauge's own
+    -- version of this same fix for the full reasoning.
+    local defaultUnitY = cy+r*0.62
+    local okUH,_,unitH = pcall(lcd.sizeText,cfg.unit,uSize)
+    if not okUH or type(unitH)~="number" then unitH=16 end
+    local unitY = defaultUnitY
+    if valueBottomY~=nil then
+      unitY = math.max(defaultUnitY, valueBottomY+unitH/2+2)
+    end
+    local utx,uty = offsetXY(cfg,"unit",cx,unitY)
     centerText(utx,uty,cfg.unit,uSize,cfg.labelColor)
   end
 end
@@ -8618,8 +9106,6 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
   local value=readSensor(cfg,"mavSource","")
   if type(value)~="number" then value=0 end
   local min,max=cfg.min or 0, cfg.max or 100
-  local cx,cy=x+w/2,y+h/2
-  local r=math.min(w,h)/2-2
   local sweep=tonumber((cfg.arcSweep=="custom") and cfg.sweepAngle or cfg.arcSweep) or 270
   -- arcStartOffset rotates where the whole arc begins, independent of its
   -- sweep width - was completely unread here, so this setting had zero
@@ -8628,6 +9114,33 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
   -- arcStartDeg increase clockwise, so the offset transfers directly with
   -- no sign flip needed - verified empirically, not just assumed.
   local startA=-sweep/2 + (tonumber(cfg.arcStartOffset) or 0)
+
+  -- A partial sweep's own bounding box isn't symmetric, so the center
+  -- point drifts depending on sweep angle and start offset unless pinned
+  -- to the full circle's own (always-symmetric) box instead - matches the
+  -- editor's own default for the same reason (see its own comment on this
+  -- same option), and this used to be the ONLY behavior this export had
+  -- (a plain center-of-box calculation with no sweep-awareness at all),
+  -- so defaulting it on here changes nothing for anyone who hasn't
+  -- touched this setting.
+  local showScale = cfg.showLabels~=false
+  local showName = cfg.showLabel~=false and cfg.label and cfg.label~=""
+  local gapFrac = showScale and 0.22 or 0.05
+  local pad = 2
+  local bottomReserve = showName and math.max(9, math.min(w,h)*0.16) or 0
+  local availW = math.max(10, w - pad*2)
+  local availH = math.max(10, h - pad*2 - bottomReserve)
+  local bx0,bx1,by0,by1
+  if cfg.fixedCenter~=false then
+    bx0,bx1,by0,by1 = -1,1,-1,1
+  else
+    bx0,bx1,by0,by1 = arcUnitBBox(startA, sweep)
+  end
+  local ex0,ex1,ey0,ey1 = bx0-gapFrac, bx1+gapFrac, by0-gapFrac, by1+gapFrac
+  local r = math.max(6, math.min(availW/(ex1-ex0), availH/(ey1-ey0)))
+  local cx = x+pad + availW/2 - ((ex0+ex1)/2)*r
+  local cy = y+pad + availH/2 - ((ey0+ey1)/2)*r
+
   local v=clamp(value,min,max)
   local frac=(v-min)/((max-min)~=0 and (max-min) or 1)
 
@@ -8658,6 +9171,23 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
   local thickness = (cfg.arcThickness and cfg.arcThickness>0) and cfg.arcThickness or math.max(2,math.floor(r*0.12))
   if cfg.showTrack~=false and cfg.trackColor then
     strokeArc(cx,cy,r,startA,startA+sweep, cfg.trackColor,thickness)
+    -- Same rounded-end-cap option as the value arc below, applied here too
+    -- (was previously value-arc-only) - a track that's flat-ended while
+    -- its own value arc sits rounded on top reads as inconsistent.
+    if cfg.showEndCaps~=false then
+      local capR = math.max(1,thickness/2)
+      -- Centered on the ring's own centerline (r - half its thickness),
+      -- not at r itself - r is the OUTER radius as far as strokeArc's own
+      -- drawAnnulus path is concerned, so a cap centered at r bulges
+      -- outward past the ring's actual outer edge instead of sitting
+      -- centered on the ring the way it visually should - confirmed
+      -- against a real hardware screenshot showing exactly this bulge.
+      local capCenterR = r - thickness/2
+      local tx0,ty0 = polar(cx,cy,capCenterR,startA)
+      local tx1,ty1 = polar(cx,cy,capCenterR,startA+sweep)
+      lcd.drawFilledCircle(tx0,ty0,capR,cfg.trackColor)
+      lcd.drawFilledCircle(tx1,ty1,capR,cfg.trackColor)
+    end
   end
   if cfg.showTicks~=false and cfg.showLabels~=false and cfg.tickColor then
     local tickCount = math.max(4,math.min(12,math.floor(sweep/22+0.5)))
@@ -8676,11 +9206,16 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
     local a1 = cfg.mirrored and (startA+sweep) or (startA+frac*sweep)
     strokeArc(cx,cy,r,a0,a1,liveColor,thickness)
     -- Rounded end-caps read as a real gauge; a bare butt-end arc reads as a
-    -- rendering glitch at a glance.
-    if cfg.showEndCaps~=false and frac>0.01 then
+    -- rendering glitch at a glance. Always shown, even at the minimum
+    -- value (frac=0, where a0 and a1 land on the exact same point) - a
+    -- single dot marking the zero position reads better than the caps
+    -- just vanishing right as the value bottoms out.
+    if cfg.showEndCaps~=false then
       local capR = math.max(1,thickness/2)
-      local ex0,ey0 = polar(cx,cy,r,a0)
-      local ex1,ey1 = polar(cx,cy,r,a1)
+      -- Same centerline-radius fix as the track's own end caps above.
+      local capCenterR = r - thickness/2
+      local ex0,ey0 = polar(cx,cy,capCenterR,a0)
+      local ex1,ey1 = polar(cx,cy,capCenterR,a1)
       lcd.drawFilledCircle(ex0,ey0,capR,liveColor)
       lcd.drawFilledCircle(ex1,ey1,capR,liveColor)
     end
@@ -8697,25 +9232,50 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
     centerText(mntx,mnty,string.format("%.0f",min),scaleF,cfg.tickColor)
     centerText(mxtx,mxty,string.format("%.0f",max),scaleF,cfg.tickColor)
   end
+  local valueBottomY = nil
   if cfg.showValue~=false and liveColor then
-    local vSize = sizeFlag(cfg,"value",math.max(10,r*0.42))
+    local vAutoPx = math.max(10,r*0.42)
+    local vSize = sizeFlag(cfg,"value",vAutoPx)
     local valTxt = string.format("%."..(cfg.digits or 0).."f",v)
     local vy = cy - r*0.15
     if cfg.valuePos=="top" then vy = cy - r*0.4
     elseif cfg.valuePos=="center" then vy = cy
     elseif cfg.valuePos=="bottom" then vy = cy + r*0.4 end
     local vtx,vty = offsetXY(cfg,"value",cx,vy)
+    local okVH,_,valH = pcall(lcd.sizeText,valTxt,vSize)
+    if not okVH or type(valH)~="number" then valH=vAutoPx*1.3 end
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       local ok,tw,th = pcall(lcd.sizeText,valTxt,vSize)
-      if not ok then tw=#valTxt*10; th=16 end
+      -- Fallback scales with the actual auto-fit size rather than a fixed
+      -- guess - see the tape-family fallback for the same reasoning.
+      if not ok then tw=#valTxt*vAutoPx*0.55; th=16 end
       local pad=6
       lcd.drawFilledRectangle(vtx-(tw or 20)/2-pad,vty-(th or 16)/2-pad*0.4,(tw or 20)+pad*2,(th or 16)+pad*0.8,cfg.valueBoxColor)
     end
     centerText(vtx,vty,valTxt,vSize,liveColor)
+    -- Remembered so the unit line below can push itself clear of whatever
+    -- the value's actual rendered position/height turned out to be -
+    -- valuePos has 4 different settings, so a single fixed offset for the
+    -- unit can't account for all of them consistently.
+    valueBottomY = vy + valH/2
   end
   if cfg.showUnit~=false and cfg.unit and cfg.unit~="" then
     local uSize = sizeFlag(cfg,"unit",math.max(7,r*0.16))
-    local utx,uty = offsetXY(cfg,"unit",cx,cy+r*0.2)
+    -- Pushed below the value's own real bottom edge (not just a fixed
+    -- r*0.2 below center) when the value's actual font is tall enough to
+    -- reach it - a fixed offset was tuned for a modest value font, but
+    -- the auto-size formula can produce a noticeably taller one depending
+    -- on r, and at those sizes the unit line collided with the value's
+    -- own descender space. Falls back to the original position whenever
+    -- there's already enough room, so nothing shifts for the common case.
+    local defaultUnitY = cy+r*0.2
+    local okUH,_,unitH = pcall(lcd.sizeText,cfg.unit,uSize)
+    if not okUH or type(unitH)~="number" then unitH=16 end
+    local unitY = defaultUnitY
+    if valueBottomY~=nil then
+      unitY = math.max(defaultUnitY, valueBottomY+unitH/2+2)
+    end
+    local utx,uty = offsetXY(cfg,"unit",cx,unitY)
     centerTextIf(utx,uty,cfg.unit,uSize,cfg.tickColor)
   end
   if cfg.showLabel~=false and cfg.label and cfg.label~="" then
@@ -8735,7 +9295,15 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
     local ltx,lty = offsetXY(cfg,"label",x+w/2,y+h-math.max(2,lPx*0.25))
     centerTextIf(ltx,lty,cfg.label,lSize,cfg.labelColor)
   end
-  if cfg.borderColor then strokeCircle(cx,cy,r,cfg.borderColor,cfg.borderWidth) end
+  if cfg.borderColor then
+    -- Drawn just OUTSIDE the arc's own outer edge (r), not overlapping
+    -- into it - r itself is the arc's outer radius (strokeArc's own
+    -- convention), so a border at r used to eat into the arc's own
+    -- outermost pixels instead of enclosing it, confirmed against a real
+    -- hardware screenshot showing the border cutting into the ring.
+    local bw = cfg.borderWidth or 1
+    strokeCircle(cx,cy,r+bw,cfg.borderColor,bw)
+  end
 end
 
 DRAW["bar-gauge"]=function(x,y,w,h,cfg)
@@ -8786,7 +9354,7 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
     if cfg.showLabel~=false and cfg.labelColor then
       local lSize = sizeFlag(cfg,"label",math.max(8,h*0.22))
       local ltx,lty = offsetXY(cfg,"label",x+padX,y+4)
-      lcd.drawText(ltx,lty,label,lSize+cfg.labelColor)
+      lcd.drawText(ltx,lty,label,bit32.bor(lSize,cfg.labelColor))
     end
     if cfg.showValue~=false and color then
       local vSize = sizeFlag(cfg,"value",math.max(9,h*0.25))
@@ -8797,7 +9365,7 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
       if cfg.showValueBox~=false and cfg.valueBoxColor then
         lcd.drawFilledRectangle(vtx-(tw or 40), vty, (tw or 40), (th or 16), cfg.valueBoxColor)
       end
-      lcd.drawText(vtx,vty,txt,RIGHT+vSize+color)
+      lcd.drawText(vtx,vty,txt,bit32.bor(RIGHT,vSize,color))
     end
     return
   end
@@ -8853,7 +9421,7 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
   if cfg.showLabel~=false and cfg.labelColor then
     local lSize = sizeFlag(cfg,"label",math.max(8,w*0.16))
     local ltx,lty = offsetXY(cfg,"label",x+w/2,y+padY)
-    lcd.drawText(ltx,lty,label,CENTER+lSize+cfg.labelColor)
+    lcd.drawText(ltx,lty,label,bit32.bor(CENTER,lSize,cfg.labelColor))
   end
   if cfg.showValue~=false and color then
     local vSize = sizeFlag(cfg,"value",math.max(9,w*0.2))
@@ -8864,7 +9432,7 @@ DRAW["bar-gauge"]=function(x,y,w,h,cfg)
     if cfg.showValueBox~=false and cfg.valueBoxColor then
       lcd.drawFilledRectangle(vtx-(vw or 40)/2, vty, (vw or 40), vh, cfg.valueBoxColor)
     end
-    lcd.drawText(vtx,vty,valueTxt,CENTER+vSize+color)
+    lcd.drawText(vtx,vty,valueTxt,bit32.bor(CENTER,vSize,color))
   end
 end
 DRAW["dial"]=function(x,y,w,h,cfg)
@@ -8948,7 +9516,7 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     local okL,twL,thL = pcall(lcd.sizeText,labelTxt,lSize)
     if not okL or type(thL)~="number" then thL=16 end
     local ltx,lty = offsetXY(cfg,"label",x+leftInset,y+2)
-    lcd.drawText(ltx,lty,labelTxt,VTOP+lSize+cfg.labelColor)
+    lcd.drawText(ltx,lty,labelTxt,bit32.bor(VTOP,lSize,cfg.labelColor))
     labelBottom = y+2+thL
   end
   if cfg.showValue~=false and color then
@@ -8970,13 +9538,13 @@ DRAW["text-value"]=function(x,y,w,h,cfg)
     if not ok or type(vh)~="number" then vw=nil; vh=16 end
     local vy = math.max(y+h-vh-3, labelBottom+1)
     local vtx,vty = offsetXY(cfg,"value",x+leftInset,vy)
-    lcd.drawText(vtx,vty,valTxt,vSize+color)
+    lcd.drawText(vtx,vty,valTxt,bit32.bor(vSize,color))
     if cfg.showUnit~=false and cfg.unit and cfg.unit~="" and cfg.labelColor then
       local uSize=sizeFlag(cfg,"unit",math.max(7,valueResolvedPx*0.42))
       local okU,uw,uh = pcall(lcd.sizeText,cfg.unit,uSize)
       if not okU or type(uh)~="number" then uh=12 end
       local utx,uty = offsetXY(cfg,"unit",x+leftInset+(vw or 30)+3,vy+vh-uh)
-      lcd.drawText(utx,uty,cfg.unit,uSize+cfg.labelColor)
+      lcd.drawText(utx,uty,cfg.unit,bit32.bor(uSize,cfg.labelColor))
     end
   end
 end
