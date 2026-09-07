@@ -647,7 +647,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'gps-coords',name:'GPS Coordinates',desc:'Latitude / longitude readout',icon:'fa-location-dot',defaultSize:{w:140,h:56},defaults:{bgColor:'#040810',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',decimals:4,showSats:true,rotation:0}},
   {type:'qr-code',name:'GPS QR Code',desc:'Scan with a phone to open the position in Maps',icon:'fa-qrcode',defaultSize:{w:150,h:150},defaults:{bgColor:'#ffffff',fgColor:'#000000',borderColor:'transparent',labelColor:'#7a8898',decimals:5,quietZone:2,urlTemplate:'https://maps.google.com/?q={lat},{lon}',showOnlyWithFix:true,refreshInterval:5,rotation:0}},
   {type:'home-arrow',name:'Home Arrow',desc:'Direction to home',icon:'fa-house',defaultSize:{w:100,h:100},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,shape:'circle',rotation:0}},
-  {type:'home-distance',name:'Home Distance',desc:'Distance from home in m',icon:'fa-ruler',defaultSize:{w:120,h:60},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',borderWidth:1,valueBoxColor:'#1c232e',showUnit:true,rotation:0}},
+  {type:'home-distance',name:'Home Distance',desc:'Distance from home in m',icon:'fa-ruler',defaultSize:{w:120,h:60},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',borderWidth:1,valueBoxColor:'#1c232e',rotation:0}},
   {type:'radar',name:'Radar',desc:'Home/aircraft relative position',icon:'fa-satellite-dish',defaultSize:{w:140,h:140},defaults:{mode:'plane-center',shape:'circle',sweepStyle:'rotate',range:500,bgColor:'#040810',gridColor:'#7a8898',sweepColor:'#5fe88a',blobColor:'#708f7f',planeColor:'#4fc3f7',homeColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,showRings:true,ringCount:4,showBlobs:true,rotation:0}},
   {type:'shape-rectangle',name:'Rectangle',desc:'Decorative panel shape',icon:'fa-square',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-circle',name:'Circle',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:60,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
@@ -2091,7 +2091,6 @@ function renderProperties(){
     html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
     html+=colorField('Value Box Color','valueBoxColor',c.valueBoxColor||'#1c232e');
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
-    html+=checkboxField('showUnit','Show Extra Unit Line (redundant - the value already shows its own unit, e.g. "1.03 km")',!!c.showUnit);
     html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
     html+=`<div class="field"><label class="field-label">Unit of Measure</label>
       <select data-cfg="distanceUnit">
@@ -2101,7 +2100,7 @@ function renderProperties(){
         <option value="ft" ${c.distanceUnit==='ft'?'selected':''}>Feet</option>
         <option value="mi" ${c.distanceUnit==='mi'?'selected':''}>Miles</option>
       </select></div>`;
-    html+=gaugeTextSection(c,[['label','"HOME DIST" Label'],['value','Distance Value'],['unit','Extra Unit Line']],true);
+    html+=gaugeTextSection(c,[['label','"HOME DIST" Label'],['value','Distance Value']],true);
   } else if(inst.type==='radar'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Grid/Rings Color','gridColor',c.gridColor||'#7a8898');
@@ -2134,11 +2133,12 @@ function renderProperties(){
     html+=checkboxField('showLabel','Show Label',c.showLabel!==false);
     if(inst.type==='arc-gauge'){
       html+=checkboxField('showLabels','Show Min/Max Labels',c.showLabels!==false);
-      html+=checkboxField('showTicks','Show Scale Tick Marks',c.showTicks!==false);
+      html+=checkboxField('showTicks','Show Scale Tick Marks',!!c.showTicks);
       html+=checkboxField('showTrack','Show Track Arc',c.showTrack!==false);
       html+=checkboxField('showArc','Show Value Arc',c.showArc!==false);
       html+=checkboxField('showEndCaps','Show Rounded End Caps (arc + track)',c.showEndCaps!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
+      html+=checkboxField('showBorder','Show Border',!!c.showBorder);
       html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
       html+=checkboxField('fixedCenter','Fixed Center (as if full circle, for easier alignment)',c.fixedCenter!==false);
       html+=`<div class="prop-group-label">Threshold Colors</div>`;
@@ -5541,7 +5541,13 @@ function drawHomeDistance(ctx,w,h,distance,c){
   ctx.strokeStyle=c.borderColor||'#3a4555'; ctx.lineWidth=c.borderWidth||1;
   ctx.strokeRect(0.5,0.5,w-1,h-1);
 
-  // Value
+  // Value - already includes its own unit suffix (e.g. "1.03 km"), so
+  // there's no separate unit line to make room for below it. Label/value
+  // now split the full height roughly 1/3-2/3 instead of the old
+  // 0.22/0.55 split, which left a wide unused band at the bottom that
+  // used to hold the (now-removed) unit line - and the value's own
+  // auto-size target grew slightly (0.38->0.42) to make better use of
+  // that reclaimed space.
   const distUnit=c.distanceUnit||'auto';
   let disp;
   if(distUnit==='auto') disp=distance>=1000?(distance/1000).toFixed(2)+' km':Math.round(distance)+' m';
@@ -5549,48 +5555,23 @@ function drawHomeDistance(ctx,w,h,distance,c){
   else if(distUnit==='km') disp=(distance/1000).toFixed(2)+' km';
   else if(distUnit==='ft') disp=Math.round(distance*3.28084)+' ft';
   else if(distUnit==='mi') disp=(distance*0.000621371).toFixed(2)+' mi';
-  const valSize=gSize(c,'value',Math.max(10,h*0.38));
+  const valSize=gSize(c,'value',Math.max(10,h*0.42));
   ctx.font=`${fontWeight(valSize)}${fontCSS(valSize)}px Montserrat`;
-  const valH = measureTextH(ctx,disp);
   if(c.showValueBox!==false){
     const tw=ctx.measureText(disp).width;
     const boxPad=valSize*0.25;
     ctx.fillStyle=c.valueBoxColor||'#1c232e';
-    ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'), h*0.55-valSize/2-boxPad*0.5+gDY(c,'value'), tw+boxPad*2, valSize+boxPad);
+    ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'), h*0.65-valSize/2-boxPad*0.5+gDY(c,'value'), tw+boxPad*2, valSize+boxPad);
   }
   ctx.fillStyle=ptrColor;
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(disp,w/2,h*0.55);
-
-  // Unit footer - defaults OFF (must be explicitly turned on), unlike
-  // most show* flags here which default on. The value text above already
-  // includes its own unit suffix (e.g. "1.03 km"), so this second line
-  // was showing the same information twice by default - kept available
-  // for anyone who wants the extra line, just not assumed.
-  if(c.showUnit===true){
-    ctx.fillStyle=labelCol;
-    const unitSize = gSize(c,'unit',Math.max(7,h*0.14));
-    ctx.font=`${fontCSS(unitSize)}px Montserrat`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    const unitCaption=distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
-    // Pushed below the value's own real bottom edge (not just a fixed
-    // fraction of h) when the value's actual font is tall enough to reach
-    // it - a fixed 0.82 was tuned for a modest value font, but the auto-
-    // size formula above can produce a noticeably taller one depending on
-    // h, and at those sizes the unit line collided with the value's own
-    // descender space. Falls back to the original 0.82 position whenever
-    // there's already enough room, so nothing shifts for the common case.
-    const unitH = measureTextH(ctx,unitCaption);
-    const minUnitY = h*0.55 + valH/2 + unitH/2 + 2;
-    const unitY = Math.max(h*0.82, minUnitY);
-    ctx.fillText(unitCaption,w/2,unitY);
-  }
+  ctx.fillText(disp,w/2,h*0.65);
 
   // Label - drawn last (on top of everything else), per explicit request
   ctx.fillStyle=labelCol;
   ctx.font=`${fontCSS(gSize(c,'label',Math.max(7,h*0.18)))}px Montserrat`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('HOME DIST',w/2,h*0.22);
+  ctx.fillText('HOME DIST',w/2,h*0.28);
 }
 
 // ---- Groundspeed Dial ----
@@ -5876,11 +5857,21 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   const arcEndRad = (arcStartDeg + sweep) * Math.PI / 180;
 
   const showScale = c.showLabels!==false;
+  // Defaults off, unlike most show* flags here which default on - tick
+  // marks read as visual clutter on a small battery/RSSI-style gauge
+  // that's already got a value readout, so they're opt-in rather than
+  // something to turn off.
+  const showTicks = c.showTicks===true;
   const showName  = c.showLabel!==false && !!label;
 
   // Fit the arc (plus its scale-label ring) inside the box. All margins are
   // fractions of the radius so the layout holds at any instrument size.
-  const gapFrac = showScale ? 0.22 : 0.05;
+  // Ticks and labels are independent toggles - full min/max text needs the
+  // most outward room (0.22), bare tick marks alone need less (0.12, just
+  // enough for their own short radial extent), and neither needs almost
+  // none (0.05, a thin margin so the arc itself isn't flush against the
+  // box edge).
+  const gapFrac = showScale ? 0.22 : showTicks ? 0.12 : 0.05;
   const pad = 2;
   const bottomReserve = showName ? Math.max(9, Math.min(w,h)*0.16) : 0;
   const availW = Math.max(10, w - pad*2);
@@ -5948,8 +5939,11 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     }
   }
   // Minor tick marks along the full sweep, evenly spaced - gives the gauge
-  // a real instrument-scale feel instead of a bare unmarked arc.
-  if(showScale && c.showTicks!==false){
+  // a real instrument-scale feel instead of a bare unmarked arc. Gated by
+  // showTicks alone now, independent of showScale/showLabels - these used
+  // to share one flag, so turning off the min/max text also silently
+  // erased the tick marks even though they're a separate visual element.
+  if(showTicks){
     const tickCount=Math.max(4,Math.min(12,Math.round(sweep/22)));
     ctx.strokeStyle=c.tickColor||'#7a8898';
     ctx.lineWidth=1;
@@ -6046,13 +6040,24 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
     ctx.textAlign='center'; ctx.textBaseline='alphabetic';
     gText(ctx,c,'label',label, w/2, h-Math.max(2,fs*0.25));
   }
-  if(c.borderColor && c.borderColor!=='transparent'){
+  // Requires an explicit showBorder toggle, not just a borderColor value -
+  // the color picker's own default value gets written into cfg.borderColor
+  // as soon as this instrument's properties panel is opened, regardless of
+  // whether a border was actually wanted, so checking borderColor alone
+  // made the border appear unintentionally the first time anyone looked at
+  // this instrument's settings. Defaults off.
+  if(c.showBorder && c.borderColor && c.borderColor!=='transparent'){
     const bw=c.borderWidth!==undefined?c.borderWidth:1;
-    // Drawn just OUTSIDE the arc's own outer edge (r), not overlapping
-    // into it - r itself is the arc's outer radius (matching strokeArc's
-    // own convention), so a border centered/inward at r used to eat into
-    // the arc's own outermost pixels instead of enclosing it.
-    for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r+bw-bi,c.borderColor);
+    // Drawn just OUTSIDE the arc's own true outer edge, not overlapping
+    // into it - bresenhamArc's own "radius" parameter (r here) is the
+    // stroke's CENTERLINE, not its outer edge (rOuter = r+thickness/2,
+    // same convention already used for this gauge's own tick marks a few
+    // lines up) - the border was measured from r directly with no
+    // thickness/2 added, so its innermost ring landed exactly ON the
+    // arc's real outer edge instead of past it, confirmed against an
+    // actual rendered screenshot showing the border sitting inside the
+    // arc's own band rather than enclosing it.
+    for(let bi=0;bi<bw;bi++) bresenhamCircle(ctx,cx,cy,r+thickness/2+bw-bi,c.borderColor);
   }
 }
 
@@ -8629,46 +8634,25 @@ DRAW["home-distance"]=function(x,y,w,h,cfg)
     else disp=string.format("%.0f m",dist) end
   end
 
-  local vf = sizeFlag(cfg,"value",math.max(10,h*0.38))
-  local okV,_,valH = pcall(lcd.sizeText,disp,vf)
-  if not okV or type(valH)~="number" then valH=20 end
+  -- Value already includes its own unit suffix (e.g. "1.03 km"), so
+  -- there's no separate unit line to make room for below it. Label/value
+  -- now split the full height roughly 1/3-2/3 instead of the old
+  -- 0.22/0.55 split, which left a wide unused band at the bottom that
+  -- used to hold the (now-removed) unit line - and the value's own
+  -- auto-size target grew slightly (0.38->0.42) to make better use of
+  -- that reclaimed space.
+  local vf = sizeFlag(cfg,"value",math.max(10,h*0.42))
   if cfg.showValueBox~=false and cfg.valueBoxColor then
     local ok,tw,thh = pcall(lcd.sizeText,disp,vf)
     if not ok then tw=nil; thh=nil end
-    local boxPad=(h*0.38)*0.25
-    lcd.drawFilledRectangle(x+w/2-(tw or 40)/2-boxPad, y+h*0.55-(thh or 20)/2-boxPad*0.5, (tw or 40)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
+    local boxPad=(h*0.42)*0.25
+    lcd.drawFilledRectangle(x+w/2-(tw or 40)/2-boxPad, y+h*0.65-(thh or 20)/2-boxPad*0.5, (tw or 40)+boxPad*2, (thh or 20)+boxPad, cfg.valueBoxColor)
   end
-  centerTextIf(x+w/2,y+h*0.55,disp,vf,ptrColor)
-
-  -- Defaults OFF (must be explicitly turned on), unlike most show* flags
-  -- here which default on. The value text above already includes its own
-  -- unit suffix (e.g. "1.03 km"), so this second line was showing the
-  -- same information twice by default.
-  if cfg.showUnit==true then
-    local uf = sizeFlag(cfg,"unit",math.max(7,h*0.14))
-    local unitCaption
-    if distUnit=="m" then unitCaption="meters"
-    elseif distUnit=="km" then unitCaption="km"
-    elseif distUnit=="ft" then unitCaption="feet"
-    elseif distUnit=="mi" then unitCaption="miles"
-    else unitCaption="m / km" end
-    -- Pushed below the value's own real bottom edge (not just a fixed
-    -- fraction of h) when the value's actual font is tall enough to reach
-    -- it - a fixed 0.82 was tuned for a modest value font, but the auto-
-    -- size formula above can produce a noticeably taller one depending on
-    -- h, and at those sizes the unit line collided with the value's own
-    -- descender space. Falls back to the original 0.82 position whenever
-    -- there's already enough room, so nothing shifts for the common case.
-    local okU,_,unitH = pcall(lcd.sizeText,unitCaption,uf)
-    if not okU or type(unitH)~="number" then unitH=16 end
-    local minUnitY = h*0.55 + valH/2 + unitH/2 + 2
-    local unitY = math.max(h*0.82, minUnitY)
-    centerTextIf(x+w/2,y+unitY,unitCaption,uf,labelCol)
-  end
+  centerTextIf(x+w/2,y+h*0.65,disp,vf,ptrColor)
 
   -- Label - drawn last (on top of everything else), per explicit request
   local lf = sizeFlag(cfg,"label",math.max(7,h*0.18))
-  centerTextIf(x+w/2,y+h*0.22,"HOME DIST",lf,labelCol)
+  centerTextIf(x+w/2,y+h*0.28,"HOME DIST",lf,labelCol)
 end
 
 DRAW["radar"]=function(x,y,w,h,cfg)
@@ -9124,8 +9108,18 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
   -- so defaulting it on here changes nothing for anyone who hasn't
   -- touched this setting.
   local showScale = cfg.showLabels~=false
+  -- Defaults off, unlike most show* flags here which default on - tick
+  -- marks read as visual clutter on a small battery/RSSI-style gauge
+  -- that's already got a value readout, so they're opt-in rather than
+  -- something to turn off.
+  local showTicks = cfg.showTicks==true
   local showName = cfg.showLabel~=false and cfg.label and cfg.label~=""
-  local gapFrac = showScale and 0.22 or 0.05
+  -- Ticks and labels are independent toggles - full min/max text needs
+  -- the most outward room (0.22), bare tick marks alone need less (0.12,
+  -- just enough for their own short radial extent), and neither needs
+  -- almost none (0.05, a thin margin so the arc itself isn't flush
+  -- against the box edge).
+  local gapFrac = showScale and 0.22 or (showTicks and 0.12 or 0.05)
   local pad = 2
   local bottomReserve = showName and math.max(9, math.min(w,h)*0.16) or 0
   local availW = math.max(10, w - pad*2)
@@ -9189,7 +9183,11 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
       lcd.drawFilledCircle(tx1,ty1,capR,cfg.trackColor)
     end
   end
-  if cfg.showTicks~=false and cfg.showLabels~=false and cfg.tickColor then
+  -- Gated by showTicks alone now, independent of showScale/showLabels -
+  -- these used to share one condition, so turning off the min/max text
+  -- also silently erased the tick marks even though they're a separate
+  -- visual element.
+  if showTicks and cfg.tickColor then
     local tickCount = math.max(4,math.min(12,math.floor(sweep/22+0.5)))
     for i=0,tickCount do
       local a = startA+sweep*i/tickCount
@@ -9295,7 +9293,13 @@ DRAW["arc-gauge"]=function(x,y,w,h,cfg)
     local ltx,lty = offsetXY(cfg,"label",x+w/2,y+h-math.max(2,lPx*0.25))
     centerTextIf(ltx,lty,cfg.label,lSize,cfg.labelColor)
   end
-  if cfg.borderColor then
+  -- Requires an explicit showBorder toggle, not just a borderColor value -
+  -- the color picker's own default value gets written into cfg.borderColor
+  -- as soon as this instrument's properties panel is opened, regardless of
+  -- whether a border was actually wanted, so checking borderColor alone
+  -- made the border appear unintentionally the first time anyone looked at
+  -- this instrument's settings. Defaults off.
+  if cfg.showBorder and cfg.borderColor then
     -- Drawn just OUTSIDE the arc's own outer edge (r), not overlapping
     -- into it - r itself is the arc's outer radius (strokeArc's own
     -- convention), so a border at r used to eat into the arc's own
