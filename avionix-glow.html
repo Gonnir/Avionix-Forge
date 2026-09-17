@@ -1,0 +1,3290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AVIONIX GLOW — Light-Painting Rig Configurator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0B0E14;
+    --panel: #12161F;
+    --panel-2: #171C27;
+    --line: #232A38;
+    --line-soft: #1A202C;
+    --ink: #E7EAF0;
+    --ink-dim: #8A93A6;
+    --ink-faint: #545E72;
+    --amber: #59EA59;
+    --amber-dim: #2C7A2C;
+    --amber-glow: rgba(89,234,89,0.16);
+    --red: #FF6B6B;
+    --green: #59D68C;
+    --radius: 3px;
+  }
+  @media (prefers-color-scheme: dark){ :root{ } }
+  :root[data-theme="light"]{ }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Space Grotesk', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  code, .mono, input, select, textarea, .pin, .code-block{
+    font-family:'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* ---------- layout shell ---------- */
+  .shell{ max-width:1180px; margin:0 auto; padding:28px 20px 80px; }
+
+  header.hero{
+    display:flex; align-items:flex-end; justify-content:space-between;
+    gap:24px; padding:6px 2px 26px; border-bottom:1px solid var(--line);
+    margin-bottom:28px; flex-wrap:wrap;
+  }
+  .hero-title{ display:flex; align-items:center; gap:14px; }
+  .hero-title svg{ flex:none; }
+  .hero-title h1{
+    margin:0; font-size:34px; line-height:34px; font-weight:700; letter-spacing:0.02em; color:var(--ink);
+  }
+  .hero-title h1 span{ color:var(--amber); }
+  .hero-sub{ margin:4px 0 0; color:var(--ink-dim); font-size:14px; max-width:52ch; line-height:1.5; }
+  .hero-meta{ text-align:right; color:var(--ink-faint); font-size:12.5px; line-height:1.7; }
+  .hero-meta b{ color:var(--ink-dim); font-weight:500; }
+  .setup-toolbar{
+    display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-bottom:18px;
+    padding:10px 14px; border:1px solid var(--line); border-radius:var(--radius); background:var(--panel);
+  }
+  .setup-toolbar .cap{ font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-faint); font-family:'JetBrains Mono',monospace; }
+  .setup-toolbar .hint{ flex:1; min-width:220px; }
+
+  /* ---------- stepper nav ---------- */
+  .steps{
+    display:flex; gap:6px; margin-bottom:22px; border:1px solid var(--line);
+    border-radius:var(--radius); padding:4px; background:var(--panel); overflow-x:auto;
+  }
+  .step-btn{
+    flex:1; display:flex; align-items:center; gap:9px; padding:11px 14px;
+    background:transparent; border:none; border-radius:2px; color:var(--ink-faint);
+    cursor:pointer; font-family:inherit; font-size:13.5px; white-space:nowrap; transition:background .12s,color .12s;
+  }
+  .step-btn:hover{ color:var(--ink-dim); background:var(--panel-2); }
+  .step-btn.active{ color:var(--ink); background:var(--line-soft); }
+  .step-num{
+    font-family:'JetBrains Mono',monospace; font-size:11px; width:20px; height:20px;
+    border-radius:50%; border:1px solid var(--ink-faint); display:flex; align-items:center; justify-content:center;
+    flex:none; color:var(--ink-faint);
+  }
+  .step-btn.active .step-num{ border-color:var(--amber); color:var(--amber); }
+  .step-btn.done .step-num{ border-color:var(--green); color:var(--green); }
+
+  /* ---------- panels ---------- */
+  .panel{
+    background:var(--panel); border:1px solid var(--line); border-radius:var(--radius);
+    padding:26px 28px; margin-bottom:18px;
+  }
+  .panel-head{ margin-bottom:18px; }
+  .panel-head h2{ margin:0 0 4px; font-size:18px; font-weight:600; }
+  .panel-head p{ margin:0; color:var(--ink-dim); font-size:13.5px; line-height:1.55; max-width:70ch; }
+
+  .view{ display:none; }
+  .view.active{ display:block; }
+
+  /* ---------- form primitives ---------- */
+  label.field-label{ display:block; font-size:11.5px; color:var(--ink-faint); margin-bottom:5px; letter-spacing:.02em; }
+  input[type=text], input[type=number], select{
+    width:100%; background:var(--bg); border:1px solid var(--line); color:var(--ink);
+    padding:8px 10px; border-radius:2px; font-size:13.5px; outline:none;
+  }
+  input[type=text]:focus, input[type=number]:focus, select:focus{ border-color:var(--amber); }
+  input[type=range]{ width:100%; accent-color:var(--amber); }
+  .field{ margin-bottom:14px; }
+  .row{ display:grid; gap:14px; }
+  .row-2{ grid-template-columns:1fr 1fr; }
+  .row-3{ grid-template-columns:1fr 1fr 1fr; }
+  .row-4{ grid-template-columns:1fr 1fr 1fr 1fr; }
+  @media (max-width:720px){ .row-2,.row-3,.row-4{ grid-template-columns:1fr; } }
+
+  .hint{ font-size:12px; color:var(--ink-faint); margin-top:5px; line-height:1.5; }
+  .hint b{ color:var(--ink-dim); font-weight:500; }
+
+  fieldset.radiogroup{ border:none; padding:0; margin:0 0 16px; display:flex; gap:8px; flex-wrap:wrap; }
+  .radio-card{
+    border:1px solid var(--line); border-radius:2px; padding:12px 14px; cursor:pointer;
+    flex:1; min-width:150px; background:var(--bg); transition:border-color .12s, background .12s;
+  }
+  .radio-card input{ display:none; }
+  .radio-card .rc-title{ font-size:13.5px; font-weight:600; color:var(--ink); display:flex; align-items:center; gap:8px; }
+  .radio-card .rc-desc{ font-size:12px; color:var(--ink-faint); margin-top:3px; line-height:1.4; }
+  .radio-card .dot{ width:9px; height:9px; border-radius:50%; border:1px solid var(--ink-faint); flex:none; }
+  .radio-card.checked{ border-color:var(--amber); background:var(--amber-glow); }
+  .radio-card.checked .dot{ border-color:var(--amber); background:var(--amber); }
+
+  .btn{
+    font-family:'Space Grotesk',sans-serif; font-size:13px; font-weight:600; padding:9px 16px;
+    border-radius:2px; border:1px solid var(--line); background:var(--panel-2); color:var(--ink);
+    cursor:pointer; transition:border-color .12s,color .12s;
+  }
+  .btn:hover{ border-color:var(--ink-faint); }
+  .btn.primary{ background:var(--amber); border-color:var(--amber); color:#07240B; }
+  .btn.primary:hover{ background:#7DF07D; }
+  .btn.ghost{ background:transparent; }
+  .btn.danger{ color:var(--red); }
+  .btn:disabled{ opacity:.4; cursor:not-allowed; }
+  .btn-row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+  /* ---------- strip cards ---------- */
+  .strip-card{
+    border:1px solid var(--line); border-radius:2px; padding:18px 20px; margin-bottom:12px; background:var(--bg);
+    position:relative;
+  }
+  .strip-card-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .strip-card-head input[type=text]{ font-size:14px; font-weight:600; background:transparent; border:none; padding:2px 0; width:auto; max-width:220px; }
+  .strip-card-head input[type=text]:focus{ border-bottom:1px solid var(--amber); }
+  .swatch-strip{ height:14px; border-radius:1px; overflow:hidden; display:flex; margin-top:12px; border:1px solid var(--line-soft); }
+  .swatch-strip span{ flex:1; height:100%; }
+
+  .tag{
+    display:inline-block; font-size:10.5px; padding:2px 7px; border-radius:20px; border:1px solid var(--line);
+    color:var(--ink-faint); font-family:'JetBrains Mono',monospace;
+  }
+
+  /* ---------- images ---------- */
+  .dropzone{
+    border:1px dashed var(--line); border-radius:2px; padding:34px 20px; text-align:center;
+    color:var(--ink-faint); cursor:pointer; transition:border-color .12s,color .12s; background:var(--bg);
+  }
+  .dropzone:hover, .dropzone.drag{ border-color:var(--amber); color:var(--ink-dim); }
+  .dropzone svg{ margin-bottom:8px; opacity:.6; }
+  .image-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:14px; margin-top:18px; }
+  .image-card{ border:1px solid var(--line); border-radius:2px; overflow:hidden; background:var(--bg); }
+  .image-card .thumb-wrap{ background:#000; display:flex; align-items:center; justify-content:center; height:110px; overflow:hidden; }
+  .image-card canvas.thumb{ max-width:100%; max-height:100%; image-rendering:pixelated; }
+  .image-card .im-body{ padding:10px 12px 12px; }
+  .image-card .im-name{ font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .image-card .im-meta{ font-size:11px; color:var(--ink-faint); margin-top:3px; font-family:'JetBrains Mono',monospace; }
+  .image-card .strip-preview{ height:34px; border-radius:1px; overflow:hidden; margin-top:8px; border:1px solid var(--line-soft); background:#000;}
+  .image-card canvas.stripcanvas{ width:100%; height:100%; image-rendering:pixelated; }
+  .im-remove{ float:right; background:none; border:none; color:var(--ink-faint); cursor:pointer; font-size:15px; line-height:1; }
+  .im-remove:hover{ color:var(--red); }
+
+  .budget{ margin-top:18px; border:1px solid var(--line); border-radius:2px; padding:14px 16px; background:var(--bg); }
+  .budget-bar{ height:6px; border-radius:3px; background:var(--line-soft); overflow:hidden; margin-top:8px; }
+  .budget-bar > div{ height:100%; background:var(--amber); transition:width .2s; }
+  .budget-bar.over > div{ background:var(--red); }
+  .budget-text{ font-size:12px; color:var(--ink-dim); display:flex; justify-content:space-between; }
+
+  /* ---------- code panel ---------- */
+  .code-toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px;}
+  .code-block{
+    background:#080A0F; border:1px solid var(--line); border-radius:2px; padding:18px 20px;
+    font-size:12.2px; line-height:1.65; color:#CBD2E0; max-height:560px; overflow:auto; white-space:pre;
+  }
+  .code-block .cm{ color:#5C6577; }
+  .badge-count{
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-faint); border:1px solid var(--line);
+    border-radius:20px; padding:3px 10px;
+  }
+  .checklist{ list-style:none; margin:0; padding:0; }
+  .checklist li{ display:flex; gap:10px; font-size:13px; color:var(--ink-dim); padding:6px 0; border-bottom:1px solid var(--line-soft); }
+  .checklist li:last-child{ border-bottom:none; }
+  .checklist li b{ color:var(--ink); font-weight:600; }
+
+  ::-webkit-scrollbar{ width:10px; height:10px; }
+  ::-webkit-scrollbar-thumb{ background:var(--line); border-radius:6px; }
+  ::-webkit-scrollbar-track{ background:transparent; }
+
+  .toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--panel-2); border:1px solid var(--amber); color:var(--ink); padding:10px 18px;
+    border-radius:2px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .2s, transform .2s;
+    z-index:50;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .subgrid{ margin-top:16px; padding-top:16px; border-top:1px solid var(--line-soft); }
+  .footnote{ font-size:11.5px; color:var(--ink-faint); margin-top:22px; line-height:1.6; }
+
+  /* ---------- source tabs (upload vs pattern) ---------- */
+  .src-tabs{ display:flex; gap:6px; margin-bottom:18px; border-bottom:1px solid var(--line); }
+  .src-tab{
+    background:none; border:none; color:var(--ink-faint); font-family:inherit; font-size:13px; font-weight:600;
+    padding:9px 4px 11px; cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
+  }
+  .src-tab.active{ color:var(--amber); border-bottom-color:var(--amber); }
+  .src-panel{ display:none; }
+  .src-panel.active{ display:block; }
+
+  /* ---------- pattern builder ---------- */
+  .pattern-builder{ display:grid; grid-template-columns:1fr 220px; gap:22px; }
+  @media (max-width:820px){ .pattern-builder{ grid-template-columns:1fr; } }
+  .pattern-preview-wrap{ display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .pattern-preview-wrap canvas{
+    width:100%; aspect-ratio:14/9; border:1px solid var(--line); border-radius:2px; background:#000;
+    image-rendering:pixelated;
+  }
+  .stopedit{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .stopedit input[type=color]{
+    width:34px; height:34px; padding:0; border:1px solid var(--line); border-radius:2px; background:none; cursor:pointer;
+  }
+  .stop-chip{ position:relative; }
+  .stop-chip .stop-remove{
+    position:absolute; top:-6px; right:-6px; width:15px; height:15px; border-radius:50%; background:var(--panel-2);
+    border:1px solid var(--line); color:var(--ink-faint); font-size:10px; line-height:1; display:flex; align-items:center; justify-content:center; cursor:pointer;
+  }
+  .stop-add{
+    width:34px; height:34px; border-radius:2px; border:1px dashed var(--line); background:none; color:var(--ink-faint);
+    cursor:pointer; font-size:16px; line-height:1;
+  }
+
+  /* ---------- live preview (strip + light trail) ---------- */
+  .preview-stage{
+    display:flex; gap:18px; align-items:flex-start; background:#000; border:1px solid var(--line);
+    border-radius:2px; padding:22px; overflow-x:auto;
+  }
+  .preview-strip-col{ display:flex; flex-direction:column; align-items:center; gap:8px; flex:none; }
+  .preview-strip-col canvas{ image-rendering:pixelated; border:1px solid #2a2a2a; }
+  .preview-strip-col .cap{ font-size:10.5px; color:var(--ink-faint); font-family:'JetBrains Mono',monospace; }
+  .preview-trail-col{ flex:1; display:flex; flex-direction:column; gap:8px; min-width:0; }
+  .preview-trail-col canvas{ image-rendering:pixelated; border:1px solid #2a2a2a; max-width:100%; }
+  .preview-controls{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:18px 0; }
+  .preview-controls .btn{ min-width:76px; }
+  .scrub-row{ display:flex; align-items:center; gap:10px; margin-top:14px; }
+  .scrub-row input[type=range]{ flex:1; }
+  .scrub-row .cap{ font-size:11.5px; color:var(--ink-faint); font-family:'JetBrains Mono',monospace; width:90px; text-align:right; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <header class="hero">
+    <div>
+      <div class="hero-title">
+        <svg width="34" height="34" viewBox="0 0 481 482" fill="none">
+          <rect x="0" y="0" width="481" height="481" rx="100" ry="100" fill="#59EA59"/>
+          <rect x="11" y="10" width="460" height="460" rx="90" ry="90" fill="#000000"/>
+          <path d="M 323,195 L 277,225 L 222,254 L 178,272 L 135,283 L 120,312 L 175,294 L 225,269 L 283,231 Z" fill="#59EA59"/>
+          <g fill="#ffffff">
+            <path d="M 240,93 L 144,268 L 159,265 L 192,252 L 240,164 L 268,214 L 298,198 Z"/>
+            <path d="M 311,223 L 286,243 L 286,246 L 339,344 L 377,344 Z"/>
+            <path d="M 157,313 L 135,320 L 113,324 L 102,344 L 140,344 Z"/>
+            <path d="M 390,139 L 381,142 L 365,155 L 333,147 L 332,149 L 354,164 L 338,178 L 329,176 L 329,178 L 338,185 L 358,169 L 369,193 L 369,161 L 387,146 Z"/>
+          </g>
+        </svg>
+        <h1>AVIONIX <span>GLOW</span></h1>
+      </div>
+      <p class="hero-sub">Configure an addressable-LED light-painting rig on an RP2040-Zero — strips, triggers, drawing speed, source images — and generate the Arduino sketch.</p>
+    </div>
+    <div class="hero-meta">
+      target: <b>Waveshare RP2040-Zero</b><br>
+      lib: <b>Adafruit_NeoPixel</b> · Arduino-Pico core<br>
+      output: <b>single .ino sketch</b>
+    </div>
+  </header>
+
+  <div class="setup-toolbar">
+    <span class="cap">Setup</span>
+    <button class="btn" id="saveSetupBtn">💾 Save setup</button>
+    <button class="btn" id="loadSetupBtn">📂 Load setup</button>
+    <input type="file" id="loadSetupInput" accept="application/json,.json" style="display:none;">
+    <span class="hint" style="margin:0;">Saves strips, pins, control mode, speed source and all their settings to a .json file — load it back any time instead of re-entering everything. Images and patterns aren't included; re-add those after loading.</span>
+  </div>
+
+  <nav class="steps" id="steps"></nav>
+
+  <!-- ================= STEP 1: CONTROL & SPEED ================= -->
+  <section class="view" id="view-control">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Image control</h2>
+        <p>How the rig advances between images and toggles drawing on/off.</p>
+      </div>
+      <fieldset class="radiogroup" id="controlModeGroup">
+        <label class="radio-card" data-value="buttons">
+          <input type="radio" name="controlMode" value="buttons">
+          <div class="rc-title"><span class="dot"></span> Push buttons</div>
+          <div class="rc-desc">Two (or three) momentary buttons wired to GPIO pins.</div>
+        </label>
+        <label class="radio-card" data-value="mavlink">
+          <input type="radio" name="controlMode" value="mavlink">
+          <div class="rc-title"><span class="dot"></span> MAVLink UART</div>
+          <div class="rc-desc">Driven by RC channels relayed over a flight controller's telemetry UART.</div>
+        </label>
+        <label class="radio-card" data-value="crsf">
+          <input type="radio" name="controlMode" value="crsf">
+          <div class="rc-title"><span class="dot"></span> CRSF</div>
+          <div class="rc-desc">Driven by RC channels straight off a Crossfire / ExpressLRS receiver's serial link.</div>
+        </label>
+      </fieldset>
+
+      <div id="controlButtonsPanel"></div>
+      <div id="controlMavlinkPanel"></div>
+      <div id="controlCrsfPanel"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Drawing speed</h2>
+        <p>How fast the rig steps through the image's columns. Physical light-painting speed should track how fast the rig itself moves through space.</p>
+      </div>
+      <fieldset class="radiogroup" id="speedModeGroup">
+        <label class="radio-card" data-value="preset">
+          <input type="radio" name="speedMode" value="preset">
+          <div class="rc-title"><span class="dot"></span> Fixed preset</div>
+          <div class="rc-desc">Constant delay between columns.</div>
+        </label>
+        <label class="radio-card" data-value="rc">
+          <input type="radio" name="speedMode" value="rc">
+          <div class="rc-title"><span class="dot"></span> RC channel</div>
+          <div class="rc-desc">A stick/pot channel scales the delay live.</div>
+        </label>
+        <label class="radio-card" data-value="gps">
+          <input type="radio" name="speedMode" value="gps">
+          <div class="rc-title"><span class="dot"></span> GPS groundspeed</div>
+          <div class="rc-desc">Column pitch is held constant in space as the rig flies.</div>
+        </label>
+      </fieldset>
+
+      <div id="speedPresetPanel"></div>
+      <div id="speedRcPanel"></div>
+      <div id="speedGpsPanel"></div>
+
+      <div id="gpsModulePanel" class="subgrid" style="display:none;"></div>
+      <div id="mavlinkSharedPanel" class="subgrid" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- ================= STEP 2: STRIPS ================= -->
+  <section class="view" id="view-strips">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>LED strips</h2>
+        <p>One entry per physical strip driven from its own GPIO. All strips play back the same image, each resampled to its own pixel count.</p>
+      </div>
+      <div id="stripList"></div>
+      <div class="btn-row">
+        <button class="btn" id="addStripBtn">+ Add strip</button>
+      </div>
+      <div class="subgrid" id="perfPanel"></div>
+      <div class="subgrid" id="reliabilityPanel"></div>
+    </div>
+  </section>
+
+  <!-- ================= STEP 3: IMAGES ================= -->
+  <section class="view" id="view-images">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Images</h2>
+        <p>Each image is resampled to <b id="colsLabelInline">—</b> columns wide by each strip's LED count tall, one vertical strip-column per step of the draw.</p>
+      </div>
+      <div class="row row-2">
+        <div class="field">
+          <label class="field-label">Columns per image (horizontal resolution)</label>
+          <input type="number" id="columnsInput" min="4" max="2000" value="120">
+          <div class="hint">Every image is resampled to this many columns so the sketch can index them uniformly. Higher = smoother image, more flash.</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Resize fit</label>
+          <select id="fitModeInput">
+            <option value="stretch">Stretch to fill (ignore aspect ratio)</option>
+            <option value="cover">Cover (crop to fill)</option>
+            <option value="contain">Contain (letterbox, pad black)</option>
+          </select>
+        </div>
+      </div>
+      <div class="src-tabs" id="srcTabs">
+        <button class="src-tab active" data-tab="upload">Upload image</button>
+        <button class="src-tab" data-tab="pattern">Generate pattern</button>
+      </div>
+
+      <div class="src-panel active" id="srcPanelUpload">
+        <div class="dropzone" id="dropzone">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#8A93A6" stroke-width="1.6"><path d="M12 16V4M12 4l-4 4M12 4l4 4"/><path d="M4 16v3a2 2 0 002 2h12a2 2 0 002-2v-3"/></svg>
+          <div>Drop images here, or click to choose files</div>
+          <div class="hint">Uploaded in the order you'll cycle through them on the rig. JPG / PNG / GIF (first frame) / WebP.</div>
+          <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+        </div>
+      </div>
+
+      <div class="src-panel" id="srcPanelPattern">
+        <div class="pattern-builder">
+          <div>
+            <div class="field">
+              <label class="field-label">Pattern type</label>
+              <select id="pat-type"></select>
+              <div class="hint" id="pat-desc"></div>
+            </div>
+            <div class="row row-2" id="pat-colorFields"></div>
+            <div class="row row-3" id="pat-numFields"></div>
+          </div>
+          <div class="pattern-preview-wrap">
+            <canvas id="patThumb" width="140" height="90"></canvas>
+            <span class="cap" style="font-size:11px;color:var(--ink-faint);">live preview</span>
+            <div class="field" style="width:100%;">
+              <label class="field-label">Name</label>
+              <input type="text" id="pat-name" value="Pattern 1">
+            </div>
+            <button class="btn primary" id="addPatternBtn" style="width:100%;">+ Add to image list</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="image-grid" id="imageGrid"></div>
+      <div class="budget" id="budgetBox"></div>
+    </div>
+  </section>
+
+  <!-- ================= STEP 4: PREVIEW ================= -->
+  <section class="view" id="view-preview">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Live preview</h2>
+        <p>Simulates what the physical rig shows: the strip on the left stays put and renders its current column live; time flows to the right as an infinite scrolling ribbon, newest column always appearing right next to the strip while everything already drawn scrolls away — the way a long exposure builds up as the strip travels past. Patterns never repeat a fixed frame; uploaded images loop. Each LED is a 2×2-pixel block, upscaled for visibility.</p>
+      </div>
+      <div class="row row-3">
+        <div class="field">
+          <label class="field-label">Strip to preview</label>
+          <select id="prev-strip"></select>
+        </div>
+        <div class="field">
+          <label class="field-label">Image / pattern to preview</label>
+          <select id="prev-image"></select>
+        </div>
+        <div class="field">
+          <label class="field-label">Preview speed (ms / column)</label>
+          <input type="number" id="prev-speed" min="1" max="500" value="20">
+          <div class="hint" id="prev-speed-hint"></div>
+        </div>
+      </div>
+      <div class="preview-controls">
+        <button class="btn primary" id="prevPlayBtn">▶ Play</button>
+        <button class="btn" id="prevResetBtn">Reset</button>
+        <span class="cap" id="prevStatus" style="font-size:11.5px;color:var(--ink-faint);font-family:'JetBrains Mono',monospace;"></span>
+      </div>
+      <div class="preview-stage">
+        <div class="preview-strip-col">
+          <canvas id="prevStripCanvas" width="2" height="2"></canvas>
+          <span class="cap">strip (live)</span>
+        </div>
+        <div class="preview-trail-col">
+          <canvas id="prevTrailCanvas" width="2" height="2"></canvas>
+          <span class="cap">scrolling light ribbon — newest at the strip, time flows right →</span>
+        </div>
+      </div>
+      <div class="scrub-row">
+        <span class="cap">column</span>
+        <input type="range" id="prevScrub" min="0" max="0" value="0">
+        <span class="cap" id="prevScrubLabel">0 / 0</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= STEP 5: CODE ================= -->
+  <section class="view" id="view-code">
+    <div class="panel">
+      <div class="panel-head">
+        <h2>Generated sketch</h2>
+        <p>One self-contained .ino. Requires only the <b>Adafruit NeoPixel</b> library and the RP2040 board package (Earle Philhower's <span class="mono">arduino-pico</span> core) in Arduino IDE.</p>
+      </div>
+      <div class="btn-row" style="margin-bottom:16px;">
+        <button class="btn primary" id="generateBtn">Generate code</button>
+        <button class="btn" id="copyBtn" disabled>Copy to clipboard</button>
+        <button class="btn" id="downloadBtn" disabled>Download .ino</button>
+        <span class="badge-count" id="codeStats" style="display:none;"></span>
+      </div>
+      <div id="codeIssues"></div>
+      <div class="code-block" id="codeBlock">// Configure strips, control and images, then press “Generate code”.</div>
+
+      <div class="subgrid">
+        <h2 style="font-size:14px;margin:0 0 10px;">Before you flash</h2>
+        <ul class="checklist" id="preflightList"></ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    AVIONIX GLOW runs entirely in this page — images are resampled in your browser and nothing is uploaded anywhere. Pin numbers are GPIO numbers (GPxx); cross-check them against your RP2040-Zero's silkscreen, since a couple of pins are reserved for the onboard NeoPixel / flash on some board revisions.
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ======================================================================
+   STATE
+   ====================================================================== */
+const state = {
+  step: 0,
+  strips: [
+    { id: 1, name: 'Strip 1', pin: 2, count: 60, order: 'GRB', khz: 800, brightness: 150 }
+  ],
+  nextStripId: 2,
+  performance: { pio: true },
+  watchdog: { enabled: true, timeoutMs: 4000 },
+  control: {
+    mode: 'buttons',
+    buttons: { nextPin: 3, prevPin: 4, enablePin: 5, useEnablePin: true, enableMode: 'switch', activeLow: true, debounceMs: 40 },
+    mavlink: { nextPrevChannel: 6, lowThresh: 1300, highThresh: 1700, enableChannel: 7, enableThresh: 1500 },
+    crsf: { nextPrevChannel: 6, lowThresh: 1300, highThresh: 1700, enableChannel: 7, enableThresh: 1500 }
+  },
+  speed: {
+    mode: 'preset',
+    preset: { delayMs: 15 },
+    rc: { channel: 8, pwmMin: 1000, pwmMax: 2000, delayMin: 3, delayMax: 60 },
+    gps: { source: 'mavlink', columnSpacingMm: 20, delayMin: 2, delayMax: 200 }
+  },
+  rcLinkProtocol: 'mavlink', // only matters when control.mode is 'buttons' and speed.mode is 'rc'
+  mavlinkUart: { port: 'Serial1', rxPin: 1, txPin: 0, baud: 57600 },
+  crsfUart: { port: 'Serial1', rxPin: 1, txPin: 0 }, // CRSF is always 420000 baud
+  gpsModule: { enabled: false, uart: { port: 'Serial2', rxPin: 9, txPin: 8, baud: 9600 }, sendToFC: false },
+  columns: 120,
+  fitMode: 'stretch',
+  images: [] // {id, name, w, h, thumbDataUrl, perStrip: [{stripId, ledCount, data: Uint8Array}]}
+};
+let nextImageId = 1;
+
+// Which RC-channel protocol actually supplies rcChannels[]: whatever control.mode is directly
+// (mavlink/crsf), or — when control is buttons but speed still needs a channel — the explicit
+// rcLinkProtocol choice. GPS speed always needs MAVLink specifically (VFR_HUD isn't on CRSF).
+function effectiveRcProtocol(){
+  if(state.control.mode==='mavlink') return 'mavlink';
+  if(state.control.mode==='crsf') return 'crsf';
+  if(state.speed.mode==='rc') return state.rcLinkProtocol;
+  return null;
+}
+function needsMavlink(){
+  const gpsNeedsMavlink = state.speed.mode==='gps' && state.speed.gps.source==='mavlink';
+  return state.control.mode==='mavlink' || gpsNeedsMavlink || effectiveRcProtocol()==='mavlink';
+}
+function needsCrsf(){
+  return state.control.mode==='crsf' || effectiveRcProtocol()==='crsf';
+}
+function crsfGpsConflict(){
+  // CRSF doesn't carry groundspeed telemetry — only a problem if GPS speed is sourced from MAVLink;
+  // a directly-wired GPS module sidesteps this entirely.
+  return state.control.mode==='crsf' && state.speed.mode==='gps' && state.speed.gps.source==='mavlink';
+}
+function needsGpsModule(){
+  return state.speed.mode==='gps' && state.speed.gps.source==='direct';
+}
+function gpsSendToFcActive(){
+  return needsGpsModule() && state.gpsModule.sendToFC && needsMavlink();
+}
+function gpsSourceConflict(){
+  return false; // selecting "direct GPS module" as the speed source is what activates it now — no longer a reachable inconsistent state
+}
+
+/* ======================================================================
+   STEPPER NAV
+   ====================================================================== */
+const STEPS = [
+  { id:'control', label:'Control & Speed' },
+  { id:'strips', label:'Strips' },
+  { id:'images', label:'Images' },
+  { id:'preview', label:'Preview' },
+  { id:'code', label:'Generate' }
+];
+function renderSteps(){
+  const nav = document.getElementById('steps');
+  nav.innerHTML = STEPS.map((s,i)=>`
+    <button class="step-btn ${i===state.step?'active':''}" data-i="${i}">
+      <span class="step-num">${i+1}</span>${s.label}
+    </button>`).join('');
+  nav.querySelectorAll('.step-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ state.step = parseInt(btn.dataset.i); renderAll(); });
+  });
+  document.querySelectorAll('.view').forEach((v,i)=> v.classList.toggle('active', i===state.step));
+}
+
+/* ======================================================================
+   STEP 1 — STRIPS
+   ====================================================================== */
+const COLOR_ORDERS = ['GRB','RGB','BRG','RBG','GBR','BGR'];
+function allPinUsages(excludeStripId){
+  const list = [];
+  state.strips.forEach(s=>{ if(s.id!==excludeStripId) list.push({pin:s.pin, label:`strip "${s.name}"`}); });
+  if(state.control.mode==='buttons'){
+    const b = state.control.buttons;
+    list.push({pin:b.nextPin, label:'next button'});
+    list.push({pin:b.prevPin, label:'prev button'});
+    if(b.useEnablePin) list.push({pin:b.enablePin, label:'enable control'});
+  }
+  if(needsMavlink()){
+    list.push({pin:state.mavlinkUart.rxPin, label:'MAVLink RX'});
+    list.push({pin:state.mavlinkUart.txPin, label:'MAVLink TX'});
+  }
+  if(needsCrsf()){
+    list.push({pin:state.crsfUart.rxPin, label:'CRSF RX'});
+    list.push({pin:state.crsfUart.txPin, label:'CRSF TX'});
+  }
+  if(needsGpsModule()){
+    list.push({pin:state.gpsModule.uart.rxPin, label:'GPS module RX'});
+    list.push({pin:state.gpsModule.uart.txPin, label:'GPS module TX'});
+  }
+  return list;
+}
+function findPinConflict(pin, excludeStripId){
+  if(pin===undefined || pin===null || isNaN(pin)) return null;
+  return allPinUsages(excludeStripId).find(u=>u.pin===pin) || null;
+}
+function updatePinWarnings(){
+  document.querySelectorAll('#stripList .strip-card').forEach(card=>{
+    const id = parseInt(card.dataset.id);
+    const s = state.strips.find(x=>x.id===id);
+    if(!s) return;
+    const conflict = findPinConflict(s.pin, s.id);
+    const pinInput = card.querySelector('.s-pin');
+    pinInput.style.borderColor = conflict ? 'var(--red)' : '';
+    let warnEl = card.querySelector('.s-pin-warning');
+    if(conflict){
+      if(!warnEl){
+        warnEl = document.createElement('div');
+        warnEl.className = 'hint s-pin-warning';
+        warnEl.style.color = 'var(--red)';
+        pinInput.insertAdjacentElement('afterend', warnEl);
+      }
+      warnEl.textContent = `GP${s.pin} is already used by ${conflict.label}.`;
+    } else if(warnEl){
+      warnEl.remove();
+    }
+  });
+}
+function renderStrips(){
+  const list = document.getElementById('stripList');
+  list.innerHTML = state.strips.map(s => {
+    const conflict = findPinConflict(s.pin, s.id);
+    return `
+    <div class="strip-card" data-id="${s.id}">
+      <div class="strip-card-head">
+        <input type="text" class="s-name" value="${escapeHtml(s.name)}">
+        <button class="btn ghost danger s-remove" ${state.strips.length<=1?'disabled':''}>Remove</button>
+      </div>
+      <div class="row row-4">
+        <div class="field">
+          <label class="field-label">Data pin (GPxx)</label>
+          <input type="number" class="s-pin" min="0" max="29" value="${s.pin}" style="${conflict?'border-color:var(--red);':''}">
+          ${conflict ? `<div class="hint" style="color:var(--red);">GP${s.pin} is already used by ${conflict.label}.</div>` : ''}
+        </div>
+        <div class="field">
+          <label class="field-label">LED count</label>
+          <input type="number" class="s-count" min="1" max="2000" value="${s.count}">
+        </div>
+        <div class="field">
+          <label class="field-label">Color order</label>
+          <select class="s-order">
+            ${COLOR_ORDERS.map(o=>`<option value="${o}" ${o===s.order?'selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field">
+          <label class="field-label">Chipset speed</label>
+          <select class="s-khz">
+            <option value="800" ${s.khz==800?'selected':''}>800 kHz (WS2812B / SK6812)</option>
+            <option value="400" ${s.khz==400?'selected':''}>400 kHz (WS2811 classic)</option>
+          </select>
+        </div>
+      </div>
+      <div class="field" style="margin-top:2px;">
+        <label class="field-label">Max brightness (0–255): <span class="s-bright-val">${s.brightness}</span></label>
+        <input type="range" class="s-bright" min="4" max="255" value="${s.brightness}">
+      </div>
+      <div class="swatch-strip">${sampleSwatches(s.count)}</div>
+      <div class="hint">GP${s.pin} · ${s.count} px · ${s.order} · ${(s.count*3)} bytes/frame in RAM for this strip's live buffer</div>
+    </div>
+  `;
+  }).join('');
+
+  list.querySelectorAll('.strip-card').forEach(card=>{
+    const id = parseInt(card.dataset.id);
+    const s = state.strips.find(x=>x.id===id);
+    card.querySelector('.s-name').addEventListener('input', e=>{ s.name=e.target.value; refreshImagesForStrips(); });
+    card.querySelector('.s-pin').addEventListener('input', e=>{ s.pin=parseInt(e.target.value||0); updatePinWarnings(); });
+    card.querySelector('.s-count').addEventListener('input', e=>{ s.count=Math.max(1,parseInt(e.target.value||1)); rerenderStripSwatch(card,s); reconvertAllImages(); });
+    card.querySelector('.s-order').addEventListener('change', e=>{ s.order=e.target.value; });
+    card.querySelector('.s-khz').addEventListener('change', e=>{ s.khz=parseInt(e.target.value); });
+    card.querySelector('.s-bright').addEventListener('input', e=>{ s.brightness=parseInt(e.target.value); card.querySelector('.s-bright-val').textContent=s.brightness; });
+    card.querySelector('.s-remove').addEventListener('click', ()=>{
+      state.strips = state.strips.filter(x=>x.id!==id);
+      reconvertAllImages(); renderStrips(); renderImages(); renderSpeedShared(); renderPerfPanel();
+    });
+  });
+}
+function rerenderStripSwatch(card, s){
+  card.querySelector('.swatch-strip').innerHTML = sampleSwatches(s.count);
+  card.querySelector('.hint').textContent = `GP${s.pin} · ${s.count} px · ${s.order} · ${(s.count*3)} bytes/frame in RAM for this strip's live buffer`;
+}
+function sampleSwatches(n){
+  const bars = Math.min(n, 80);
+  let html='';
+  for(let i=0;i<bars;i++){
+    const hue = (i/bars)*300;
+    html += `<span style="background:hsl(${hue},80%,52%)"></span>`;
+  }
+  return html;
+}
+document.getElementById('addStripBtn').addEventListener('click', ()=>{
+  state.strips.push({ id: state.nextStripId++, name:`Strip ${state.strips.length+1}`, pin:6, count:60, order:'GRB', khz:800, brightness:150 });
+  reconvertAllImages(); renderStrips(); renderImages(); renderSpeedShared(); renderPerfPanel();
+});
+function renderPerfPanel(){
+  const wrap = document.getElementById('perfPanel');
+  const p = state.performance;
+  const tooMany = state.strips.length > 8;
+  wrap.innerHTML = `
+    <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="perf-pio" ${p.pio?'checked':''} style="width:auto;"> High-performance output — PIO + second core
+    </label>
+    <div class="hint">Drives every strip from the RP2040's PIO hardware instead of bit-banging through Adafruit NeoPixel: each strip gets its own state machine and all of them shift their bits out <b>in parallel</b>, in hardware, with almost no CPU cost. Pattern computation and LED output run on the second core, so control input (buttons, MAVLink, CRSF, GPS) stays responsive even during heavy patterns. No extra library — the driver is a small, verified PIO program embedded right in the sketch. Up to 8 strips (4 per PIO block).${tooMany ? ' <b style="color:var(--red)">Too many strips for PIO mode (max 8)</b> — turn this off or remove strips.' : ''}</div>
+  `;
+  document.getElementById('perf-pio').addEventListener('change', e=>{ p.pio=e.target.checked; renderPerfPanel(); });
+}
+function renderReliabilityPanel(){
+  const wrap = document.getElementById('reliabilityPanel');
+  const w = state.watchdog;
+  wrap.innerHTML = `
+    <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+      <input type="checkbox" id="wd-enabled" ${w.enabled?'checked':''} style="width:auto;"> Hardware watchdog
+    </label>
+    ${w.enabled ? `
+      <div class="field" style="max-width:260px;margin-top:8px;">
+        <label class="field-label">Timeout (ms, max 8300)</label>
+        <input type="number" id="wd-timeout" min="200" max="8300" step="100" value="${w.timeoutMs}">
+      </div>
+      <div class="hint" style="margin-top:8px;">If the sketch ever locks up — a stuck loop, a wedged UART, a runaway pattern — the RP2040's own watchdog timer force-reboots it after this many milliseconds of silence, instead of leaving the rig frozen. Worth having on any rig, and especially so if this is acting as a GPS source for a flight controller: a hang here shouldn't be able to starve the aircraft of position data indefinitely. ${state.performance.pio ? 'With high-performance mode on, both cores have to check in before the watchdog is fed, so a hang on either one — not just the main loop — still triggers a reboot.' : ''} Set it comfortably above your normal loop time; too short and ordinary jitter could trigger spurious reboots.</div>
+    ` : `<div class="hint" style="margin-top:8px;">Off means a hang just sits there until power-cycled. Recommended on, particularly if this rig feeds GPS to a flight controller.</div>`}
+  `;
+  document.getElementById('wd-enabled').addEventListener('change', e=>{ w.enabled=e.target.checked; renderReliabilityPanel(); });
+  const t = document.getElementById('wd-timeout');
+  if(t) t.addEventListener('input', e=> w.timeoutMs = Math.max(200, Math.min(8300, parseInt(e.target.value||4000))));
+}
+
+/* ======================================================================
+   STEP 2 — CONTROL
+   ====================================================================== */
+function renderControlModeGroup(){
+  document.querySelectorAll('#controlModeGroup .radio-card').forEach(card=>{
+    card.classList.toggle('checked', card.dataset.value===state.control.mode);
+    card.addEventListener('click', ()=>{
+      state.control.mode = card.dataset.value;
+      renderControlModeGroup(); renderControlPanels(); renderSpeedShared(); updatePinWarnings();
+    });
+  });
+}
+function mavlinkUartFieldsHtml(){
+  const u = state.mavlinkUart;
+  return `
+    <div class="subgrid">
+      <h2 style="font-size:14px;margin:0 0 4px;">MAVLink telemetry UART</h2>
+      <p style="margin:0 0 14px;color:var(--ink-dim);font-size:13px;">Wire this UART to a telemetry output on the flight controller (companion/telem port), not the USB console.</p>
+      <div class="row row-4">
+        <div class="field"><label class="field-label">Serial port</label>
+          <select id="u-port">
+            <option value="Serial1" ${u.port==='Serial1'?'selected':''}>Serial1 (UART0)</option>
+            <option value="Serial2" ${u.port==='Serial2'?'selected':''}>Serial2 (UART1)</option>
+          </select>
+        </div>
+        <div class="field"><label class="field-label">RX pin (GPxx)</label><input type="number" id="u-rx" min="0" max="29" value="${u.rxPin}"></div>
+        <div class="field"><label class="field-label">TX pin (GPxx)</label><input type="number" id="u-tx" min="0" max="29" value="${u.txPin}"></div>
+        <div class="field"><label class="field-label">Baud rate</label>
+          <select id="u-baud">
+            ${[9600,19200,38400,57600,115200].map(b=>`<option value="${b}" ${u.baud==b?'selected':''}>${b}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <div class="hint">The sketch reads <span class="mono">RC_CHANNELS</span> (#65) for channel values and <span class="mono">VFR_HUD</span> (#74) for groundspeed, over MAVLink v1 or v2, parsed directly with no external MAVLink library.</div>
+    </div>`;
+}
+function wireMavlinkUartFields(){
+  const up = document.getElementById('u-port'); if(up) up.addEventListener('change', e=> state.mavlinkUart.port=e.target.value);
+  const ur = document.getElementById('u-rx'); if(ur) ur.addEventListener('input', e=>{ state.mavlinkUart.rxPin=parseInt(e.target.value||0); updatePinWarnings(); });
+  const ut = document.getElementById('u-tx'); if(ut) ut.addEventListener('input', e=>{ state.mavlinkUart.txPin=parseInt(e.target.value||0); updatePinWarnings(); });
+  const ub = document.getElementById('u-baud'); if(ub) ub.addEventListener('change', e=> state.mavlinkUart.baud=parseInt(e.target.value));
+}
+function crsfUartFieldsHtml(){
+  const c = state.crsfUart;
+  return `
+    <div class="subgrid">
+      <h2 style="font-size:14px;margin:0 0 4px;">CRSF link UART</h2>
+      <p style="margin:0 0 14px;color:var(--ink-dim);font-size:13px;">Wire this UART to a TBS Crossfire or ExpressLRS receiver's serial output (the same wire a flight controller's CRSF port would use).</p>
+      <div class="row row-3">
+        <div class="field"><label class="field-label">Serial port</label>
+          <select id="c-port">
+            <option value="Serial1" ${c.port==='Serial1'?'selected':''}>Serial1 (UART0)</option>
+            <option value="Serial2" ${c.port==='Serial2'?'selected':''}>Serial2 (UART1)</option>
+          </select>
+        </div>
+        <div class="field"><label class="field-label">RX pin (GPxx)</label><input type="number" id="c-rx" min="0" max="29" value="${c.rxPin}"></div>
+        <div class="field"><label class="field-label">TX pin (GPxx)</label><input type="number" id="c-tx" min="0" max="29" value="${c.txPin}"></div>
+      </div>
+      <div class="hint">CRSF always runs at <span class="mono">420000</span> baud — fixed by the protocol, nothing to configure. The sketch parses <span class="mono">RC_CHANNELS_PACKED</span> frames (type 0x16) with CRC8 validation, no external CRSF library needed.</div>
+    </div>`;
+}
+function wireCrsfUartFields(){
+  const cp = document.getElementById('c-port'); if(cp) cp.addEventListener('change', e=> state.crsfUart.port=e.target.value);
+  const cr = document.getElementById('c-rx'); if(cr) cr.addEventListener('input', e=>{ state.crsfUart.rxPin=parseInt(e.target.value||0); updatePinWarnings(); });
+  const ctx_ = document.getElementById('c-tx'); if(ctx_) ctx_.addEventListener('input', e=>{ state.crsfUart.txPin=parseInt(e.target.value||0); updatePinWarnings(); });
+}
+function renderControlPanels(){
+  const b = state.control.buttons;
+  const buttonsWrap = document.getElementById('controlButtonsPanel');
+  const mavWrap = document.getElementById('controlMavlinkPanel');
+  const crsfWrap = document.getElementById('controlCrsfPanel');
+  buttonsWrap.style.display = state.control.mode==='buttons' ? 'block' : 'none';
+  mavWrap.style.display = state.control.mode==='mavlink' ? 'block' : 'none';
+  crsfWrap.style.display = state.control.mode==='crsf' ? 'block' : 'none';
+
+  if(state.control.mode==='buttons'){
+    buttonsWrap.innerHTML = `
+      <div class="subgrid">
+        <div class="row row-3">
+          <div class="field"><label class="field-label">Next-image pin (GPxx)</label><input type="number" id="b-next" min="0" max="29" value="${b.nextPin}"></div>
+          <div class="field"><label class="field-label">Previous-image pin (GPxx)</label><input type="number" id="b-prev" min="0" max="29" value="${b.prevPin}"></div>
+          <div class="field"><label class="field-label">Debounce (ms)</label><input type="number" id="b-debounce" min="0" max="500" value="${b.debounceMs}"></div>
+        </div>
+        <div class="row row-2">
+          <div class="field">
+            <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="b-useEnable" ${b.useEnablePin?'checked':''} style="width:auto;"> Use an enable/disable drawing control
+            </label>
+            <div class="row row-2" style="margin-top:8px;">
+              <input type="number" id="b-enable" min="0" max="29" value="${b.enablePin}" ${b.useEnablePin?'':'disabled'}>
+              <select id="b-enableMode" ${b.useEnablePin?'':'disabled'}>
+                <option value="switch" ${b.enableMode==='switch'?'selected':''}>Maintained switch (HIGH = enabled)</option>
+                <option value="toggle" ${b.enableMode==='toggle'?'selected':''}>Momentary button (press to toggle)</option>
+              </select>
+            </div>
+            <div class="hint">${b.enableMode==='toggle' ? 'A push-button: each debounced press flips drawing on/off, starting enabled at boot.' : 'A 2-position switch: HIGH = drawing enabled, LOW = disabled.'} Leave unchecked to always draw whenever an image is loaded.</div>
+          </div>
+          <div class="field">
+            <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="b-activeLow" ${b.activeLow?'checked':''} style="width:auto;"> Buttons are active-LOW (INPUT_PULLUP, wired to GND)
+            </label>
+            <div class="hint">Standard wiring for a momentary button between the pin and GND. Uncheck if you're driving the pin HIGH to trigger instead.</div>
+          </div>
+        </div>
+      </div>`;
+    document.getElementById('b-next').addEventListener('input', e=>{ b.nextPin=parseInt(e.target.value||0); updatePinWarnings(); });
+    document.getElementById('b-prev').addEventListener('input', e=>{ b.prevPin=parseInt(e.target.value||0); updatePinWarnings(); });
+    document.getElementById('b-debounce').addEventListener('input', e=> b.debounceMs=parseInt(e.target.value||0));
+    document.getElementById('b-enable').addEventListener('input', e=>{ b.enablePin=parseInt(e.target.value||0); updatePinWarnings(); });
+    document.getElementById('b-useEnable').addEventListener('change', e=>{ b.useEnablePin=e.target.checked; renderControlPanels(); updatePinWarnings(); });
+    document.getElementById('b-enableMode').addEventListener('change', e=>{ b.enableMode=e.target.value; renderControlPanels(); });
+    document.getElementById('b-activeLow').addEventListener('change', e=> b.activeLow=e.target.checked);
+  } else if(state.control.mode==='mavlink'){
+    const m = state.control.mavlink;
+    mavWrap.innerHTML = `
+      <div class="subgrid">
+        <div class="row row-3">
+          <div class="field"><label class="field-label">Next/Prev RC channel</label><input type="number" id="m-npch" min="1" max="18" value="${m.nextPrevChannel}"></div>
+          <div class="field"><label class="field-label">Low threshold (µs)</label><input type="number" id="m-low" min="900" max="2100" value="${m.lowThresh}"></div>
+          <div class="field"><label class="field-label">High threshold (µs)</label><input type="number" id="m-high" min="900" max="2100" value="${m.highThresh}"></div>
+        </div>
+        <div class="hint" style="margin:-6px 0 16px;">Channel low → previous image. Channel high → next image. Anywhere in between (mid) does nothing — each new low/high edge fires once, so a self-centering 3-way switch or momentary stick works cleanly.</div>
+        <div class="row row-2">
+          <div class="field"><label class="field-label">Enable/disable RC channel</label><input type="number" id="m-ench" min="1" max="18" value="${m.enableChannel}"></div>
+          <div class="field"><label class="field-label">Enable threshold (µs, above = ON)</label><input type="number" id="m-enth" min="900" max="2100" value="${m.enableThresh}"></div>
+        </div>
+        <div class="hint">A simple 2-position switch channel: above the threshold, drawing runs; below it, all strips go dark.</div>
+      </div>
+      ${mavlinkUartFieldsHtml()}`;
+    document.getElementById('m-npch').addEventListener('input', e=> m.nextPrevChannel=parseInt(e.target.value||1));
+    document.getElementById('m-low').addEventListener('input', e=> m.lowThresh=parseInt(e.target.value||0));
+    document.getElementById('m-high').addEventListener('input', e=> m.highThresh=parseInt(e.target.value||0));
+    document.getElementById('m-ench').addEventListener('input', e=> m.enableChannel=parseInt(e.target.value||1));
+    document.getElementById('m-enth').addEventListener('input', e=> m.enableThresh=parseInt(e.target.value||0));
+    wireMavlinkUartFields();
+  } else if(state.control.mode==='crsf'){
+    const c = state.control.crsf;
+    crsfWrap.innerHTML = `
+      <div class="subgrid">
+        <div class="row row-3">
+          <div class="field"><label class="field-label">Next/Prev RC channel</label><input type="number" id="cf-npch" min="1" max="16" value="${c.nextPrevChannel}"></div>
+          <div class="field"><label class="field-label">Low threshold (µs)</label><input type="number" id="cf-low" min="900" max="2100" value="${c.lowThresh}"></div>
+          <div class="field"><label class="field-label">High threshold (µs)</label><input type="number" id="cf-high" min="900" max="2100" value="${c.highThresh}"></div>
+        </div>
+        <div class="hint" style="margin:-6px 0 16px;">Channel low → previous image. Channel high → next image. Anywhere in between (mid) does nothing — each new low/high edge fires once, so a self-centering 3-way switch or momentary stick works cleanly. CRSF's 11-bit channel values are converted to the same ~988–2012µs range as PWM/MAVLink, so these thresholds behave the same way.</div>
+        <div class="row row-2">
+          <div class="field"><label class="field-label">Enable/disable RC channel</label><input type="number" id="cf-ench" min="1" max="16" value="${c.enableChannel}"></div>
+          <div class="field"><label class="field-label">Enable threshold (µs, above = ON)</label><input type="number" id="cf-enth" min="900" max="2100" value="${c.enableThresh}"></div>
+        </div>
+        <div class="hint">A simple 2-position switch channel: above the threshold, drawing runs; below it, all strips go dark.</div>
+      </div>
+      ${crsfUartFieldsHtml()}`;
+    document.getElementById('cf-npch').addEventListener('input', e=> c.nextPrevChannel=parseInt(e.target.value||1));
+    document.getElementById('cf-low').addEventListener('input', e=> c.lowThresh=parseInt(e.target.value||0));
+    document.getElementById('cf-high').addEventListener('input', e=> c.highThresh=parseInt(e.target.value||0));
+    document.getElementById('cf-ench').addEventListener('input', e=> c.enableChannel=parseInt(e.target.value||1));
+    document.getElementById('cf-enth').addEventListener('input', e=> c.enableThresh=parseInt(e.target.value||0));
+    wireCrsfUartFields();
+  }
+}
+
+/* ======================================================================
+   STEP 3 — SPEED
+   ====================================================================== */
+function renderSpeedModeGroup(){
+  document.querySelectorAll('#speedModeGroup .radio-card').forEach(card=>{
+    card.classList.toggle('checked', card.dataset.value===state.speed.mode);
+    card.addEventListener('click', ()=>{
+      state.speed.mode = card.dataset.value;
+      renderSpeedModeGroup(); renderSpeedPanels(); renderSpeedShared();
+    });
+  });
+}
+function renderSpeedPanels(){
+  const p = state.speed.preset, r = state.speed.rc, g = state.speed.gps;
+  document.getElementById('speedPresetPanel').style.display = state.speed.mode==='preset' ? 'block':'none';
+  document.getElementById('speedRcPanel').style.display = state.speed.mode==='rc' ? 'block':'none';
+  document.getElementById('speedGpsPanel').style.display = state.speed.mode==='gps' ? 'block':'none';
+
+  document.getElementById('speedPresetPanel').innerHTML = `
+    <div class="subgrid">
+      <div class="row row-2">
+        <div class="field"><label class="field-label">Delay per column (ms)</label><input type="number" id="p-delay" min="1" max="5000" value="${p.delayMs}"></div>
+      </div>
+    </div>`;
+  document.getElementById('p-delay').addEventListener('input', e=> p.delayMs=Math.max(1,parseInt(e.target.value||1)));
+
+  document.getElementById('speedRcPanel').innerHTML = `
+    <div class="subgrid">
+      <div class="row row-4">
+        <div class="field"><label class="field-label">RC channel</label><input type="number" id="r-ch" min="1" max="18" value="${r.channel}"></div>
+        <div class="field"><label class="field-label">PWM min (µs)</label><input type="number" id="r-pmin" value="${r.pwmMin}"></div>
+        <div class="field"><label class="field-label">PWM max (µs)</label><input type="number" id="r-pmax" value="${r.pwmMax}"></div>
+      </div>
+      <div class="row row-2">
+        <div class="field"><label class="field-label">Delay at PWM-min (ms)</label><input type="number" id="r-dmin" value="${r.delayMin}"></div>
+        <div class="field"><label class="field-label">Delay at PWM-max (ms)</label><input type="number" id="r-dmax" value="${r.delayMax}"></div>
+      </div>
+      <div class="hint">The channel value is linearly mapped from the PWM range to the delay range — move the stick, change the draw speed live.</div>
+    </div>`;
+  document.getElementById('r-ch').addEventListener('input', e=> r.channel=parseInt(e.target.value||1));
+  document.getElementById('r-pmin').addEventListener('input', e=> r.pwmMin=parseInt(e.target.value||1000));
+  document.getElementById('r-pmax').addEventListener('input', e=> r.pwmMax=parseInt(e.target.value||2000));
+  document.getElementById('r-dmin').addEventListener('input', e=> r.delayMin=parseInt(e.target.value||1));
+  document.getElementById('r-dmax').addEventListener('input', e=> r.delayMax=parseInt(e.target.value||1));
+
+  document.getElementById('speedGpsPanel').innerHTML = `
+    <div class="subgrid">
+      <div class="field" style="max-width:340px;">
+        <label class="field-label">Groundspeed comes from</label>
+        <select id="g-source">
+          <option value="mavlink" ${g.source==='mavlink'?'selected':''}>MAVLink telemetry (VFR_HUD)</option>
+          <option value="direct" ${g.source==='direct'?'selected':''}>Directly-connected GPS module</option>
+        </select>
+      </div>
+      <div class="row row-3">
+        <div class="field"><label class="field-label">Column spacing (mm in real space)</label><input type="number" id="g-space" min="1" value="${g.columnSpacingMm}"></div>
+        <div class="field"><label class="field-label">Clamp: min delay (ms)</label><input type="number" id="g-dmin" value="${g.delayMin}"></div>
+        <div class="field"><label class="field-label">Clamp: max delay (ms)</label><input type="number" id="g-dmax" value="${g.delayMax}"></div>
+      </div>
+      <div class="hint">Delay = column spacing ÷ groundspeed, read from ${g.source==='direct' ? 'a GPS module wired directly to its own UART' : `the MAVLink <span class="mono">VFR_HUD.groundspeed</span> field`}. This keeps each column's real-world width constant regardless of how fast the rig is moving — the image doesn't stretch or squish in flight. Clamps guard against the rig sitting still or a stale/zero speed reading.</div>
+    </div>`;
+  document.getElementById('g-source').addEventListener('change', e=>{
+    g.source=e.target.value;
+    state.gpsModule.enabled = (g.source==='direct');
+    renderSpeedPanels(); renderGpsModulePanel(); renderSpeedShared();
+  });
+  document.getElementById('g-space').addEventListener('input', e=> g.columnSpacingMm=Math.max(1,parseFloat(e.target.value||1)));
+  document.getElementById('g-dmin').addEventListener('input', e=> g.delayMin=parseInt(e.target.value||1));
+  document.getElementById('g-dmax').addEventListener('input', e=> g.delayMax=parseInt(e.target.value||1));
+}
+function renderGpsModulePanel(){
+  const wrap = document.getElementById('gpsModulePanel');
+  const g = state.gpsModule;
+  const shouldShow = needsGpsModule();
+  if(!shouldShow){ g.enabled=false; wrap.style.display='none'; wrap.innerHTML=''; return; }
+  g.enabled = true; // kept in sync for save/load; needsGpsModule() is the real source of truth
+  wrap.style.display = 'block';
+  const canSendToFc = needsMavlink();
+  if(!canSendToFc) g.sendToFC = false;
+  wrap.innerHTML = `
+    <h2 style="font-size:14px;margin:0 0 4px;">GPS module</h2>
+    <p style="margin:0 0 14px;color:var(--ink-dim);font-size:13px;">A GPS module wired directly to its own UART, parsed on-device from standard NMEA sentences (RMC + GGA) — no MAVLink or flight controller required.</p>
+    <div class="row row-3">
+      <div class="field"><label class="field-label">Serial port</label>
+        <select id="gm-port">
+          <option value="Serial1" ${g.uart.port==='Serial1'?'selected':''}>Serial1 (UART0)</option>
+          <option value="Serial2" ${g.uart.port==='Serial2'?'selected':''}>Serial2 (UART1)</option>
+        </select>
+      </div>
+      <div class="field"><label class="field-label">RX pin (GPxx)</label><input type="number" id="gm-rx" min="0" max="29" value="${g.uart.rxPin}"></div>
+      <div class="field"><label class="field-label">TX pin (GPxx)</label><input type="number" id="gm-tx" min="0" max="29" value="${g.uart.txPin}"></div>
+    </div>
+    <div class="field" style="max-width:220px;margin-top:14px;">
+      <label class="field-label">Baud rate</label>
+      <select id="gm-baud">
+        ${[4800,9600,19200,38400,57600,115200].map(b=>`<option value="${b}" ${g.uart.baud==b?'selected':''}>${b}</option>`).join('')}
+      </select>
+    </div>
+    <div class="hint" style="margin-top:10px;">9600 is the factory default on most hobby modules (u-blox NEO-6M/M8N, etc). TX from the GPS module goes to the RX pin here.</div>
+    ${canSendToFc ? `
+    <div class="subgrid" style="margin-top:16px;">
+      <label class="field-label" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="gm-sendToFc" ${g.sendToFC?'checked':''} style="width:auto;"> Relay this GPS to the flight controller over MAVLink (companion computer)
+      </label>
+      <div class="hint">Sends a MAVLink <span class="mono">GPS_INPUT</span> message on the MAVLink link every 200&nbsp;ms, so the flight controller can use this as an external GPS source.</div>
+    </div>` : ''}
+  `;
+  const gp = document.getElementById('gm-port'); if(gp) gp.addEventListener('change', e=> g.uart.port=e.target.value);
+  const gr = document.getElementById('gm-rx'); if(gr) gr.addEventListener('input', e=>{ g.uart.rxPin=parseInt(e.target.value||0); updatePinWarnings(); });
+  const gt = document.getElementById('gm-tx'); if(gt) gt.addEventListener('input', e=>{ g.uart.txPin=parseInt(e.target.value||0); updatePinWarnings(); });
+  const gb = document.getElementById('gm-baud'); if(gb) gb.addEventListener('change', e=> g.uart.baud=parseInt(e.target.value));
+  const gs = document.getElementById('gm-sendToFc'); if(gs) gs.addEventListener('change', e=> g.sendToFC=e.target.checked);
+}
+function renderSpeedShared(){
+  renderGpsModulePanel();
+  const wrap = document.getElementById('mavlinkSharedPanel');
+  const showRcProtoPicker = state.control.mode==='buttons' && state.speed.mode==='rc';
+  const showMavlinkHere = needsMavlink() && state.control.mode!=='mavlink';
+  const showCrsfHere = needsCrsf() && state.control.mode!=='crsf';
+  if(!showRcProtoPicker && !showMavlinkHere && !showCrsfHere && !crsfGpsConflict()){ wrap.style.display='none'; return; }
+  wrap.style.display='block';
+
+  let html = '';
+
+  if(crsfGpsConflict()){
+    html += `<div class="hint" style="color:var(--red);border:1px solid #4a2323;background:#20100f;padding:10px 12px;border-radius:2px;margin-bottom:16px;">CRSF doesn't carry GPS groundspeed telemetry, so control set to CRSF can't also drive speed from GPS. Switch control to MAVLink, or pick a different speed source (RC channel or preset).</div>`;
+  }
+
+  if(state.control.mode==='buttons' && state.speed.mode==='rc'){
+    html += `
+      <div class="field" style="max-width:320px;margin-bottom:16px;">
+        <label class="field-label">RC channel comes from</label>
+        <select id="rc-protocol">
+          <option value="mavlink" ${state.rcLinkProtocol==='mavlink'?'selected':''}>MAVLink telemetry</option>
+          <option value="crsf" ${state.rcLinkProtocol==='crsf'?'selected':''}>CRSF (Crossfire / ExpressLRS)</option>
+        </select>
+      </div>`;
+  }
+
+  if(needsMavlink() && state.control.mode!=='mavlink'){
+    html += mavlinkUartFieldsHtml();
+  }
+
+  if(needsCrsf() && state.control.mode!=='crsf'){
+    html += crsfUartFieldsHtml();
+  }
+
+  wrap.innerHTML = html;
+
+  const rcProto = document.getElementById('rc-protocol');
+  if(rcProto) rcProto.addEventListener('change', e=>{ state.rcLinkProtocol=e.target.value; renderSpeedShared(); });
+  wireMavlinkUartFields();
+  wireCrsfUartFields();
+}
+
+/* ======================================================================
+   STEP 4 — IMAGES
+   ====================================================================== */
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('fileInput');
+dropzone.addEventListener('click', ()=> fileInput.click());
+['dragenter','dragover'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.add('drag'); }));
+['dragleave','drop'].forEach(ev=> dropzone.addEventListener(ev, e=>{ e.preventDefault(); dropzone.classList.remove('drag'); }));
+dropzone.addEventListener('drop', e=>{ handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', e=> handleFiles(e.target.files));
+
+document.getElementById('columnsInput').addEventListener('input', e=>{
+  state.columns = Math.max(4, parseInt(e.target.value||4));
+  document.getElementById('colsLabelInline').textContent = state.columns;
+  reconvertAllImages();
+});
+document.getElementById('fitModeInput').addEventListener('change', e=>{
+  state.fitMode = e.target.value; reconvertAllImages();
+});
+
+function handleFiles(fileList){
+  [...fileList].forEach(file=>{
+    if(!file.type.startsWith('image/')) return;
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      img.onload = ()=>{
+        const rec = { id: nextImageId++, name: file.name, type: 'image', w: img.naturalWidth, h: img.naturalHeight, srcImg: img, perStrip: [] };
+        state.images.push(rec);
+        convertImage(rec);
+        renderImages();
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function convertImage(rec){
+  const cols = state.columns;
+  rec.perStrip = state.strips.map(s=>{
+    const rows = s.count;
+    const off = document.createElement('canvas');
+    off.width = cols; off.height = rows;
+    const ctx = off.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    drawFitted(ctx, rec.srcImg, cols, rows, state.fitMode);
+    const imgData = ctx.getImageData(0,0,cols,rows).data;
+    // store column-major: for c in cols: for led in rows: r,g,b
+    const data = new Uint8Array(cols*rows*3);
+    let p=0;
+    for(let c=0;c<cols;c++){
+      for(let led=0; led<rows; led++){
+        const px = (led*cols + c)*4;
+        data[p++] = imgData[px];
+        data[p++] = imgData[px+1];
+        data[p++] = imgData[px+2];
+      }
+    }
+    return { stripId: s.id, ledCount: rows, data };
+  });
+}
+function drawFitted(ctx, img, W, H, mode){
+  ctx.clearRect(0,0,W,H);
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  if(mode==='stretch'){ ctx.drawImage(img,0,0,iw,ih,0,0,W,H); return; }
+  const srcRatio = iw/ih, dstRatio = W/H;
+  if(mode==='cover'){
+    let sw=iw, sh=ih, sx=0, sy=0;
+    if(srcRatio>dstRatio){ sw = ih*dstRatio; sx=(iw-sw)/2; } else { sh = iw/dstRatio; sy=(ih-sh)/2; }
+    ctx.drawImage(img, sx,sy,sw,sh, 0,0,W,H);
+  } else { // contain
+    ctx.fillStyle='#000'; ctx.fillRect(0,0,W,H);
+    let dw=W, dh=H;
+    if(srcRatio>dstRatio){ dh = W/srcRatio; } else { dw = H*srcRatio; }
+    const dx=(W-dw)/2, dy=(H-dh)/2;
+    ctx.drawImage(img, 0,0,iw,ih, dx,dy,dw,dh);
+  }
+}
+function reconvertAllImages(){
+  state.images.forEach(rec=> rec.type==='pattern' ? convertPattern(rec) : convertImage(rec));
+  renderImages();
+}
+function refreshImagesForStrips(){ renderImages(); }
+
+/* ======================================================================
+   MATHEMATICAL PATTERNS
+   ====================================================================== */
+const PATTERN_TYPES = [
+  { id:'rainbow-strip', name:'Rainbow — across strip', desc:'Full hue spectrum running up the LED strip, repeating; identical on every column.', colorMode:'hue',
+    params:[ {key:'repeat', label:'Spectrum repeats', min:1, max:8, step:1, def:1} ] },
+  { id:'rainbow-image', name:'Rainbow — along image', desc:'Hue sweeps across the columns, constant up the strip — the classic rainbow wipe.', colorMode:'hue',
+    params:[ {key:'repeat', label:'Spectrum repeats', min:1, max:8, step:1, def:1} ] },
+  { id:'diagonal', name:'Diagonal bands', desc:'Hue varies diagonally across the image for a barber-pole rainbow.', colorMode:'hue',
+    params:[ {key:'repeat', label:'Band repeats', min:1, max:16, step:1, def:4} ] },
+  { id:'plasma', name:'Plasma', desc:'Smooth organic blobs of colour from overlapping sine fields, coloured from your palette.', colorMode:'stops',
+    params:[ {key:'scale', label:'Detail / scale', min:0.5, max:6, step:0.1, def:2} ] },
+  { id:'gradient', name:'Gradient', desc:'A smooth blend across your palette stops.', colorMode:'stops',
+    params:[ {key:'direction', label:'Direction', type:'select', options:[['h','Along image'],['v','Across strip'],['d','Diagonal']], def:'h'} ] },
+  { id:'stripes', name:'Candy stripes', desc:'Hard-edged repeating bands cycling through your palette.', colorMode:'stops',
+    params:[ {key:'bands', label:'Bands', min:2, max:40, step:1, def:10}, {key:'direction', label:'Direction', type:'select', options:[['h','Along image'],['v','Across strip'],['d','Diagonal']], def:'d'} ] },
+  { id:'checker', name:'Checkerboard', desc:'Two-colour checker grid — uses the first two palette stops.', colorMode:'stops',
+    params:[ {key:'cellsX', label:'Cells across image', min:2, max:60, step:1, def:12}, {key:'cellsY', label:'Cells across strip', min:2, max:40, step:1, def:6} ] },
+  { id:'sparkle', name:'Sparkle / confetti', desc:'Random coloured speckles over a background colour.', colorMode:'hue',
+    params:[ {key:'density', label:'Density %', min:1, max:80, step:1, def:18}, {key:'seed', label:'Random seed', min:1, max:9999, step:1, def:42} ] },
+  { id:'lines', name:'Angled lines', desc:'Crisp evenly-spaced lines at an angle, cycling through your palette over a background colour.', colorMode:'stops', needsBackground:true,
+    params:[ {key:'angle', label:'Angle (°)', min:0, max:180, step:1, def:45}, {key:'spacing', label:'Line spacing', min:2, max:60, step:1, def:10}, {key:'thickness', label:'Line thickness %', min:2, max:80, step:1, def:20} ] },
+  { id:'squares', name:'Mosaic squares', desc:'A grid of solid colour blocks with thin gaps, cycling through your palette.', colorMode:'stops', needsBackground:true,
+    params:[ {key:'cellsX', label:'Columns of squares', min:2, max:40, step:1, def:10}, {key:'cellsY', label:'Rows of squares', min:2, max:24, step:1, def:6}, {key:'gap', label:'Gap %', min:0, max:40, step:1, def:12} ] },
+  { id:'triangles', name:'Triangle tiles', desc:'A tiled grid split into alternating triangles across your palette.', colorMode:'stops',
+    params:[ {key:'cellsX', label:'Columns', min:2, max:40, step:1, def:10}, {key:'cellsY', label:'Rows', min:2, max:24, step:1, def:6} ] },
+  { id:'voronoi', name:'Low-poly cells', desc:'Faceted polygon regions like a low-poly gem, each cell a solid colour from your palette.', colorMode:'stops',
+    params:[ {key:'cells', label:'Cell count', min:4, max:60, step:1, def:18}, {key:'facet', label:'Facet shading %', min:0, max:100, step:1, def:45}, {key:'seed', label:'Random seed', min:1, max:9999, step:1, def:7} ] },
+  { id:'truchet', name:'Circuit lines', desc:'Winding rounded tube paths across a grid, like neon circuit-board trace art.', colorMode:'stops', needsBackground:true,
+    params:[ {key:'cellsX', label:'Grid columns', min:3, max:40, step:1, def:12}, {key:'cellsY', label:'Grid rows', min:3, max:24, step:1, def:8}, {key:'thickness', label:'Line thickness %', min:4, max:40, step:1, def:16}, {key:'seed', label:'Random seed', min:1, max:9999, step:1, def:3} ] },
+  { id:'memphis', name:'Memphis scatter', desc:'Scattered dots, rings and crosses over a background — 80s Memphis-style confetti.', colorMode:'stops', needsBackground:true,
+    params:[ {key:'cellsX', label:'Grid columns', min:3, max:30, step:1, def:8}, {key:'cellsY', label:'Grid rows', min:3, max:20, step:1, def:8}, {key:'density', label:'Fill density %', min:10, max:100, step:1, def:55}, {key:'seed', label:'Random seed', min:1, max:9999, step:1, def:5} ] },
+  { id:'fluid', name:'Fluid glow', desc:'Organic flowing fractal-noise fluid with a glowing highlight. Its base tone breathes gradually between two colours over time.', colorMode:'duo',
+    params:[ {key:'scale', label:'Flow scale', min:0.01, max:8, step:0.01, def:0.4}, {key:'detail', label:'Detail (octaves)', min:1, max:6, step:1, def:1}, {key:'contrast', label:'Contrast %', min:10, max:300, step:5, def:100}, {key:'cycleSeconds', label:'Colour cycle (seconds, 0=static)', min:0, max:60, step:1, def:8} ] },
+  { id:'lattice', name:'Diamond lattice', desc:'Crossing diagonal neon bands with thin accent lines and a repeating diamond medallion — complete with a hollow centre and ring halo, synthwave style.', colorMode:'stops', needsBackground:true,
+    params:[ {key:'scaleX', label:'Scale — along strip', min:0.5, max:8, step:0.1, def:2.5}, {key:'scaleY', label:'Scale — across strip', min:0.5, max:8, step:0.1, def:2.5}, {key:'bandWidth', label:'Band width %', min:5, max:40, step:1, def:17}, {key:'medallion', label:'Medallion spacing', min:1, max:6, step:1, def:3}, {key:'texture', label:'Speckle texture %', min:0, max:100, step:5, def:30} ] },
+  { id:'chevron-tile', name:'Chevron diamonds', desc:'Repeating diamond/V-shaped colour bands tiling both directions, cycling through your palette, with a small marker square at the centre of every tile.', colorMode:'stops', needsBackground:true,
+    params:[ {key:'scaleX', label:'Scale — along strip', min:0.5, max:8, step:0.1, def:5}, {key:'scaleY', label:'Scale — across strip', min:0.5, max:8, step:0.1, def:5}, {key:'markerSize', label:'Marker size %', min:0, max:30, step:1, def:18}, {key:'seamWidth', label:'Seam width %', min:0, max:10, step:0.5, def:3} ] }
+];
+function patternDef(id){ return PATTERN_TYPES.find(p=>p.id===id); }
+
+/* Order must match the PT_* enum in PATTERN_ENGINE_C below */
+const PATTERN_C_ORDER = ['rainbow-strip','rainbow-image','diagonal','plasma','gradient','stripes','checker','sparkle','lines','squares','triangles','voronoi','truchet','memphis','fluid','lattice','chevron-tile'];
+function patternTypeIndex(id){ return PATTERN_C_ORDER.indexOf(id); }
+function patternParamsToFloats(pattern){
+  const def = patternDef(pattern.type);
+  const vals = def.params.map(p=>{
+    let v = pattern.params[p.key];
+    if(p.type==='select'){ const map={h:0,v:1,d:2}; v = (map[v]!==undefined)?map[v]:0; }
+    return v;
+  });
+  while(vals.length<5) vals.push(0);
+  return vals.slice(0,5);
+}
+
+/* Ported line-for-line from the JS pattern engine above, generated into the sketch only when
+   at least one pattern-type source is used. Computes every pixel live, every frame — nothing
+   here is baked to flash, so a pattern never runs out and never repeats a fixed image. */
+const PATTERN_ENGINE_C = `
+/* ---------------- procedural pattern engine (computed live, infinite) ---------------- */
+enum { PT_RAINBOW_STRIP=0, PT_RAINBOW_IMAGE=1, PT_DIAGONAL=2, PT_PLASMA=3, PT_GRADIENT=4,
+       PT_STRIPES=5, PT_CHECKER=6, PT_SPARKLE=7, PT_LINES=8, PT_SQUARES=9,
+       PT_TRIANGLES=10, PT_VORONOI=11, PT_TRUCHET=12, PT_MEMPHIS=13, PT_FLUID=14, PT_LATTICE=15, PT_CHEVRON_TILE=16 };
+struct PatternDesc {
+  uint8_t type;
+  float hueMin, hueMax, hueSat, hueLight;
+  uint8_t stopCount;
+  const uint8_t* stopsR; const uint8_t* stopsG; const uint8_t* stopsB;
+  uint8_t bgR, bgG, bgB;
+  float p0, p1, p2, p3, p4;
+  const float* seeds; uint8_t seedCount; // voronoi only
+};
+
+void hsl2rgb_(float h, float s, float l, uint8_t* out){
+  h = fmodf(fmodf(h,360.0f)+360.0f,360.0f); s=constrain(s,0.0f,100.0f)/100.0f; l=constrain(l,0.0f,100.0f)/100.0f;
+  float c=(1.0f-fabsf(2.0f*l-1.0f))*s, x=c*(1.0f-fabsf(fmodf(h/60.0f,2.0f)-1.0f)), m=l-c/2.0f;
+  float r,g,b;
+  if(h<60){r=c;g=x;b=0;} else if(h<120){r=x;g=c;b=0;} else if(h<180){r=0;g=c;b=x;}
+  else if(h<240){r=0;g=x;b=c;} else if(h<300){r=x;g=0;b=c;} else {r=c;g=0;b=x;}
+  out[0]=(uint8_t)constrain((r+m)*255.0f,0.0f,255.0f);
+  out[1]=(uint8_t)constrain((g+m)*255.0f,0.0f,255.0f);
+  out[2]=(uint8_t)constrain((b+m)*255.0f,0.0f,255.0f);
+}
+float hash2_(float x, float y, float seed){
+  float h = sinf(x*127.1f + y*311.7f + seed*74.7f) * 43758.5453f;
+  return h - floorf(h);
+}
+float smoothstep_(float t){ return t*t*(3.0f-2.0f*t); }
+float valueNoise_(float x, float y){
+  float x0=floorf(x), y0=floorf(y), x1=x0+1.0f, y1=y0+1.0f;
+  float sx=smoothstep_(x-x0), sy=smoothstep_(y-y0);
+  float n00=hash2_(x0,y0,0.0f), n10=hash2_(x1,y0,0.0f), n01=hash2_(x0,y1,0.0f), n11=hash2_(x1,y1,0.0f);
+  float nx0=n00+(n10-n00)*sx, nx1=n01+(n11-n01)*sx;
+  return nx0+(nx1-nx0)*sy;
+}
+float fbm_(float x, float y, int octaves){
+  float value=0.0f, amplitude=0.5f, frequency=1.0f;
+  for(int i=0;i<octaves;i++){
+    value += valueNoise_(x*frequency, y*frequency)*amplitude;
+    frequency*=2.0f; amplitude*=0.5f;
+  }
+  return value;
+}
+void paletteColor_(const PatternDesc& pd, float t, uint8_t* out){
+  t = fmodf(fmodf(t,1.0f)+1.0f,1.0f);
+  int n = pd.stopCount;
+  if(n<=0){ out[0]=out[1]=out[2]=0; return; }
+  if(n==1){ out[0]=pd.stopsR[0]; out[1]=pd.stopsG[0]; out[2]=pd.stopsB[0]; return; }
+  float pos = t*(n-1);
+  int i0 = (int)floorf(pos); int i1 = min(n-1, i0+1);
+  float f = pos - i0;
+  out[0] = (uint8_t)(pd.stopsR[i0] + (pd.stopsR[i1]-pd.stopsR[i0])*f);
+  out[1] = (uint8_t)(pd.stopsG[i0] + (pd.stopsG[i1]-pd.stopsG[i0])*f);
+  out[2] = (uint8_t)(pd.stopsB[i0] + (pd.stopsB[i1]-pd.stopsB[i0])*f);
+}
+void paletteBand_(const PatternDesc& pd, float t, uint8_t* out){
+  t = fmodf(fmodf(t,1.0f)+1.0f,1.0f);
+  int n = pd.stopCount; if(n<=0){ out[0]=out[1]=out[2]=0; return; }
+  int idx = ((int)floorf(t*n)) % n; if(idx<0) idx+=n;
+  out[0]=pd.stopsR[idx]; out[1]=pd.stopsG[idx]; out[2]=pd.stopsB[idx];
+}
+
+void patternPixel(const PatternDesc& pd, float u, float v, float tSec, uint8_t* out){
+  float p0=pd.p0, p1=pd.p1, p2=pd.p2, p3=pd.p3, p4=pd.p4;
+  switch(pd.type){
+    case PT_RAINBOW_STRIP: { float t=fmodf(v*(p0>=1?p0:1.0f),1.0f); hsl2rgb_(pd.hueMin+t*(pd.hueMax-pd.hueMin), pd.hueSat, pd.hueLight, out); return; }
+    case PT_RAINBOW_IMAGE: { float t=fmodf(u*(p0>=1?p0:1.0f),1.0f); hsl2rgb_(pd.hueMin+t*(pd.hueMax-pd.hueMin), pd.hueSat, pd.hueLight, out); return; }
+    case PT_DIAGONAL: { float t=fmodf((u+v)*(p0>=1?p0:1.0f),1.0f); hsl2rgb_(pd.hueMin+t*(pd.hueMax-pd.hueMin), pd.hueSat, pd.hueLight, out); return; }
+    case PT_PLASMA: {
+      float s=p0>0?p0:2.0f;
+      float val=(sinf(u*6.283f*s)+sinf(v*6.283f*s*1.3f)+sinf((u+v)*6.283f*s*0.7f)+sinf(sqrtf((u-0.5f)*(u-0.5f)+(v-0.5f)*(v-0.5f))*6.283f*s*1.6f))/4.0f;
+      paletteColor_(pd, (val+1.0f)/2.0f, out); return;
+    }
+    case PT_GRADIENT: { float t = (p0==1)?v:((p0==2)?(u+v)/2.0f:u); paletteColor_(pd, t, out); return; }
+    case PT_STRIPES: { float t=(p1==1)?v:((p1==2)?(u+v)/2.0f:u); paletteBand_(pd, t*(p0>0?p0:10), out); return; }
+    case PT_CHECKER: { int cx=(int)floorf(u*(p0>0?p0:12)), cy=(int)floorf(v*(p1>0?p1:6)); int idx=((cx+cy)%2+2)%2; out[0]=pd.stopsR[idx]; out[1]=pd.stopsG[idx]; out[2]=pd.stopsB[idx]; return; }
+    case PT_SPARKLE: {
+      int cellsX=120, cellsY=60;
+      int cx=(int)floorf(u*cellsX), cy=(int)floorf(v*cellsY);
+      if(hash2_((float)cx,(float)cy,p1) < (p0>0?p0:18)/100.0f){
+        float hue=pd.hueMin + hash2_((float)(cx+99),(float)(cy+51),p1)*(pd.hueMax-pd.hueMin);
+        hsl2rgb_(hue, pd.hueSat, pd.hueLight, out);
+      } else { out[0]=pd.bgR; out[1]=pd.bgG; out[2]=pd.bgB; }
+      return;
+    }
+    case PT_LINES: {
+      float rad=p0*3.14159265f/180.0f;
+      float proj=(u*cosf(rad)+v*sinf(rad))*(p1>0?p1:10);
+      float frac=fmodf(fmodf(proj,1.0f)+1.0f,1.0f);
+      if(frac < (p2>0?p2:20)/100.0f){ paletteBand_(pd, floorf(proj)/(pd.stopCount>0?pd.stopCount:1), out); }
+      else { out[0]=pd.bgR; out[1]=pd.bgG; out[2]=pd.bgB; }
+      return;
+    }
+    case PT_SQUARES: {
+      float cx=u*(p0>0?p0:10), cy=v*(p1>0?p1:6);
+      float fx=cx-floorf(cx), fy=cy-floorf(cy);
+      float g=(p2>0?p2:12)/200.0f;
+      if(fx<g||fx>1-g||fy<g||fy>1-g){ out[0]=pd.bgR; out[1]=pd.bgG; out[2]=pd.bgB; return; }
+      int idx=(int)floorf(cx)+(int)floorf(cy)*(int)(p0>0?p0:10);
+      paletteBand_(pd, idx/(float)(pd.stopCount>0?pd.stopCount:1), out);
+      return;
+    }
+    case PT_TRIANGLES: {
+      float cellsX=(p0>0?p0:10), cellsY=(p1>0?p1:6);
+      float cx=u*cellsX, cy=v*cellsY;
+      int cellX=(int)floorf(cx), cellY=(int)floorf(cy);
+      float fx=cx-cellX, fy=cy-cellY;
+      int upper=(fx+fy)<1.0f?0:1;
+      int idx=(cellX+cellY*(int)cellsX)*2+upper;
+      paletteBand_(pd, idx/(float)(pd.stopCount>0?pd.stopCount:1), out);
+      return;
+    }
+    case PT_VORONOI: {
+      int n = pd.seedCount;
+      float best=1e9f, second=1e9f; int bestI=0;
+      for(int i=0;i<n;i++){
+        float dx=u-pd.seeds[i*2], dy=v-pd.seeds[i*2+1];
+        float d=dx*dx+dy*dy;
+        if(d<best){ second=best; best=d; bestI=i; } else if(d<second){ second=d; }
+      }
+      uint8_t rgb[3]; paletteBand_(pd, (float)bestI/(n>0?n:1), rgb);
+      float facet=p1/100.0f;
+      float shade=1.0f - facet*0.5f + facet*0.5f*fminf(1.0f, sqrtf(best)*3.0f);
+      out[0]=(uint8_t)constrain(rgb[0]*shade,0.0f,255.0f);
+      out[1]=(uint8_t)constrain(rgb[1]*shade,0.0f,255.0f);
+      out[2]=(uint8_t)constrain(rgb[2]*shade,0.0f,255.0f);
+      if(sqrtf(second)-sqrtf(best) < 0.006f){ out[0]=0; out[1]=0; out[2]=0; }
+      return;
+    }
+    case PT_TRUCHET: {
+      float cellsX=(p0>0?p0:12), cellsY=(p1>0?p1:8);
+      float cx=u*cellsX, cy=v*cellsY;
+      int cellX=(int)floorf(cx), cellY=(int)floorf(cy);
+      float fx=cx-cellX, fy=cy-cellY;
+      bool flip = hash2_((float)cellX,(float)cellY,p3) < 0.5f;
+      float d1,d2;
+      if(!flip){ d1=sqrtf(fx*fx+fy*fy); d2=sqrtf((1-fx)*(1-fx)+(1-fy)*(1-fy)); }
+      else { d1=sqrtf(fx*fx+(1-fy)*(1-fy)); d2=sqrtf((1-fx)*(1-fx)+fy*fy); }
+      float thickness=(p2>0?p2:16)/100.0f*0.5f;
+      if(fabsf(d1-0.5f)<thickness || fabsf(d2-0.5f)<thickness){
+        paletteBand_(pd, hash2_((float)(cellX*3+1),(float)(cellY*3+1),p3+11), out);
+      } else { out[0]=pd.bgR; out[1]=pd.bgG; out[2]=pd.bgB; }
+      return;
+    }
+    case PT_MEMPHIS: {
+      float cellsX=(p0>0?p0:8), cellsY=(p1>0?p1:8);
+      float cx=u*cellsX, cy=v*cellsY;
+      int cellX=(int)floorf(cx), cellY=(int)floorf(cy);
+      float fx=cx-cellX, fy=cy-cellY;
+      if(hash2_((float)cellX,(float)cellY,p3) >= (p2>0?p2:55)/100.0f){ out[0]=pd.bgR; out[1]=pd.bgG; out[2]=pd.bgB; return; }
+      float shapeSel = hash2_((float)(cellX+50),(float)(cellY+50),p3);
+      float dx=fx-0.5f, dy=fy-0.5f;
+      float size = 0.30f + hash2_((float)(cellX+20),(float)(cellY+20),p3)*0.15f;
+      bool hit;
+      if(shapeSel<0.34f){ hit = sqrtf(dx*dx+dy*dy) < size; }
+      else if(shapeSel<0.67f){ float d=sqrtf(dx*dx+dy*dy); hit = fabsf(d-size) < size*0.35f; }
+      else { hit = (fabsf(dx)<size*0.32f || fabsf(dy)<size*0.32f) && fabsf(dx)<size*1.1f && fabsf(dy)<size*1.1f; }
+      if(!hit){ out[0]=pd.bgR; out[1]=pd.bgG; out[2]=pd.bgB; return; }
+      paletteBand_(pd, hash2_((float)(cellX+80),(float)(cellY+80),p3), out);
+      return;
+    }
+    case PT_FLUID: {
+      float scale = (p0>0?p0:0.4f)*10.0f;
+      int octaves = (int)(p1>0?p1:1);
+      float nx=u*scale, ny=v*scale;
+      float n1 = fbm_(nx, ny, octaves);
+      float n2 = fbm_(nx*1.8f+3.1f, ny*1.8f-2.7f, octaves);
+      float n3 = fbm_(nx*3.5f-4.7f, ny*3.5f+3.9f, octaves);
+      float swirl = sinf(n1*10.0f + sinf(ny*0.9f)*3.0f + n2*8.0f);
+      float glow = fabsf(sinf(n1*17.0f + n2*11.0f + swirl*2.0f));
+      glow = powf(1.0f-glow, 5.0f);
+      float value = n1*0.55f + n2*0.30f + n3*0.15f;
+      float contrast = (p2>0?p2:100.0f)/100.0f;
+      float brightness = 0.30f + value*1.05f*contrast;
+      float cycleSeconds = p3;
+      float phase = cycleSeconds>0 ? (0.5f - 0.5f*cosf(2.0f*3.14159265f*tSec/cycleSeconds)) : 0.0f;
+      float baseR = pd.stopsR[0] + (pd.stopsR[pd.stopCount>1?1:0]-pd.stopsR[0])*phase;
+      float baseG = pd.stopsG[0] + (pd.stopsG[pd.stopCount>1?1:0]-pd.stopsG[0])*phase;
+      float baseB = pd.stopsB[0] + (pd.stopsB[pd.stopCount>1?1:0]-pd.stopsB[0])*phase;
+      float highlight = powf(fmaxf(0.0f, value-0.48f)*2.0f, 2.0f);
+      float r = baseR*brightness + baseR*glow*0.9f*contrast + baseR*highlight*0.5f*contrast;
+      float g = baseG*brightness + baseG*glow*0.9f*contrast + baseG*highlight*0.5f*contrast;
+      float b = baseB*brightness + baseB*glow*0.9f*contrast + baseB*highlight*0.5f*contrast;
+      out[0]=(uint8_t)constrain(r,0.0f,255.0f);
+      out[1]=(uint8_t)constrain(g,0.0f,255.0f);
+      out[2]=(uint8_t)constrain(b,0.0f,255.0f);
+      return;
+    }
+    case PT_LATTICE: {
+      float scaleX = 40.0f*(p0>0?p0:2.5f);
+      float scaleY = 40.0f*(p1>0?p1:2.5f);
+      float scale = scaleX; // reference unit for band width, medallion size, corner size
+      float bandFrac = p2/100.0f;
+      int medSpacing = (int)(p3>0?roundf(p3):3);
+      float texture = p4/100.0f;
+      int n = pd.stopCount;
+      uint8_t colAr=pd.stopsR[0%n], colAg=pd.stopsG[0%n], colAb=pd.stopsB[0%n];
+      uint8_t colBr=pd.stopsR[1%n], colBg=pd.stopsG[1%n], colBb=pd.stopsB[1%n];
+      uint8_t colPr=pd.stopsR[2%n], colPg=pd.stopsG[2%n], colPb=pd.stopsB[2%n];
+      uint8_t colYr=pd.stopsR[3%n], colYg=pd.stopsG[3%n], colYb=pd.stopsB[3%n];
+      float cr=pd.bgR, cg=pd.bgG, cb=pd.bgB;
+
+      float nx=u*scaleX, ny=(v-0.5f)*scaleY;
+
+      float a = fabsf(fmodf(fmodf(nx+ny,scale)+scale,scale) - scale/2.0f);
+      float bb = fabsf(fmodf(fmodf(nx-ny,scale)+scale,scale) - scale/2.0f);
+      if(a<scale*bandFrac){ cr=colAr; cg=colAg; cb=colAb; }
+      if(bb<scale*bandFrac){ cr=colBr; cg=colBg; cb=colBb; }
+
+      float pinkA = fabsf(fmodf(fmodf(nx+ny,scale)+scale,scale) - scale*0.5f);
+      if(pinkA<scale*0.035f){ cr=colPr; cg=colPg; cb=colPb; }
+      float pinkB = fabsf(fmodf(fmodf(nx-ny,scale)+scale,scale) - scale*0.5f);
+      if(pinkB<scale*0.025f){ cr=colPr; cg=colPg; cb=colPb; }
+
+      float medSize = scale*medSpacing;
+      float mx = fmodf(fmodf(nx+medSize/2.0f,medSize)+medSize,medSize) - medSize/2.0f;
+      float my = ny;
+      float diamond = (fabsf(mx)+fabsf(my))/scale;
+      if(diamond<0.9f){
+        float t = fmaxf(0.0f, 1.0f-diamond);
+        cr = colYr*t + pd.bgR*(1.0f-t);
+        cg = colYg*t + pd.bgG*(1.0f-t);
+        cb = colYb*t + pd.bgB*(1.0f-t);
+      }
+      float innerDiamond = (fabsf(mx)+fabsf(my))/(scale*0.25f);
+      if(innerDiamond<1.0f){ cr=pd.bgR; cg=pd.bgG; cb=pd.bgB; }
+
+      float ring = sinf((fabsf(mx)+fabsf(my))/7.0f);
+      if(diamond>0.65f && diamond<1.25f && ring>0.72f){ cr=colPr; cg=colPg; cb=colPb; }
+
+      float cornerScale = scale*1.7f;
+      float ccx = fabsf(fmodf(fmodf(nx+cornerScale/2.0f,cornerScale)+cornerScale,cornerScale) - cornerScale/2.0f);
+      float ccy = fabsf(fmodf(fmodf(ny+cornerScale/2.0f,cornerScale)+cornerScale,cornerScale) - cornerScale/2.0f);
+      float corner = (ccx+ccy)/(cornerScale*0.65f);
+      if(corner>0.82f && corner<1.0f){ cr=colAr; cg=colAg; cb=colAb; }
+
+      if(texture>0.0f){
+        float nz = hash2_(floorf(nx/8.0f), floorf(ny/8.0f), 11.0f);
+        float thresh = 1.0f - 0.06f*texture;
+        bool isBg = (fabsf(cr-pd.bgR)<0.5f && fabsf(cg-pd.bgG)<0.5f && fabsf(cb-pd.bgB)<0.5f);
+        if(nz>thresh && !isBg){ cr*=0.8f; cg*=0.8f; cb*=0.8f; }
+      }
+
+      out[0]=(uint8_t)constrain(cr,0.0f,255.0f);
+      out[1]=(uint8_t)constrain(cg,0.0f,255.0f);
+      out[2]=(uint8_t)constrain(cb,0.0f,255.0f);
+      return;
+    }
+    case PT_CHEVRON_TILE: {
+      float repeatsX = 10.0f/(p0>0?p0:5.0f);
+      float repeatsY = 10.0f/(p1>0?p1:5.0f);
+      float markerFrac = p2/100.0f;
+      float seamFrac = p3/100.0f;
+
+      float relX = fmodf(fmodf(u*repeatsX,1.0f)+1.0f,1.0f);
+      float relY = fmodf(fmodf(v*repeatsY,1.0f)+1.0f,1.0f);
+      float distX = fabsf(relX-0.5f);
+      float distY = fabsf(relY-0.5f);
+      float diamondDist = fabsf(distX-distY);
+      float sumDist = fmodf(distX+distY, 0.5f);
+
+      int n = pd.stopCount;
+      int idx = ((int)floorf((sumDist/0.5f)*n)) % n; if(idx<0) idx+=n;
+      float cr=pd.stopsR[idx], cg=pd.stopsG[idx], cb=pd.stopsB[idx];
+
+      float markerThresh = markerFrac*0.5f;
+      float borderThresh = markerThresh*(22.0f/18.0f);
+      if(distX<markerThresh && distY<markerThresh){ cr=pd.stopsR[0]; cg=pd.stopsG[0]; cb=pd.stopsB[0]; }
+      else if(distX<borderThresh && distY<borderThresh){ cr=pd.bgR; cg=pd.bgG; cb=pd.bgB; }
+
+      float seamThresh = seamFrac*0.5f;
+      if(diamondDist<seamThresh){ cr=pd.bgR; cg=pd.bgG; cb=pd.bgB; }
+
+      out[0]=(uint8_t)constrain(cr,0.0f,255.0f);
+      out[1]=(uint8_t)constrain(cg,0.0f,255.0f);
+      out[2]=(uint8_t)constrain(cb,0.0f,255.0f);
+      return;
+    }
+    default: out[0]=out[1]=out[2]=0; return;
+  }
+}
+`;
+
+/* Verified against the official Raspberry Pi pico-examples ws2812.pio, assembled with the
+   real pioasm tool (not hand-derived) — instructions 0x6321/0x1223/0x1200/0xa242 for
+   T1=3,T2=3,T3=4 (10 cycles/bit), side-set on the data pin, 24-bit left-shifted output. */
+const WS2812_PIO_ENGINE_C = `
+/* ---------------- High-performance PIO WS2812 driver -----------------
+   Each strip gets its own PIO state machine (4 per PIO block, 2 blocks = 8
+   strips max). All of them shift their bits out in parallel, in hardware,
+   costing almost no CPU time — unlike bit-banging every strip in sequence.
+------------------------------------------------------------------------ */
+#include <hardware/pio.h>
+#include <hardware/clocks.h>
+
+#define ws2812_wrap_target 0
+#define ws2812_wrap 3
+static const uint16_t ws2812_program_instructions[] = {
+    0x6321, 0x1223, 0x1200, 0xa242,
+};
+static const struct pio_program ws2812_program = {
+    .instructions = ws2812_program_instructions,
+    .length = 4,
+    .origin = -1,
+};
+static inline pio_sm_config ws2812_program_get_default_config(uint offset){
+  pio_sm_config c = pio_get_default_sm_config();
+  sm_config_set_wrap(&c, offset + ws2812_wrap_target, offset + ws2812_wrap);
+  sm_config_set_sideset(&c, 1, false, false);
+  return c;
+}
+static inline void ws2812_program_init(PIO pio, uint sm, uint offset, uint pin, float freqHz){
+  pio_gpio_init(pio, pin);
+  pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, true);
+  pio_sm_config c = ws2812_program_get_default_config(offset);
+  sm_config_set_sideset_pins(&c, pin);
+  sm_config_set_out_shift(&c, false, true, 24);
+  sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
+  float div = (float)clock_get_hz(clk_sys) / (freqHz * 10.0f); // 10 cycles/bit: T1+T2+T3
+  sm_config_set_clkdiv(&c, div);
+  pio_sm_init(pio, sm, offset, &c);
+  pio_sm_set_enabled(pio, sm, true);
+}
+static inline void ws2812_put_pixel(PIO pio, uint sm, uint32_t grb24){
+  pio_sm_put_blocking(pio, sm, grb24 << 8u);
+}
+`;
+
+const patternDraft = {
+  type: 'rainbow-image',
+  name: 'Pattern 1',
+  hue: { min:0, max:360, sat:90, light:52 },
+  stops: ['#FF3B3B', '#FFC93B', '#3BFF6E', '#3B8CFF', '#B23BFF'],
+  background: '#000000',
+  params: {}
+};
+function ensureDraftParams(){
+  patternDef(patternDraft.type).params.forEach(p=>{ if(!(p.key in patternDraft.params)) patternDraft.params[p.key] = p.def; });
+}
+function hexToRgb(hex){
+  hex = (hex||'#000000').replace('#','');
+  if(hex.length===3) hex = hex.split('').map(c=>c+c).join('');
+  const n = parseInt(hex,16) || 0;
+  return [ (n>>16)&255, (n>>8)&255, n&255 ];
+}
+function hslToRgb(h,s,l){
+  h=((h%360)+360)%360; s=Math.max(0,Math.min(100,s))/100; l=Math.max(0,Math.min(100,l))/100;
+  const c=(1-Math.abs(2*l-1))*s, x=c*(1-Math.abs((h/60)%2-1)), m=l-c/2;
+  let r,g,b;
+  if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}
+  else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}
+  return [ Math.round((r+m)*255), Math.round((g+m)*255), Math.round((b+m)*255) ];
+}
+function hslToHex(h,s,l){
+  const [r,g,b] = hslToRgb(h,s,l);
+  return '#'+[r,g,b].map(v=>v.toString(16).padStart(2,'0')).join('');
+}
+function rgbToHsl(r,g,b){
+  r/=255; g/=255; b/=255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let h=0, s=0; const l=(max+min)/2;
+  const d=max-min;
+  if(d!==0){
+    s = l>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: h=(g-b)/d + (g<b?6:0); break;
+      case g: h=(b-r)/d + 2; break;
+      default: h=(r-g)/d + 4; break;
+    }
+    h*=60;
+  }
+  return { h, s:s*100, l:l*100 };
+}
+function paletteColor(stops, t){
+  t = ((t%1)+1)%1;
+  const rgbs = stops.map(hexToRgb);
+  const n = rgbs.length;
+  if(n===0) return [0,0,0];
+  if(n===1) return rgbs[0];
+  const pos = t*(n-1);
+  const i0 = Math.floor(pos), i1 = Math.min(n-1,i0+1);
+  const f = pos - i0;
+  const a = rgbs[i0], b = rgbs[i1];
+  return [ a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f ];
+}
+function paletteBand(stops, t){
+  t = ((t%1)+1)%1;
+  const idx = Math.floor(t*stops.length) % stops.length;
+  return hexToRgb(stops[idx]);
+}
+function hash2(x,y,seed){
+  const h = Math.sin(x*127.1 + y*311.7 + seed*74.7) * 43758.5453;
+  return h - Math.floor(h);
+}
+function smoothstep_(t){ return t*t*(3-2*t); }
+function valueNoise_(x,y){
+  const x0=Math.floor(x), y0=Math.floor(y), x1=x0+1, y1=y0+1;
+  const sx=smoothstep_(x-x0), sy=smoothstep_(y-y0);
+  const n00=hash2(x0,y0,0), n10=hash2(x1,y0,0), n01=hash2(x0,y1,0), n11=hash2(x1,y1,0);
+  const nx0=n00+(n10-n00)*sx, nx1=n01+(n11-n01)*sx;
+  return nx0+(nx1-nx0)*sy;
+}
+function fbm_(x,y,octaves){
+  let value=0, amplitude=0.5, frequency=1;
+  for(let i=0;i<octaves;i++){
+    value += valueNoise_(x*frequency, y*frequency)*amplitude;
+    frequency*=2; amplitude*=0.5;
+  }
+  return value;
+}
+function patternPixel(pd, u, v, t=0){
+  const P = pd.params;
+  switch(pd.type){
+    case 'rainbow-strip': {
+      const t = (v*(P.repeat||1))%1;
+      return hslToRgb(pd.hue.min + t*(pd.hue.max-pd.hue.min), pd.hue.sat, pd.hue.light);
+    }
+    case 'rainbow-image': {
+      const t = (u*(P.repeat||1))%1;
+      return hslToRgb(pd.hue.min + t*(pd.hue.max-pd.hue.min), pd.hue.sat, pd.hue.light);
+    }
+    case 'diagonal': {
+      const t = ((u+v)*(P.repeat||1))%1;
+      return hslToRgb(pd.hue.min + t*(pd.hue.max-pd.hue.min), pd.hue.sat, pd.hue.light);
+    }
+    case 'plasma': {
+      const s = P.scale||2;
+      const val = ( Math.sin(u*6.283*s) + Math.sin(v*6.283*s*1.3) + Math.sin((u+v)*6.283*s*0.7) +
+                    Math.sin(Math.sqrt((u-0.5)*(u-0.5)+(v-0.5)*(v-0.5))*6.283*s*1.6) ) / 4;
+      return paletteColor(pd.stops, (val+1)/2);
+    }
+    case 'gradient': {
+      const t = P.direction==='v' ? v : (P.direction==='d' ? (u+v)/2 : u);
+      return paletteColor(pd.stops, t);
+    }
+    case 'stripes': {
+      const t = P.direction==='v' ? v : (P.direction==='d' ? (u+v)/2 : u);
+      return paletteBand(pd.stops, t*(P.bands||10));
+    }
+    case 'checker': {
+      const cx = Math.floor(u*(P.cellsX||12)), cy = Math.floor(v*(P.cellsY||6));
+      return hexToRgb(pd.stops[(cx+cy)%2] || pd.stops[0]);
+    }
+    case 'sparkle': {
+      const cellsX=120, cellsY=60;
+      const cx = Math.floor(u*cellsX), cy = Math.floor(v*cellsY);
+      const seed = P.seed||42;
+      if(hash2(cx,cy,seed) < (P.density||18)/100){
+        const hue = pd.hue.min + hash2(cx+99,cy+51,seed)*(pd.hue.max-pd.hue.min);
+        return hslToRgb(hue, pd.hue.sat, pd.hue.light);
+      }
+      return hexToRgb(pd.background);
+    }
+    case 'lines': {
+      const rad = (P.angle||45)*Math.PI/180;
+      const proj = (u*Math.cos(rad) + v*Math.sin(rad)) * (P.spacing||10);
+      const frac = ((proj%1)+1)%1;
+      if(frac < (P.thickness||20)/100){
+        return paletteBand(pd.stops, Math.floor(proj)/pd.stops.length);
+      }
+      return hexToRgb(pd.background);
+    }
+    case 'squares': {
+      const cx = u*(P.cellsX||10), cy = v*(P.cellsY||6);
+      const fx = cx-Math.floor(cx), fy = cy-Math.floor(cy);
+      const g = (P.gap||12)/200;
+      if(fx<g || fx>1-g || fy<g || fy>1-g) return hexToRgb(pd.background);
+      const idx = Math.floor(cx) + Math.floor(cy)*(P.cellsX||10);
+      return paletteBand(pd.stops, idx/pd.stops.length);
+    }
+    case 'triangles': {
+      const cellsX = P.cellsX||10, cellsY = P.cellsY||6;
+      const cx = u*cellsX, cy = v*cellsY;
+      const cellX = Math.floor(cx), cellY = Math.floor(cy);
+      const fx = cx-cellX, fy = cy-cellY;
+      const upper = (fx+fy) < 1 ? 0 : 1;
+      const idx = (cellX + cellY*cellsX)*2 + upper;
+      return paletteBand(pd.stops, idx/pd.stops.length);
+    }
+    case 'voronoi': {
+      const n = Math.round(P.cells||18);
+      const seeds = getVoronoiSeeds(n, P.seed||7);
+      let best=1e9, bestI=0, second=1e9;
+      for(let i=0;i<seeds.length;i++){
+        const dx=u-seeds[i][0], dy=v-seeds[i][1];
+        const d = dx*dx+dy*dy;
+        if(d<best){ second=best; best=d; bestI=i; } else if(d<second){ second=d; }
+      }
+      const edgeGap = Math.sqrt(second)-Math.sqrt(best);
+      let rgb = paletteBand(pd.stops, bestI/seeds.length);
+      const facet = (P.facet!==undefined?P.facet:45)/100;
+      const shade = 1 - facet*0.5 + facet*0.5*Math.min(1, Math.sqrt(best)*3);
+      rgb = rgb.map(c=>Math.max(0,Math.min(255, c*shade)));
+      if(edgeGap < 0.006) rgb = [0,0,0];
+      return rgb;
+    }
+    case 'truchet': {
+      const cellsX=P.cellsX||12, cellsY=P.cellsY||8;
+      const cx=u*cellsX, cy=v*cellsY;
+      const cellX=Math.floor(cx), cellY=Math.floor(cy);
+      const fx=cx-cellX, fy=cy-cellY;
+      const seed=P.seed||3;
+      const flip = hash2(cellX,cellY,seed) < 0.5;
+      let d1,d2;
+      if(!flip){ d1=Math.sqrt(fx*fx+fy*fy); d2=Math.sqrt((1-fx)*(1-fx)+(1-fy)*(1-fy)); }
+      else { d1=Math.sqrt(fx*fx+(1-fy)*(1-fy)); d2=Math.sqrt((1-fx)*(1-fx)+fy*fy); }
+      const thickness = (P.thickness||16)/100*0.5;
+      if(Math.abs(d1-0.5)<thickness || Math.abs(d2-0.5)<thickness){
+        return paletteBand(pd.stops, hash2(cellX*3+1,cellY*3+1,seed+11));
+      }
+      return hexToRgb(pd.background);
+    }
+    case 'memphis': {
+      const cellsX=P.cellsX||8, cellsY=P.cellsY||8;
+      const cx=u*cellsX, cy=v*cellsY;
+      const cellX=Math.floor(cx), cellY=Math.floor(cy);
+      const fx=cx-cellX, fy=cy-cellY;
+      const seed=P.seed||5;
+      if(hash2(cellX,cellY,seed) >= (P.density||55)/100) return hexToRgb(pd.background);
+      const shapeSel = hash2(cellX+50,cellY+50,seed);
+      const dx=fx-0.5, dy=fy-0.5;
+      const size = 0.30 + hash2(cellX+20,cellY+20,seed)*0.15;
+      let hit;
+      if(shapeSel<0.34){ hit = Math.sqrt(dx*dx+dy*dy) < size; }
+      else if(shapeSel<0.67){ const d=Math.sqrt(dx*dx+dy*dy); hit = Math.abs(d-size) < size*0.35; }
+      else { hit = (Math.abs(dx)<size*0.32 || Math.abs(dy)<size*0.32) && Math.abs(dx)<size*1.1 && Math.abs(dy)<size*1.1; }
+      if(!hit) return hexToRgb(pd.background);
+      return paletteBand(pd.stops, hash2(cellX+80,cellY+80,seed));
+    }
+    case 'fluid': {
+      const scale = (P.scale||0.4)*10;
+      const octaves = Math.round(P.detail||1);
+      const nx = u*scale, ny = v*scale;
+      const n1 = fbm_(nx, ny, octaves);
+      const n2 = fbm_(nx*1.8+3.1, ny*1.8-2.7, octaves);
+      const n3 = fbm_(nx*3.5-4.7, ny*3.5+3.9, octaves);
+      const swirl = Math.sin(n1*10 + Math.sin(ny*0.9)*3 + n2*8);
+      let glow = Math.abs(Math.sin(n1*17 + n2*11 + swirl*2));
+      glow = Math.pow(1-glow, 5);
+      const value = n1*0.55 + n2*0.30 + n3*0.15;
+      const contrast = (P.contrast!==undefined?P.contrast:100)/100;
+      const brightness = 0.30 + value*1.05*contrast;
+      const cycleSeconds = P.cycleSeconds||0;
+      const phase = cycleSeconds>0 ? (0.5 - 0.5*Math.cos(2*Math.PI*t/cycleSeconds)) : 0;
+      const colorA = hexToRgb(pd.stops[0]||'#00aaff'), colorB = hexToRgb(pd.stops[1]||colorA);
+      const base = [0,1,2].map(i=> colorA[i] + (colorB[i]-colorA[i])*phase);
+      let rgb = base.map(c=> c*brightness);
+      rgb = rgb.map((c,i)=> c + base[i]*glow*0.9*contrast);
+      const highlight = Math.pow(Math.max(0, value-0.48)*2, 2);
+      rgb = rgb.map((c,i)=> c + base[i]*highlight*0.5*contrast);
+      return rgb.map(c=>Math.max(0,Math.min(255,c)));
+    }
+    case 'lattice': {
+      const wrap_ = (x,m)=> ((x%m)+m)%m;
+      const scaleX = 40*(P.scaleX!==undefined?P.scaleX:2.5);
+      const scaleY = 40*(P.scaleY!==undefined?P.scaleY:2.5);
+      const scale = scaleX; // reference unit for band width, medallion size, corner size
+      const bandFrac = (P.bandWidth!==undefined?P.bandWidth:17)/100;
+      const medSpacing = Math.max(1, Math.round(P.medallion||3));
+      const texture = (P.texture!==undefined?P.texture:30)/100;
+      const n = pd.stops.length;
+      const colA = hexToRgb(pd.stops[0%n]);
+      const colB = hexToRgb(pd.stops[1%n]);
+      const colP = hexToRgb(pd.stops[2%n]);
+      const colY = hexToRgb(pd.stops[3%n]);
+      const bg = hexToRgb(pd.background);
+
+      const nx = u*scaleX, ny = (v-0.5)*scaleY;
+      let color = bg;
+
+      const a = Math.abs(wrap_(nx+ny, scale) - scale/2);
+      const b = Math.abs(wrap_(nx-ny, scale) - scale/2);
+      if(a < scale*bandFrac) color = colA;
+      if(b < scale*bandFrac) color = colB;
+
+      const pinkA = Math.abs(wrap_(nx+ny, scale) - scale*0.5);
+      if(pinkA < scale*0.035) color = colP;
+      const pinkB = Math.abs(wrap_(nx-ny, scale) - scale*0.5);
+      if(pinkB < scale*0.025) color = colP;
+
+      const medSize = scale*medSpacing;
+      const mx = wrap_(nx + medSize/2, medSize) - medSize/2;
+      const my = ny;
+      const diamond = (Math.abs(mx)+Math.abs(my))/scale;
+      if(diamond < 0.9){
+        const t = Math.max(0, 1-diamond);
+        color = [0,1,2].map(i=> colY[i]*t + bg[i]*(1-t));
+      }
+      const innerDiamond = (Math.abs(mx)+Math.abs(my))/(scale*0.25);
+      if(innerDiamond < 1) color = bg;
+
+      const ring = Math.sin((Math.abs(mx)+Math.abs(my))/7);
+      if(diamond>0.65 && diamond<1.25 && ring>0.72) color = colP;
+
+      const cornerScale = scale*1.7;
+      const ccx = Math.abs(wrap_(nx+cornerScale/2, cornerScale) - cornerScale/2);
+      const ccy = Math.abs(wrap_(ny+cornerScale/2, cornerScale) - cornerScale/2);
+      const corner = (ccx+ccy)/(cornerScale*0.65);
+      if(corner>0.82 && corner<1.0) color = colA;
+
+      if(texture>0){
+        const nz = hash2(Math.floor(nx/8), Math.floor(ny/8), 11);
+        const thresh = 1 - 0.06*texture;
+        const isBg = color[0]===bg[0] && color[1]===bg[1] && color[2]===bg[2];
+        if(nz>thresh && !isBg) color = color.map(c=>c*0.8);
+      }
+      return color.map(c=>Math.max(0,Math.min(255,c)));
+    }
+    case 'chevron-tile': {
+      // repeatsX/Y = how many tile-periods fit across one span: shrinking "scale" raises this
+      // (more, smaller diamonds); growing "scale" lowers it (fewer, bigger diamonds).
+      const repeatsX = 10 / (P.scaleX!==undefined && P.scaleX>0 ? P.scaleX : 5);
+      const repeatsY = 10 / (P.scaleY!==undefined && P.scaleY>0 ? P.scaleY : 5);
+      const markerFrac = (P.markerSize!==undefined?P.markerSize:18)/100;
+      const seamFrac = (P.seamWidth!==undefined?P.seamWidth:3)/100;
+
+      const relX = (((u*repeatsX)%1)+1)%1;
+      const relY = (((v*repeatsY)%1)+1)%1;
+      const distX = Math.abs(relX-0.5);
+      const distY = Math.abs(relY-0.5);
+      const diamondDist = Math.abs(distX-distY);
+      const sumDist = (distX+distY)%0.5;
+
+      const n = pd.stops.length;
+      const idx = Math.floor((sumDist/0.5)*n) % n;
+      let color = hexToRgb(pd.stops[idx]);
+
+      const markerThresh = markerFrac*0.5;
+      const borderThresh = markerThresh*(22/18);
+      if(distX < markerThresh && distY < markerThresh) color = hexToRgb(pd.stops[0]);
+      else if(distX < borderThresh && distY < borderThresh) color = hexToRgb(pd.background);
+
+      const seamThresh = seamFrac*0.5;
+      if(diamondDist < seamThresh) color = hexToRgb(pd.background);
+
+      return color;
+    }
+    default: return [0,0,0];
+  }
+}
+function getVoronoiSeeds(n, seed){
+  getVoronoiSeeds.cache = getVoronoiSeeds.cache || {};
+  const key = n+'_'+seed;
+  if(getVoronoiSeeds.cache[key]) return getVoronoiSeeds.cache[key];
+  const seeds=[];
+  for(let i=0;i<n;i++) seeds.push([ hash2(i,0,seed), hash2(i,1,seed+7.3) ]);
+  getVoronoiSeeds.cache[key]=seeds;
+  return seeds;
+}
+function convertPattern(rec){
+  const cols = state.columns;
+  rec.perStrip = state.strips.map(s=>{
+    const rows = s.count;
+    const data = new Uint8Array(cols*rows*3);
+    let p=0;
+    for(let c=0;c<cols;c++){
+      const u = cols>1 ? c/(cols-1) : 0;
+      for(let led=0; led<rows; led++){
+        const v = rows>1 ? led/(rows-1) : 0;
+        const rgb = patternPixel(rec.pattern, u, v);
+        data[p++]=rgb[0]; data[p++]=rgb[1]; data[p++]=rgb[2];
+      }
+    }
+    return { stripId: s.id, ledCount: rows, data };
+  });
+}
+
+/* ---- pattern builder UI ---- */
+function syncHueSwatches(){
+  const cMin = document.getElementById('pat-hueColorMin');
+  const cMax = document.getElementById('pat-hueColorMax');
+  if(cMin) cMin.value = hslToHex(patternDraft.hue.min, patternDraft.hue.sat, patternDraft.hue.light);
+  if(cMax) cMax.value = hslToHex(patternDraft.hue.max, patternDraft.hue.sat, patternDraft.hue.light);
+}
+function renderPatternBuilder(){
+  const sel = document.getElementById('pat-type');
+  if(!sel.options.length) sel.innerHTML = PATTERN_TYPES.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  sel.value = patternDraft.type;
+  const def = patternDef(patternDraft.type);
+  document.getElementById('pat-desc').textContent = def.desc;
+  ensureDraftParams();
+
+  const colorWrap = document.getElementById('pat-colorFields');
+  if(def.colorMode==='hue'){
+    colorWrap.innerHTML = `
+      <div class="field"><label class="field-label">Hue range (°)</label>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <input type="color" id="pat-hueColorMin" value="${hslToHex(patternDraft.hue.min, patternDraft.hue.sat, patternDraft.hue.light)}" style="width:34px;height:34px;padding:0;border:1px solid var(--line);cursor:pointer;flex:none;">
+          <input type="number" id="pat-hueMin" min="0" max="360" value="${patternDraft.hue.min}">
+          <input type="number" id="pat-hueMax" min="0" max="360" value="${patternDraft.hue.max}">
+          <input type="color" id="pat-hueColorMax" value="${hslToHex(patternDraft.hue.max, patternDraft.hue.sat, patternDraft.hue.light)}" style="width:34px;height:34px;padding:0;border:1px solid var(--line);cursor:pointer;flex:none;">
+        </div>
+        <div class="hint">The two swatches are shortcuts — pick a colour to set that end of the range (and its saturation/lightness below); the numbers stay the source of truth.</div>
+      </div>
+      <div class="field"><label class="field-label">Saturation / lightness (%)</label>
+        <div style="display:flex;gap:8px;"><input type="number" id="pat-sat" min="0" max="100" value="${patternDraft.hue.sat}"><input type="number" id="pat-light" min="0" max="100" value="${patternDraft.hue.light}"></div>
+      </div>
+      ${patternDraft.type==='sparkle' ? `<div class="field"><label class="field-label">Background colour</label><input type="color" value="${patternDraft.background}" id="pat-bg" style="width:44px;height:34px;padding:0;border:1px solid var(--line);cursor:pointer;"></div>` : ''}
+    `;
+    document.getElementById('pat-hueMin').addEventListener('input', e=>{ patternDraft.hue.min=parseFloat(e.target.value||0); renderPatThumb(); syncHueSwatches(); });
+    document.getElementById('pat-hueMax').addEventListener('input', e=>{ patternDraft.hue.max=parseFloat(e.target.value||360); renderPatThumb(); syncHueSwatches(); });
+    document.getElementById('pat-sat').addEventListener('input', e=>{ patternDraft.hue.sat=parseFloat(e.target.value||90); renderPatThumb(); syncHueSwatches(); });
+    document.getElementById('pat-light').addEventListener('input', e=>{ patternDraft.hue.light=parseFloat(e.target.value||50); renderPatThumb(); syncHueSwatches(); });
+    document.getElementById('pat-hueColorMin').addEventListener('input', e=>{
+      const {h,s,l} = rgbToHsl(...hexToRgb(e.target.value));
+      patternDraft.hue.min = Math.round(h); patternDraft.hue.sat = Math.round(s); patternDraft.hue.light = Math.round(l);
+      renderPatternBuilder();
+    });
+    document.getElementById('pat-hueColorMax').addEventListener('input', e=>{
+      const {h,s,l} = rgbToHsl(...hexToRgb(e.target.value));
+      patternDraft.hue.max = Math.round(h); patternDraft.hue.sat = Math.round(s); patternDraft.hue.light = Math.round(l);
+      renderPatternBuilder();
+    });
+    const bgInput = document.getElementById('pat-bg');
+    if(bgInput) bgInput.addEventListener('input', e=>{ patternDraft.background=e.target.value; renderPatThumb(); });
+  } else if(def.colorMode==='duo'){
+    while(patternDraft.stops.length<2) patternDraft.stops.push('#FFFFFF');
+    colorWrap.innerHTML = `
+      <div class="field"><label class="field-label">Color A</label><input type="color" id="pat-duoA" value="${patternDraft.stops[0]}" style="width:100%;height:34px;padding:0;border:1px solid var(--line);cursor:pointer;"></div>
+      <div class="field"><label class="field-label">Color B</label><input type="color" id="pat-duoB" value="${patternDraft.stops[1]}" style="width:100%;height:34px;padding:0;border:1px solid var(--line);cursor:pointer;"></div>
+    `;
+    document.getElementById('pat-duoA').addEventListener('input', e=>{ patternDraft.stops[0]=e.target.value; renderPatThumb(); });
+    document.getElementById('pat-duoB').addEventListener('input', e=>{ patternDraft.stops[1]=e.target.value; renderPatThumb(); });
+  } else {
+    colorWrap.innerHTML = `<div class="field" style="grid-column:1/-1;"><label class="field-label">Palette (2–6 colours)</label><div class="stopedit" id="pat-stopedit"></div></div>
+      ${def.needsBackground ? `<div class="field"><label class="field-label">Background colour</label><input type="color" value="${patternDraft.background}" id="pat-bg2" style="width:44px;height:34px;padding:0;border:1px solid var(--line);cursor:pointer;"></div>` : ''}`;
+    renderStopEditor();
+    const bg2 = document.getElementById('pat-bg2');
+    if(bg2) bg2.addEventListener('input', e=>{ patternDraft.background=e.target.value; renderPatThumb(); });
+  }
+
+  const numWrap = document.getElementById('pat-numFields');
+  numWrap.innerHTML = def.params.map(p=>{
+    if(p.type==='select'){
+      return `<div class="field"><label class="field-label">${p.label}</label><select data-pkey="${p.key}">${p.options.map(([v,l])=>`<option value="${v}" ${patternDraft.params[p.key]===v?'selected':''}>${l}</option>`).join('')}</select></div>`;
+    }
+    return `<div class="field"><label class="field-label">${p.label}: <span class="mono" data-pval="${p.key}">${patternDraft.params[p.key]}</span></label><input type="range" data-pkey="${p.key}" min="${p.min}" max="${p.max}" step="${p.step}" value="${patternDraft.params[p.key]}"></div>`;
+  }).join('');
+  numWrap.querySelectorAll('[data-pkey]').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const key = e.target.dataset.pkey;
+      patternDraft.params[key] = e.target.tagName==='SELECT' ? e.target.value : parseFloat(e.target.value);
+      const lbl = numWrap.querySelector(`[data-pval="${key}"]`);
+      if(lbl) lbl.textContent = patternDraft.params[key];
+      renderPatThumb();
+    });
+  });
+
+  renderPatThumb();
+}
+function renderStopEditor(){
+  const wrap = document.getElementById('pat-stopedit');
+  wrap.innerHTML = patternDraft.stops.map((c,i)=>`
+    <div class="stop-chip">
+      <input type="color" value="${c}" data-i="${i}">
+      ${patternDraft.stops.length>2?`<button class="stop-remove" data-remove-stop="${i}">×</button>`:''}
+    </div>
+  `).join('') + (patternDraft.stops.length<6 ? `<button class="stop-add" id="stopAddBtn" type="button">+</button>` : '');
+  wrap.querySelectorAll('input[type=color]').forEach(inp=>{
+    inp.addEventListener('input', e=>{ patternDraft.stops[parseInt(e.target.dataset.i)] = e.target.value; renderPatThumb(); });
+  });
+  wrap.querySelectorAll('[data-remove-stop]').forEach(btn=>{
+    btn.addEventListener('click', ()=>{ patternDraft.stops.splice(parseInt(btn.dataset.removeStop),1); renderStopEditor(); renderPatThumb(); });
+  });
+  const addBtn = document.getElementById('stopAddBtn');
+  if(addBtn) addBtn.addEventListener('click', ()=>{ patternDraft.stops.push('#FFFFFF'); renderStopEditor(); renderPatThumb(); });
+}
+function renderPatThumb(tSec){
+  if(tSec===undefined) tSec = patThumbDemoTime;
+  const c = document.getElementById('patThumb');
+  const ctx = c.getContext('2d');
+  const W=c.width, H=c.height;
+  const imgData = ctx.createImageData(W,H);
+  for(let x=0;x<W;x++){
+    const u = x/(W-1);
+    for(let y=0;y<H;y++){
+      const v = y/(H-1);
+      const rgb = patternPixel(patternDraft, u, v, tSec);
+      const idx = (y*W+x)*4;
+      imgData.data[idx]=rgb[0]; imgData.data[idx+1]=rgb[1]; imgData.data[idx+2]=rgb[2]; imgData.data[idx+3]=255;
+    }
+  }
+  ctx.putImageData(imgData,0,0);
+}
+let patThumbDemoTime = 0;
+let patThumbLastTs = null;
+function patThumbAnimTick(ts){
+  const patternTabActive = document.getElementById('srcPanelPattern').classList.contains('active');
+  if(patternTabActive && patternDraft.type==='fluid'){
+    if(patThumbLastTs==null) patThumbLastTs = ts;
+    patThumbDemoTime += (ts - patThumbLastTs)/1000;
+    patThumbLastTs = ts;
+    renderPatThumb(patThumbDemoTime);
+  } else {
+    patThumbLastTs = null;
+  }
+  requestAnimationFrame(patThumbAnimTick);
+}
+requestAnimationFrame(patThumbAnimTick);
+document.getElementById('pat-type').addEventListener('change', e=>{ patternDraft.type=e.target.value; patternDraft.params={}; renderPatternBuilder(); });
+document.getElementById('pat-name').addEventListener('input', e=> patternDraft.name = e.target.value);
+document.getElementById('addPatternBtn').addEventListener('click', ()=>{
+  const rec = { id: nextImageId++, name: patternDraft.name || patternDef(patternDraft.type).name, type:'pattern',
+                pattern: JSON.parse(JSON.stringify(patternDraft)), w: state.columns, h: 0, perStrip: [] };
+  state.images.push(rec);
+  convertPattern(rec);
+  renderImages();
+  const n = state.images.filter(i=>i.type==='pattern').length + 1;
+  patternDraft.name = `Pattern ${n}`;
+  document.getElementById('pat-name').value = patternDraft.name;
+  showToast('Pattern added to image list');
+});
+document.querySelectorAll('#srcTabs .src-tab').forEach(tab=>{
+  tab.addEventListener('click', ()=>{
+    document.querySelectorAll('#srcTabs .src-tab').forEach(t=>t.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('srcPanelUpload').classList.toggle('active', tab.dataset.tab==='upload');
+    document.getElementById('srcPanelPattern').classList.toggle('active', tab.dataset.tab==='pattern');
+  });
+});
+
+function renderImages(){
+  document.getElementById('colsLabelInline').textContent = state.columns;
+  const grid = document.getElementById('imageGrid');
+  grid.innerHTML = state.images.map(rec=>`
+    <div class="image-card" data-id="${rec.id}">
+      <div class="thumb-wrap"><canvas class="thumb" width="160" height="110"></canvas></div>
+      <div class="im-body">
+        <button class="im-remove" data-remove="${rec.id}">×</button>
+        <div class="im-name">${escapeHtml(rec.name)} <span class="tag">${rec.type==='pattern'?'pattern':'image'}</span></div>
+        <div class="im-meta">${rec.type==='pattern' ? patternDef(rec.pattern.type).name : rec.w+'×'+rec.h+' src'} → ${state.columns} cols</div>
+        ${rec.perStrip.map(ps=>`<div class="strip-preview" data-strip="${ps.stripId}"><canvas class="stripcanvas" width="${state.columns}" height="${ps.ledCount}"></canvas></div>`).join('')}
+      </div>
+    </div>
+  `).join('') || `<div class="hint" style="padding:8px 2px;">No images loaded yet.</div>`;
+
+  grid.querySelectorAll('.image-card').forEach(card=>{
+    const id = parseInt(card.dataset.id);
+    const rec = state.images.find(r=>r.id===id);
+    const thumb = card.querySelector('canvas.thumb');
+    const tctx = thumb.getContext('2d');
+    tctx.fillStyle='#000'; tctx.fillRect(0,0,160,110);
+    if(rec.type==='pattern'){
+      const W=160,H=110;
+      const imgData = tctx.createImageData(W,H);
+      for(let x=0;x<W;x++){
+        const u=x/(W-1);
+        for(let y=0;y<H;y++){
+          const v=y/(H-1);
+          const rgb = patternPixel(rec.pattern,u,v);
+          const idx=(y*W+x)*4; imgData.data[idx]=rgb[0]; imgData.data[idx+1]=rgb[1]; imgData.data[idx+2]=rgb[2]; imgData.data[idx+3]=255;
+        }
+      }
+      tctx.putImageData(imgData,0,0);
+    } else if(rec.srcImg){
+      const r = Math.min(160/rec.w, 110/rec.h);
+      const dw=rec.w*r, dh=rec.h*r;
+      tctx.drawImage(rec.srcImg,(160-dw)/2,(110-dh)/2,dw,dh);
+    }
+    card.querySelectorAll('.strip-preview').forEach(sp=>{
+      const stripId = parseInt(sp.dataset.strip);
+      const ps = rec.perStrip.find(p=>p.stripId===stripId);
+      if(!ps) return;
+      const c = sp.querySelector('canvas');
+      const cctx = c.getContext('2d');
+      const imgData = cctx.createImageData(ps.ledCount>0?state.columns:0, ps.ledCount);
+      const cols = state.columns, rows = ps.ledCount;
+      for(let col=0; col<cols; col++){
+        for(let led=0; led<rows; led++){
+          const si = (col*rows+led)*3;
+          const di = (led*cols+col)*4;
+          imgData.data[di]=ps.data[si]; imgData.data[di+1]=ps.data[si+1]; imgData.data[di+2]=ps.data[si+2]; imgData.data[di+3]=255;
+        }
+      }
+      cctx.putImageData(imgData,0,0);
+    });
+    card.querySelector('[data-remove]').addEventListener('click', ()=>{
+      state.images = state.images.filter(r=>r.id!==id);
+      renderImages();
+    });
+  });
+
+  renderBudget();
+  populatePreviewSelectors();
+}
+function renderBudget(){
+  const box = document.getElementById('budgetBox');
+  let totalBytes = 0;
+  const bakedImages = state.images.filter(r=>r.type!=='pattern');
+  const patternImages = state.images.filter(r=>r.type==='pattern');
+  bakedImages.forEach(rec=> rec.perStrip.forEach(ps=> totalBytes += ps.data.length));
+  const budget = 1500*1024; // conservative usable flash budget after sketch + core, out of ~2MB
+  const pct = Math.min(100, (totalBytes/budget)*100);
+  const over = totalBytes > budget;
+  box.innerHTML = `
+    <div class="budget-text"><span>Estimated baked image data: <b class="mono">${fmtBytes(totalBytes)}</b></span><span>${bakedImages.length} upload${bakedImages.length!==1?'s':''} × ${state.strips.length} strip${state.strips.length!==1?'s':''}${patternImages.length? ` · ${patternImages.length} pattern${patternImages.length!==1?'s':''} (computed live, ~0 flash)`:''}</span></div>
+    <div class="budget-bar ${over?'over':''}"><div style="width:${pct}%"></div></div>
+    <div class="hint" style="margin-top:8px;">Budgeted against ~${fmtBytes(budget)} of usable flash on a 2 MB RP2040 (rough headroom after the sketch itself). Only uploaded images are baked to flash and loop forever; patterns are recomputed on the RP2040 every column and never repeat a fixed image, so they barely register here. ${over?'<b style="color:var(--red)">Over budget</b> — lower the column count or trim uploaded images.':'Comfortably within budget.'}</div>
+  `;
+}
+function fmtBytes(n){ return n>1024*1024 ? (n/1024/1024).toFixed(2)+' MB' : (n/1024).toFixed(1)+' KB'; }
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+/* ======================================================================
+   CODE GENERATION
+   ====================================================================== */
+function toBytesArray(arr){
+  let out = '';
+  for(let i=0;i<arr.length;i++){
+    out += arr[i];
+    if(i<arr.length-1) out += ',';
+    if((i+1)%24===0) out += '\n  '; else out += ' ';
+  }
+  return out.trim();
+}
+function neoFlag(order, khz){
+  return `NEO_${order} + NEO_KHZ${khz}`;
+}
+function packColorExpr(order){
+  const map = { R:'r', G:'g', B:'b' };
+  const bytes = order.split('').map(ch=>map[ch]||'r');
+  return `(((uint32_t)${bytes[0]}<<16)|((uint32_t)${bytes[1]}<<8)|(uint32_t)${bytes[2]})`;
+}
+function sanitizeIdent(s){
+  return s.replace(/[^a-zA-Z0-9_]/g,'_').replace(/^(\d)/,'_$1');
+}
+
+function generateArduinoCode(){
+  const issues = [];
+  if(state.strips.length===0) issues.push('Add at least one LED strip.');
+  if(state.images.length===0) issues.push('Load at least one image.');
+  const pinsUsed = {};
+  function claimPin(p, label){
+    if(p===undefined || p===null || isNaN(p)) return;
+    if(pinsUsed[p]) issues.push(`Pin GP${p} is used twice (${pinsUsed[p]} and ${label}).`);
+    pinsUsed[p] = label;
+  }
+  state.strips.forEach(s=> claimPin(s.pin, `strip "${s.name}"`));
+  if(state.control.mode==='buttons'){
+    claimPin(state.control.buttons.nextPin,'next button');
+    claimPin(state.control.buttons.prevPin,'prev button');
+    if(state.control.buttons.useEnablePin) claimPin(state.control.buttons.enablePin,'enable control');
+  }
+  if(needsMavlink()){
+    claimPin(state.mavlinkUart.rxPin, 'MAVLink RX');
+    claimPin(state.mavlinkUart.txPin, 'MAVLink TX');
+  }
+  if(needsCrsf()){
+    claimPin(state.crsfUart.rxPin, 'CRSF RX');
+    claimPin(state.crsfUart.txPin, 'CRSF TX');
+  }
+  if(needsGpsModule()){
+    claimPin(state.gpsModule.uart.rxPin, 'GPS module RX');
+    claimPin(state.gpsModule.uart.txPin, 'GPS module TX');
+  }
+  if(crsfGpsConflict()){
+    issues.push("CRSF doesn't carry GPS groundspeed telemetry — switch control off CRSF, choose a directly-connected GPS module as the speed source, or pick a different speed source.");
+  }
+  if(gpsSourceConflict()){
+    issues.push('Speed is set to use the directly-connected GPS module, but no GPS module is enabled — enable it below or switch the GPS source.');
+  }
+  if(state.performance.pio && state.strips.length > 8){
+    issues.push('High-performance PIO output supports at most 8 strips (4 per PIO block) — turn it off or remove strips.');
+  }
+  if(state.speed.mode==='rc' && state.speed.rc.pwmMin===state.speed.rc.pwmMax){
+    issues.push('Speed PWM min and max are equal — that would divide by zero on-device. Give them different values.');
+  }
+  if(issues.length){ return { code:null, issues }; }
+
+  const cols = state.columns;
+  const mav = needsMavlink();
+  const crsf = needsCrsf();
+  const gpsMod = needsGpsModule();
+  const gpsToFc = gpsSendToFcActive();
+  const pio = state.performance.pio;
+  const wdt = state.watchdog.enabled;
+  const wdtMs = Math.min(8300, Math.max(200, state.watchdog.timeoutMs||4000));
+
+  // ---- strip objects ----
+  const stripDefs = state.strips.map((s,i)=>{
+    const varname = `strip${i}`;
+    const pioBlock = i<4 ? 'pio0' : 'pio1';
+    const pioSm = i%4;
+    return { ...s, varname, ident: sanitizeIdent(s.name)||`strip${i}`, pioBlock, pioSm };
+  });
+
+  const stripObjectDecls = pio ? '' : stripDefs.map(s =>
+    `Adafruit_NeoPixel ${s.varname}(${s.count}, ${s.pin}, ${neoFlag(s.order, s.khz)});`
+  ).join('\n');
+
+  // ---- image data: baked arrays for uploads, live PatternDesc structs for patterns ----
+  let imageArraysCode = '';
+  const imageIdents = [];
+  const imgKinds = []; // 'IMG_BAKED' | 'IMG_PATTERN'
+  const patternDescIdents = []; // ident or null per image
+  let anyPattern = false, anyBaked = false;
+
+  state.images.forEach((rec, imgIdx)=>{
+    const imgIdent = `img${imgIdx}_${sanitizeIdent(rec.name.replace(/\.[a-zA-Z0-9]+$/,'')) || imgIdx}`;
+    imageIdents.push(imgIdent);
+
+    if(rec.type==='pattern'){
+      anyPattern = true;
+      imgKinds.push('IMG_PATTERN');
+      const typeIdx = patternTypeIndex(rec.pattern.type);
+      const [p0,p1,p2,p3,p4] = patternParamsToFloats(rec.pattern);
+      const stopsR = rec.pattern.stops.map(h=>hexToRgb(h)[0]);
+      const stopsG = rec.pattern.stops.map(h=>hexToRgb(h)[1]);
+      const stopsB = rec.pattern.stops.map(h=>hexToRgb(h)[2]);
+      const [bgR,bgG,bgB] = hexToRgb(rec.pattern.background||'#000000');
+      let seedsIdent = 'nullptr', seedCount = 0;
+      if(rec.pattern.type==='voronoi'){
+        seedCount = Math.round(rec.pattern.params.cells || 18);
+        const seeds = getVoronoiSeeds(seedCount, rec.pattern.params.seed || 7);
+        seedsIdent = `${imgIdent}_seeds`;
+        imageArraysCode += `\n// Pattern ${imgIdx}: "${rec.name}" (${patternDef(rec.pattern.type).name}) — Voronoi cell seeds, computed once\nstatic const float ${seedsIdent}[${seedCount*2}] = {\n  ${seeds.map(s=>s[0].toFixed(6)+'f, '+s[1].toFixed(6)+'f').join(', ')}\n};\n`;
+      }
+      const stopIdent = `${imgIdent}_stops`;
+      imageArraysCode += `\n// Pattern ${imgIdx}: "${rec.name}" (${patternDef(rec.pattern.type).name}) — computed live every frame, never baked to flash\nstatic const uint8_t ${stopIdent}_r[${stopsR.length}] = {${stopsR.join(', ')}};\nstatic const uint8_t ${stopIdent}_g[${stopsG.length}] = {${stopsG.join(', ')}};\nstatic const uint8_t ${stopIdent}_b[${stopsB.length}] = {${stopsB.join(', ')}};\nconst PatternDesc ${imgIdent}_desc = {\n  ${typeIdx} /* ${rec.pattern.type} */, ${rec.pattern.hue.min}f, ${rec.pattern.hue.max}f, ${rec.pattern.hue.sat}f, ${rec.pattern.hue.light}f,\n  ${stopsR.length}, ${stopIdent}_r, ${stopIdent}_g, ${stopIdent}_b,\n  ${bgR}, ${bgG}, ${bgB},\n  ${p0}f, ${p1}f, ${p2}f, ${p3}f, ${p4}f,\n  ${seedsIdent}, ${seedCount}\n};\n`;
+      patternDescIdents.push(`&${imgIdent}_desc`);
+    } else {
+      anyBaked = true;
+      imgKinds.push('IMG_BAKED');
+      patternDescIdents.push('nullptr');
+      imageArraysCode += `\n// Image ${imgIdx}: "${rec.name}" (${rec.w}x${rec.h} source, resampled to ${cols} columns, loops forever)\n`;
+      stripDefs.forEach((s)=>{
+        const ps = rec.perStrip.find(p=>p.stripId===s.id);
+        const arrName = `${imgIdent}_${s.varname}`;
+        imageArraysCode += `static const uint8_t ${arrName}[${ps.data.length}] = {\n  ${toBytesArray(ps.data)}\n};\n`;
+      });
+    }
+  });
+
+  const pointerTable = stripDefs.map((s)=>
+    `static const uint8_t* const ${s.varname}_frames[NUM_IMAGES] = { ${state.images.map((r,ii)=> r.type==='pattern' ? 'nullptr' : imageIdents[ii]+'_'+s.varname).join(', ')} };`
+  ).join('\n');
+  const imgKindTable = `static const uint8_t imgKind[NUM_IMAGES] = { ${imgKinds.join(', ')} };`;
+  const patternDescTable = `static const PatternDesc* const patternDescs[NUM_IMAGES] = { ${patternDescIdents.join(', ')} };`;
+  const patternEngineCode = anyPattern ? PATTERN_ENGINE_C : '';
+
+  // ---- control code ----
+  let controlGlobals = '', controlSetup = '', controlUpdate = '';
+  if(state.control.mode==='buttons'){
+    const b = state.control.buttons;
+    const useToggle = b.useEnablePin && b.enableMode==='toggle';
+    controlGlobals += `
+// -- Button control --
+#define PIN_BTN_NEXT ${b.nextPin}
+#define PIN_BTN_PREV ${b.prevPin}
+${b.useEnablePin ? `#define PIN_BTN_ENABLE ${b.enablePin}` : ''}
+#define BTN_DEBOUNCE_MS ${b.debounceMs}
+#define BTN_ACTIVE_LOW ${b.activeLow ? 1 : 0}
+
+bool btnRawNext, btnRawPrev${b.useEnablePin?', btnRawEnable':''};
+bool btnStateNext=false, btnStatePrev=false${useToggle?', btnStateEnable=false':''};
+unsigned long btnNextChangeAt=0, btnPrevChangeAt=0${useToggle?', btnEnableChangeAt=0':''};
+
+bool readActive(int pin){
+  int v = digitalRead(pin);
+  return BTN_ACTIVE_LOW ? (v==LOW) : (v==HIGH);
+}`;
+    controlSetup += `
+  pinMode(PIN_BTN_NEXT, ${b.activeLow?'INPUT_PULLUP':'INPUT'});
+  pinMode(PIN_BTN_PREV, ${b.activeLow?'INPUT_PULLUP':'INPUT'});
+  ${b.useEnablePin?`pinMode(PIN_BTN_ENABLE, ${b.activeLow?'INPUT_PULLUP':'INPUT'});`:''}`;
+    controlUpdate += `
+  // debounced edge-detect on next/prev buttons
+  bool rawN = readActive(PIN_BTN_NEXT);
+  if(rawN != btnStateNext && millis()-btnNextChangeAt > BTN_DEBOUNCE_MS){
+    btnNextChangeAt = millis(); btnStateNext = rawN;
+    if(btnStateNext) nextImage();
+  }
+  bool rawP = readActive(PIN_BTN_PREV);
+  if(rawP != btnStatePrev && millis()-btnPrevChangeAt > BTN_DEBOUNCE_MS){
+    btnPrevChangeAt = millis(); btnStatePrev = rawP;
+    if(btnStatePrev) prevImage();
+  }
+  ${!b.useEnablePin ? `drawingEnabled = true;` :
+    useToggle ? `// momentary push-button: each debounced press flips drawing on/off
+  bool rawE = readActive(PIN_BTN_ENABLE);
+  if(rawE != btnStateEnable && millis()-btnEnableChangeAt > BTN_DEBOUNCE_MS){
+    btnEnableChangeAt = millis(); btnStateEnable = rawE;
+    if(btnStateEnable) drawingEnabled = !drawingEnabled;
+  }` :
+    `drawingEnabled = readActive(PIN_BTN_ENABLE); // maintained 2-position switch`}`;
+  } else {
+    const m = state.control.mode==='mavlink' ? state.control.mavlink : state.control.crsf;
+    const label = state.control.mode==='mavlink' ? 'MAVLink' : 'CRSF';
+    controlGlobals += `
+// -- ${label} RC control --
+#define RC_NEXTPREV_CHANNEL ${m.nextPrevChannel}
+#define RC_NEXTPREV_LOW_US ${m.lowThresh}
+#define RC_NEXTPREV_HIGH_US ${m.highThresh}
+#define RC_ENABLE_CHANNEL ${m.enableChannel}
+#define RC_ENABLE_THRESH_US ${m.enableThresh}
+
+int8_t nextPrevZone = 0; // -1 low, 0 mid, 1 high`;
+    controlUpdate += `
+  // next/prev from RC channel position (edge-triggered on entering low/high)
+  {
+    uint16_t ch = rcChannels[RC_NEXTPREV_CHANNEL-1];
+    int8_t zone = 0;
+    if(ch>0 && ch < RC_NEXTPREV_LOW_US) zone = -1;
+    else if(ch > RC_NEXTPREV_HIGH_US) zone = 1;
+    if(zone != nextPrevZone){
+      if(zone==-1) prevImage();
+      else if(zone==1) nextImage();
+      nextPrevZone = zone;
+    }
+  }
+  // drawing enable/disable from RC channel level
+  {
+    uint16_t ch = rcChannels[RC_ENABLE_CHANNEL-1];
+    drawingEnabled = (ch > RC_ENABLE_THRESH_US);
+  }`;
+  }
+
+  // ---- speed code ----
+  let speedGlobals = '', speedFunc = '';
+  if(state.speed.mode==='preset'){
+    const p = state.speed.preset;
+    speedGlobals += `#define PRESET_DELAY_MS ${p.delayMs}\n`;
+    speedFunc = `
+uint16_t computeDelayMs(){
+  return PRESET_DELAY_MS;
+}`;
+  } else if(state.speed.mode==='rc'){
+    const r = state.speed.rc;
+    speedGlobals += `
+#define SPEED_RC_CHANNEL ${r.channel}
+#define SPEED_PWM_MIN ${r.pwmMin}
+#define SPEED_PWM_MAX ${r.pwmMax}
+#define SPEED_DELAY_MIN_MS ${r.delayMin}
+#define SPEED_DELAY_MAX_MS ${r.delayMax}`;
+    speedFunc = `
+uint16_t computeDelayMs(){
+  int v = rcChannels[SPEED_RC_CHANNEL-1];
+  v = constrain(v, SPEED_PWM_MIN, SPEED_PWM_MAX);
+  long d = map(v, SPEED_PWM_MIN, SPEED_PWM_MAX, SPEED_DELAY_MIN_MS, SPEED_DELAY_MAX_MS);
+  return (uint16_t)d;
+}`;
+  } else {
+    const g = state.speed.gps;
+    const spdVar = g.source==='direct' ? 'gpsSpeed_mps' : 'groundspeed_m_s';
+    speedGlobals += `
+#define SPEED_COLUMN_SPACING_MM ${g.columnSpacingMm}.0f
+#define SPEED_DELAY_MIN_MS ${g.delayMin}
+#define SPEED_DELAY_MAX_MS ${g.delayMax}`;
+    speedFunc = `
+uint16_t computeDelayMs(){
+  float spd = ${spdVar};
+  if(spd < 0.05f) spd = 0.05f; // avoid huge delay / divide-by-zero when stationary or no fix
+  long d = (long)(SPEED_COLUMN_SPACING_MM / spd);
+  d = constrain(d, SPEED_DELAY_MIN_MS, SPEED_DELAY_MAX_MS);
+  return (uint16_t)d;
+}`;
+  }
+
+  // ---- RC channel array shared by whichever link protocol is active ----
+  const rcSharedCode = (mav || crsf) ? `
+uint16_t rcChannels[18];      // raw pulse widths in microseconds, channel 1 at index 0 — populated by MAVLink and/or CRSF below
+` : '';
+
+  // ---- mavlink parser ----
+  let mavlinkCode = '';
+  if(mav){
+    const u = state.mavlinkUart;
+    mavlinkCode = `
+/* ---------------- MAVLink (v1 / v2) byte-stream parser -----------------
+   Minimal hand-rolled parser: no external MAVLink library needed.
+   Decodes RC_CHANNELS (#65) into rcChannels[0..17] and VFR_HUD (#74)
+   groundspeed into groundspeed_m_s. CRC-16/MCRF4XX verified with the
+   CRC_EXTRA for these two messages; unrecognised message IDs are safely
+   skipped using the frame length so the parser stays in sync.
+------------------------------------------------------------------------ */
+#define MAVLINK_UART ${u.port}
+#define MAVLINK_BAUD ${u.baud}
+
+float groundspeed_m_s = 0.0f;
+
+enum MavParseState { MP_IDLE, MP_HEADER, MP_PAYLOAD, MP_CRC };
+struct {
+  MavParseState state = MP_IDLE;
+  uint8_t isV2 = 0;
+  uint8_t headerBuf[10];
+  uint8_t headerIdx = 0;
+  uint8_t headerLen = 0;
+  uint8_t payload[280];
+  uint8_t payloadLen = 0;
+  uint8_t payloadIdx = 0;
+  uint8_t msgid = 0;
+  uint16_t crcAccum = 0xFFFF;
+  uint8_t crcBytesGot = 0;
+  uint16_t crcRx = 0;
+} mp;
+
+static const uint8_t MAVLINK_CRC_TABLE_LOW[256] = {0}; // unused placeholder (kept for clarity, real accumulate below)
+
+void crcInit(uint16_t &crc){ crc = 0xFFFF; }
+void crcAccumulate(uint8_t data, uint16_t &crc){
+  uint8_t tmp = data ^ (uint8_t)(crc & 0xFF);
+  tmp ^= (tmp << 4);
+  crc = (crc >> 8) ^ ((uint16_t)tmp << 8) ^ ((uint16_t)tmp << 3) ^ ((uint16_t)tmp >> 4);
+}
+uint8_t crcExtraFor(uint8_t msgid){
+  switch(msgid){
+    case 65: return 118; // RC_CHANNELS
+    case 74: return 20;  // VFR_HUD
+    default: return 0;
+  }
+}
+
+void handleMavMessage(uint8_t msgid, uint8_t* payload, uint8_t len){
+  if(msgid==65 && len>=42){ // RC_CHANNELS: time_boot_ms(4) + 18*uint16 + chancount(1) + rssi(1)
+    for(int i=0;i<18;i++){
+      rcChannels[i] = payload[4+i*2] | (payload[4+i*2+1]<<8);
+    }
+  } else if(msgid==74 && len>=20){ // VFR_HUD: airspeed(4f) groundspeed(4f) heading(2) throttle(2) alt(4f) climb(4f)
+    uint32_t raw;
+    memcpy(&raw, payload+4, 4);
+    memcpy(&groundspeed_m_s, &raw, 4);
+  }
+}
+
+void mavlinkParseByte(uint8_t b){
+  switch(mp.state){
+    case MP_IDLE:
+      if(b==0xFE){ mp.isV2=0; mp.headerLen=5; mp.headerIdx=0; mp.headerBuf[mp.headerIdx++]=b; mp.state=MP_HEADER; }
+      else if(b==0xFD){ mp.isV2=1; mp.headerLen=9; mp.headerIdx=0; mp.headerBuf[mp.headerIdx++]=b; mp.state=MP_HEADER; }
+      break;
+    case MP_HEADER:
+      mp.headerBuf[mp.headerIdx++] = b;
+      if(mp.headerIdx >= mp.headerLen + 1){
+        if(!mp.isV2){
+          mp.payloadLen = mp.headerBuf[1];
+          mp.msgid = mp.headerBuf[5];
+        } else {
+          mp.payloadLen = mp.headerBuf[1];
+          mp.msgid = mp.headerBuf[7] | (mp.headerBuf[8]<<8) | (mp.headerBuf[9]<<16);
+        }
+        mp.payloadIdx = 0;
+        crcInit(mp.crcAccum);
+        for(uint8_t i=1;i<mp.headerIdx;i++) crcAccumulate(mp.headerBuf[i], mp.crcAccum);
+        mp.state = (mp.payloadLen==0) ? MP_CRC : MP_PAYLOAD;
+        mp.crcBytesGot = 0;
+      }
+      break;
+    case MP_PAYLOAD:
+      mp.payload[mp.payloadIdx++] = b;
+      crcAccumulate(b, mp.crcAccum);
+      if(mp.payloadIdx >= mp.payloadLen) mp.state = MP_CRC;
+      break;
+    case MP_CRC:
+      if(mp.crcBytesGot==0){ mp.crcRx = b; mp.crcBytesGot=1; }
+      else {
+        mp.crcRx |= ((uint16_t)b)<<8;
+        uint8_t extra = crcExtraFor((uint8_t)mp.msgid);
+        uint16_t finalCrc = mp.crcAccum;
+        crcAccumulate(extra, finalCrc);
+        if(extra!=0 && finalCrc==mp.crcRx){
+          handleMavMessage((uint8_t)mp.msgid, mp.payload, mp.payloadLen);
+        }
+        mp.state = MP_IDLE;
+      }
+      break;
+  }
+}
+
+void pollMavlink(){
+  while(MAVLINK_UART.available()){
+    mavlinkParseByte((uint8_t)MAVLINK_UART.read());
+  }
+}
+`;
+  }
+
+  // ---- CRSF parser ----
+  let crsfCode = '';
+  if(crsf){
+    const c = state.crsfUart;
+    crsfCode = `
+/* ---------------- CRSF (Crossfire / ExpressLRS) byte-stream parser -----------------
+   Minimal hand-rolled parser: no external CRSF library needed.
+   Decodes RC_CHANNELS_PACKED (type 0x16) into rcChannels[0..15], scaling CRSF's native
+   11-bit range to the same ~988-2012us range PWM/MAVLink channels use, so one set of
+   thresholds works regardless of which link is configured. CRC8 (DVB-S2, poly 0xD5)
+   over type+payload is verified before a frame is trusted.
+--------------------------------------------------------------------------------------- */
+#define CRSF_UART ${c.port}
+#define CRSF_BAUD 420000
+
+enum CrsfParseState { CF_IDLE, CF_LEN, CF_PAYLOAD };
+struct {
+  CrsfParseState state = CF_IDLE;
+  uint8_t len = 0;
+  uint8_t buf[64];
+  uint8_t idx = 0;
+} cf;
+
+uint8_t crsfCrc8(const uint8_t* data, uint8_t len){
+  uint8_t crc = 0;
+  for(uint8_t i=0;i<len;i++){
+    crc ^= data[i];
+    for(uint8_t b=0;b<8;b++){
+      crc = (crc & 0x80) ? (uint8_t)((crc<<1) ^ 0xD5) : (uint8_t)(crc<<1);
+    }
+  }
+  return crc;
+}
+
+void crsfUnpackChannels(const uint8_t* payload){
+  uint32_t bitBuf = 0; uint8_t bitCount = 0; uint8_t byteIdx = 0;
+  for(int ch=0; ch<16; ch++){
+    while(bitCount < 11){
+      bitBuf |= ((uint32_t)payload[byteIdx++]) << bitCount;
+      bitCount += 8;
+    }
+    uint16_t raw = bitBuf & 0x7FF;
+    bitBuf >>= 11; bitCount -= 11;
+    // CRSF 172..1811 -> ~988..2012us, the same convention Betaflight/ArduPilot use
+    rcChannels[ch] = (uint16_t)(((int32_t)raw - 992) * 5 / 8 + 1500);
+  }
+}
+
+void crsfParseByte(uint8_t b){
+  switch(cf.state){
+    case CF_IDLE:
+      if(b==0xC8){ cf.state=CF_LEN; } // sync/address byte (frame addressed to the flight controller)
+      break;
+    case CF_LEN:
+      cf.len = b; // counts type + payload + crc
+      cf.idx = 0;
+      cf.state = (cf.len>0 && cf.len<=sizeof(cf.buf)) ? CF_PAYLOAD : CF_IDLE;
+      break;
+    case CF_PAYLOAD:
+      cf.buf[cf.idx++] = b;
+      if(cf.idx >= cf.len){
+        uint8_t crc = crsfCrc8(cf.buf, cf.len-1);
+        if(crc == cf.buf[cf.len-1] && cf.buf[0]==0x16){
+          crsfUnpackChannels(cf.buf+1);
+        }
+        cf.state = CF_IDLE;
+      }
+      break;
+  }
+}
+
+void pollCrsf(){
+  while(CRSF_UART.available()){
+    crsfParseByte((uint8_t)CRSF_UART.read());
+  }
+}
+`;
+  }
+
+  // ---- direct GPS module (NMEA over its own UART) ----
+  let gpsCode = '';
+  if(gpsMod){
+    const g = state.gpsModule;
+    gpsCode = `
+/* ---------------- Direct GPS module (NMEA 0183) -----------------
+   Parses RMC (fix validity, lat/lon, speed, course) and GGA (fix quality,
+   satellite count, HDOP, altitude) sentences from a GPS module wired to its
+   own UART — no MAVLink or flight controller involved. Works with any
+   module that speaks standard NMEA text, which is effectively all of them.
+------------------------------------------------------------------- */
+#define GPS_UART ${g.uart.port}
+#define GPS_BAUD ${g.uart.baud}
+
+char gpsLine[96];
+uint8_t gpsLineIdx = 0;
+
+float gpsLat = 0, gpsLon = 0;
+float gpsAlt = 0, gpsHdop = 99.9f, gpsSpeed_mps = 0, gpsCourse_deg = 0;
+uint8_t gpsFixType = 0, gpsSatellites = 0;
+bool gpsValid = false;
+
+float nmeaToDeg(const char* s, char hemi){
+  float raw = atof(s);
+  int deg = (int)(raw / 100);
+  float minutes = raw - deg * 100;
+  float d = deg + minutes / 60.0f;
+  if(hemi=='S' || hemi=='W') d = -d;
+  return d;
+}
+
+void gpsHandleFields(char* f[], int n, bool isRmc){
+  if(isRmc){
+    if(n>=8 && f[1][0]=='A'){
+      gpsLat = nmeaToDeg(f[2], f[3][0]);
+      gpsLon = nmeaToDeg(f[4], f[5][0]);
+      gpsSpeed_mps = atof(f[6]) * 0.514444f; // knots -> m/s
+      gpsCourse_deg = atof(f[7]);
+      gpsValid = true;
+    } else {
+      gpsValid = false;
+    }
+  } else { // GGA
+    if(n>=9){
+      gpsFixType = atoi(f[5])>0 ? 3 : 0;
+      gpsSatellites = (uint8_t)atoi(f[6]);
+      gpsHdop = atof(f[7]);
+      gpsAlt = atof(f[8]);
+    }
+  }
+}
+
+void gpsProcessLine(char* line){
+  int len = strlen(line);
+  if(len<7 || line[0]!='$') return;
+  char* star = strchr(line, '*');
+  if(star){
+    uint8_t cs = 0;
+    for(char* c=line+1; c<star; c++) cs ^= (uint8_t)*c;
+    if(cs != (uint8_t)strtol(star+1, NULL, 16)) return; // bad checksum
+    *star = 0;
+  }
+  bool isRmc = strstr(line, "RMC") == line+3;
+  bool isGga = strstr(line, "GGA") == line+3;
+  if(!isRmc && !isGga) return;
+
+  char* fields[16];
+  int n = 0;
+  char* p = line;
+  fields[n++] = p;
+  while(*p && n<16){
+    if(*p==','){ *p=0; fields[n++]=p+1; }
+    p++;
+  }
+  gpsHandleFields(fields, n, isRmc);
+}
+
+void pollGps(){
+  while(GPS_UART.available()){
+    char c = GPS_UART.read();
+    if(c=='\\n' || c=='\\r'){
+      if(gpsLineIdx>0){ gpsLine[gpsLineIdx]=0; gpsProcessLine(gpsLine); gpsLineIdx=0; }
+    } else if(gpsLineIdx < sizeof(gpsLine)-1){
+      gpsLine[gpsLineIdx++] = c;
+    }
+  }
+}
+${gpsToFc ? `
+/* Relay this GPS to the flight controller as a MAVLink companion computer:
+   packs a GPS_INPUT (#232) message and sends it on the same MAVLink UART,
+   reusing the CRC helpers from the MAVLink parser above. */
+uint8_t mavTxSeq = 0;
+void mavlinkSendGpsInput(){
+  uint8_t payload[63];
+  uint8_t* p = payload;
+  uint64_t time_usec = (uint64_t)millis() * 1000ULL; memcpy(p,&time_usec,8); p+=8;
+  uint32_t time_week_ms = 0; memcpy(p,&time_week_ms,4); p+=4;
+  int32_t lat_i = (int32_t)(gpsLat*10000000.0f); memcpy(p,&lat_i,4); p+=4;
+  int32_t lon_i = (int32_t)(gpsLon*10000000.0f); memcpy(p,&lon_i,4); p+=4;
+  memcpy(p,&gpsAlt,4); p+=4;
+  memcpy(p,&gpsHdop,4); p+=4;
+  float vdop = 99.9f; memcpy(p,&vdop,4); p+=4;
+  float rad = gpsCourse_deg * 0.0174532925f;
+  float vn = gpsSpeed_mps * cosf(rad);
+  float ve = gpsSpeed_mps * sinf(rad);
+  memcpy(p,&vn,4); p+=4;
+  memcpy(p,&ve,4); p+=4;
+  float vd = 0; memcpy(p,&vd,4); p+=4;
+  float speed_accuracy=0; memcpy(p,&speed_accuracy,4); p+=4;
+  float horiz_accuracy=0; memcpy(p,&horiz_accuracy,4); p+=4;
+  float vert_accuracy=0; memcpy(p,&vert_accuracy,4); p+=4;
+  uint16_t ignore_flags = 4+16+32+64+128; // VDOP, VEL_VERT, SPEED/HORIZ/VERT accuracy — we don't have real values for these
+  memcpy(p,&ignore_flags,2); p+=2;
+  uint16_t time_week = 0; memcpy(p,&time_week,2); p+=2;
+  *p++ = 0;            // gps_id
+  *p++ = gpsFixType;
+  *p++ = gpsSatellites;
+
+  uint8_t buf[12+63];
+  uint8_t idx = 0;
+  buf[idx++]=0xFD; buf[idx++]=63; buf[idx++]=0; buf[idx++]=0; buf[idx++]=mavTxSeq++;
+  buf[idx++]=1;    // sysid (this companion computer)
+  buf[idx++]=191;  // compid: MAV_COMP_ID_ONBOARD_COMPUTER
+  buf[idx++]=232; buf[idx++]=0; buf[idx++]=0; // msgid 232 (GPS_INPUT), 24-bit little-endian
+  memcpy(buf+idx, payload, 63); idx += 63;
+  uint16_t crc; crcInit(crc);
+  for(uint8_t i=1;i<idx;i++) crcAccumulate(buf[i], crc);
+  crcAccumulate(85, crc); // CRC_EXTRA for GPS_INPUT
+  buf[idx++] = crc & 0xFF;
+  buf[idx++] = (crc>>8) & 0xFF;
+  MAVLINK_UART.write(buf, idx);
+}
+unsigned long lastGpsSendMs = 0;
+void maybeSendGpsToFC(){
+  if(!gpsValid) return;
+  if(millis() - lastGpsSendMs >= 200){
+    lastGpsSendMs = millis();
+    mavlinkSendGpsInput();
+  }
+}` : ''}
+`;
+  }
+
+  // ---- PIO strip init (high-performance mode only) ----
+  const usesPio0 = pio && stripDefs.some(s=>s.pioBlock==='pio0');
+  const usesPio1 = pio && stripDefs.some(s=>s.pioBlock==='pio1');
+  const pioLoadCode = pio ? [
+    usesPio0 ? 'uint ws2812_offset_pio0 = pio_add_program(pio0, &ws2812_program);' : '',
+    usesPio1 ? 'uint ws2812_offset_pio1 = pio_add_program(pio1, &ws2812_program);' : ''
+  ].filter(Boolean).join('\n  ') : '';
+  const pioInitCode = pio ? stripDefs.map(s=>
+    `ws2812_program_init(${s.pioBlock}, ${s.pioSm}, ws2812_offset_${s.pioBlock}, ${s.pin}, ${s.khz*1000}.0f);`
+  ).join('\n  ') : '';
+
+  // ---- assemble sketch ----
+  const code = `/*
+  AVIONIX GLOW — light-painting rig sketch
+  Generated for: Waveshare RP2040-Zero (arduino-pico core)
+  Requires: ${pio ? 'no extra libraries — PIO WS2812 driver is self-contained' : 'Adafruit_NeoPixel library'}
+
+  Strips ......... ${state.strips.length}
+  Images ......... ${state.images.length}${anyBaked && anyPattern ? ` (${state.images.filter(i=>i.type==='image').length} baked image${state.images.filter(i=>i.type==='image').length!==1?'s':''}, ${state.images.filter(i=>i.type==='pattern').length} live pattern${state.images.filter(i=>i.type==='pattern').length!==1?'s':''})` : anyPattern ? ' (all computed live — nothing baked to flash)' : ` (${cols} columns each, looped forever)`}
+  Control ........ ${state.control.mode==='buttons' ? 'push buttons' : state.control.mode==='mavlink' ? 'MAVLink RC channels' : 'CRSF RC channels'}
+  Draw speed ..... ${state.speed.mode==='preset' ? 'fixed preset' : state.speed.mode==='rc' ? 'RC channel' : state.speed.gps.source==='direct' ? 'direct GPS module groundspeed' : 'MAVLink GPS groundspeed'}
+  Watchdog ....... ${wdt ? `on, ${wdtMs} ms timeout` : 'off'}
+*/
+${pio ? '' : '#include <Adafruit_NeoPixel.h>'}
+${(mav || crsf || gpsMod || anyPattern) ? '#include <string.h>' : ''}
+${gpsMod ? '#include <stdlib.h>' : ''}
+${(anyPattern || gpsToFc) ? '#include <math.h>' : ''}
+
+#define NUM_IMAGES ${state.images.length}
+#define COLUMNS ${cols}
+${wdt ? `#define WDT_TIMEOUT_MS ${wdtMs}UL` : ''}
+enum { IMG_BAKED=0, IMG_PATTERN=1 };
+${pio ? WS2812_PIO_ENGINE_C : ''}
+${stripObjectDecls}
+${pio ? '' : `Adafruit_NeoPixel* allStrips[] = { ${stripDefs.map(s=>'&'+s.varname).join(', ')} };`}
+#define NUM_STRIPS ${stripDefs.length}
+${patternEngineCode}
+${imageArraysCode}
+${pointerTable}
+${imgKindTable}
+${patternDescTable}
+
+${controlGlobals}
+${speedGlobals}
+${rcSharedCode}
+${mavlinkCode}
+${crsfCode}
+${gpsCode}
+
+int currentImage = 0;
+uint32_t currentColumn = 0; // free-running: never reset, so baked images loop forever and patterns never repeat
+bool drawingEnabled = true;
+bool wasEnabled = true;
+unsigned long lastStepTime = 0;
+
+void nextImage(){ currentImage = (currentImage+1) % NUM_IMAGES; }
+void prevImage(){ currentImage = (currentImage-1+NUM_IMAGES) % NUM_IMAGES; }
+// Column position is shared across images on purpose: baked images index it mod their own
+// width, so switching images never needs a reset and every source stays in sync with the
+// others. Patterns use it directly as a continuously advancing coordinate instead.
+
+void clearAllStrips(){
+  ${pio
+    ? stripDefs.map(s=>`for(int led=0; led<${s.count}; led++) ws2812_put_pixel(${s.pioBlock}, ${s.pioSm}, 0);`).join('\n  ') + '\n  delayMicroseconds(60);'
+    : `for(int i=0;i<NUM_STRIPS;i++){ allStrips[i]->clear(); allStrips[i]->show(); }`}
+}
+
+void showColumn(int img, uint32_t col){
+  if(imgKind[img]==IMG_BAKED){
+    uint32_t c = col % COLUMNS;
+    ${stripDefs.map((s)=> pio ? `
+    {
+      const uint8_t* d = ${s.varname}_frames[img] + (size_t)c * ${s.count} * 3;
+      for(int led=0; led<${s.count}; led++){
+        uint8_t r = (uint16_t)d[led*3]   * ${s.brightness} / 255;
+        uint8_t g = (uint16_t)d[led*3+1] * ${s.brightness} / 255;
+        uint8_t b = (uint16_t)d[led*3+2] * ${s.brightness} / 255;
+        ws2812_put_pixel(${s.pioBlock}, ${s.pioSm}, ${packColorExpr(s.order)});
+      }
+    }` : `
+    {
+      const uint8_t* d = ${s.varname}_frames[img] + (size_t)c * ${s.count} * 3;
+      for(int led=0; led<${s.count}; led++){
+        ${s.varname}.setPixelColor(led, d[led*3], d[led*3+1], d[led*3+2]);
+      }
+      ${s.varname}.show();
+    }`).join('\n')}
+    ${pio ? 'delayMicroseconds(60); // WS2812 reset/latch period' : ''}
+  } else {
+    float u = (float)col / (float)COLUMNS; // grows without bound — the pattern is never baked, so it never repeats
+    float tSec = millis()/1000.0f; // real elapsed time, for time-based patterns (e.g. fluid glow's colour breathing)
+    const PatternDesc& pd = *patternDescs[img];
+    ${stripDefs.map((s)=> pio ? `
+    {
+      uint8_t rgb[3];
+      for(int led=0; led<${s.count}; led++){
+        float v = ${s.count>1 ? `(float)led/(float)${s.count-1}` : '0.0f'};
+        patternPixel(pd, u, v, tSec, rgb);
+        uint8_t r = (uint16_t)rgb[0] * ${s.brightness} / 255;
+        uint8_t g = (uint16_t)rgb[1] * ${s.brightness} / 255;
+        uint8_t b = (uint16_t)rgb[2] * ${s.brightness} / 255;
+        ws2812_put_pixel(${s.pioBlock}, ${s.pioSm}, ${packColorExpr(s.order)});
+      }
+    }` : `
+    {
+      uint8_t rgb[3];
+      for(int led=0; led<${s.count}; led++){
+        float v = ${s.count>1 ? `(float)led/(float)${s.count-1}` : '0.0f'};
+        patternPixel(pd, u, v, tSec, rgb);
+        ${s.varname}.setPixelColor(led, rgb[0], rgb[1], rgb[2]);
+      }
+      ${s.varname}.show();
+    }`).join('\n')}
+    ${pio ? 'delayMicroseconds(60); // WS2812 reset/latch period' : ''}
+  }
+}
+${speedFunc}
+${pio ? `
+// -- Core 1: owns pattern computation + PIO output, so it never blocks core 0's control
+//    polling (buttons / MAVLink / CRSF / GPS) even during a CPU-heavy pattern. Core 0 just
+//    decides *when* and *what* to draw; core 1 draws it as fast as it can keep up.
+volatile uint32_t pioTargetColumn = 0;
+volatile int pioTargetImage = 0;
+volatile bool pioDrawEnabled = true;
+volatile uint32_t core1HeartbeatMs = 0; // updated every loop1() pass; core 0 checks this is recent before feeding the watchdog
+
+void setup1(){
+  // All PIO + strip init happens in setup() on core 0 before core 1's loop1() starts.
+}
+void loop1(){
+  static uint32_t lastCol = 0xFFFFFFFFUL;
+  static int lastImg = -1;
+  static bool wasEnabled1 = true;
+  core1HeartbeatMs = millis();
+  if(pioDrawEnabled){
+    uint32_t tc = pioTargetColumn;
+    int ti = pioTargetImage;
+    if(tc != lastCol || ti != lastImg){
+      showColumn(ti, tc);
+      lastCol = tc; lastImg = ti;
+    }
+    wasEnabled1 = true;
+  } else if(wasEnabled1){
+    wasEnabled1 = false;
+    clearAllStrips();
+  }
+}` : ''}
+
+void setup(){
+  ${mav ? `MAVLINK_UART.setRX(${u_or(state.mavlinkUart,'rxPin')});\n  MAVLINK_UART.setTX(${u_or(state.mavlinkUart,'txPin')});\n  MAVLINK_UART.begin(MAVLINK_BAUD);` : ''}
+  ${crsf ? `CRSF_UART.setRX(${u_or(state.crsfUart,'rxPin')});\n  CRSF_UART.setTX(${u_or(state.crsfUart,'txPin')});\n  CRSF_UART.begin(CRSF_BAUD);` : ''}
+  ${gpsMod ? `GPS_UART.setRX(${u_or(state.gpsModule.uart,'rxPin')});\n  GPS_UART.setTX(${u_or(state.gpsModule.uart,'txPin')});\n  GPS_UART.begin(GPS_BAUD);` : ''}
+${controlSetup}
+${pio
+  ? `  ${pioLoadCode}\n  ${pioInitCode}`
+  : stripDefs.map(s=>`  ${s.varname}.begin();\n  ${s.varname}.setBrightness(${s.brightness});\n  ${s.varname}.clear();\n  ${s.varname}.show();`).join('\n')}
+  ${wdt ? `\n  // Hardware watchdog: reboots the RP2040 if loop() (and, in high-performance mode, loop1())\n  // ever stops checking in — a locked-up rig can't sit there indefinitely, which matters if\n  // it's feeding GPS to a flight controller.\n  rp2040.wdt_begin(WDT_TIMEOUT_MS);` : ''}
+}
+
+void loop(){
+${mav ? '  pollMavlink();' : ''}
+${crsf ? '  pollCrsf();' : ''}
+${gpsMod ? '  pollGps();' : ''}
+${gpsToFc ? '  maybeSendGpsToFC();' : ''}
+${controlUpdate}
+
+  if(drawingEnabled && NUM_IMAGES > 0){
+    wasEnabled = true;
+    unsigned long now = millis();
+    uint16_t d = computeDelayMs();
+    if(now - lastStepTime >= d){
+      lastStepTime = now;
+      ${pio ? `pioTargetImage = currentImage;\n      pioTargetColumn = currentColumn;\n      pioDrawEnabled = true;` : `showColumn(currentImage, currentColumn);`}
+      currentColumn++; // never wraps here — see showColumn for how each image kind handles it
+    }
+  } else if(wasEnabled){
+    wasEnabled = false;
+    ${pio ? 'pioDrawEnabled = false;' : 'clearAllStrips();'}
+  }
+${wdt ? `
+  // Feed the watchdog only if the system actually looks alive.${pio ? ` In high-performance mode that\n  // means core 1 (pattern compute + LED output) has checked in recently too — if it's wedged,\n  // core 0 alone reaching this line isn't enough, and the reboot goes ahead.` : ''}
+  ${pio ? `if((millis() - core1HeartbeatMs) < WDT_TIMEOUT_MS) rp2040.wdt_reset();` : `rp2040.wdt_reset();`}` : ''}
+}
+`;
+  return { code, issues: [] };
+}
+function u_or(u, key){ return u[key]; }
+
+/* ======================================================================
+   CODE VIEW WIRING
+   ====================================================================== */
+let lastGeneratedCode = null;
+document.getElementById('generateBtn').addEventListener('click', ()=>{
+  const { code, issues } = generateArduinoCode();
+  const issuesBox = document.getElementById('codeIssues');
+  if(issues.length){
+    issuesBox.innerHTML = `<div class="hint" style="color:var(--red);border:1px solid #4a2323;background:#20100f;padding:10px 12px;border-radius:2px;margin-bottom:12px;">${issues.map(i=>'• '+escapeHtml(i)).join('<br>')}</div>`;
+    document.getElementById('codeBlock').textContent = '// Fix the issues above, then generate again.';
+    document.getElementById('copyBtn').disabled = true;
+    document.getElementById('downloadBtn').disabled = true;
+    document.getElementById('codeStats').style.display='none';
+    lastGeneratedCode = null;
+    return;
+  }
+  issuesBox.innerHTML = '';
+  lastGeneratedCode = code;
+  document.getElementById('codeBlock').textContent = code;
+  document.getElementById('copyBtn').disabled = false;
+  document.getElementById('downloadBtn').disabled = false;
+  const stats = document.getElementById('codeStats');
+  stats.style.display='inline-block';
+  stats.textContent = `${(code.length/1024).toFixed(1)} KB source · ${state.images.length} image${state.images.length!==1?'s':''} · ${state.strips.length} strip${state.strips.length!==1?'s':''}`;
+  renderPreflight();
+});
+document.getElementById('copyBtn').addEventListener('click', async ()=>{
+  if(!lastGeneratedCode) return;
+  try{ await navigator.clipboard.writeText(lastGeneratedCode); showToast('Copied sketch to clipboard'); }
+  catch(e){ showToast('Copy failed — select the code manually'); }
+});
+document.getElementById('downloadBtn').addEventListener('click', async ()=>{
+  if(!lastGeneratedCode) return;
+  const filename = 'loom_lightpainter.ino';
+  try{
+    const downloads = await claude.use('downloads');
+    if(downloads){
+      await downloads.save({ filename, data: lastGeneratedCode });
+      showToast('Download offered — check the prompt');
+      return;
+    }
+  }catch(e){ /* fall through to blob fallback */ }
+  const blob = new Blob([lastGeneratedCode], {type:'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+});
+
+function renderPreflight(){
+  const items = [];
+  items.push(`<li><b>Board</b> — In Arduino IDE, install the "Raspberry Pi Pico/RP2040" board package by Earle Philhower and select <span class="mono">Waveshare RP2040-Zero</span> (or generic RP2040).</li>`);
+  items.push(state.performance.pio
+    ? `<li><b>Library</b> — None needed for LED output — the PIO driver is self-contained in the sketch.</li>`
+    : `<li><b>Library</b> — Install <span class="mono">Adafruit NeoPixel</span> from Library Manager.</li>`);
+  items.push(`<li><b>Power</b> — Size a 5V supply for ${state.strips.reduce((a,s)=>a+s.count,0)} total LEDs at your chosen brightness; don't power long strips from the board's USB pin alone.</li>`);
+  if(state.control.mode==='buttons'){
+    items.push(`<li><b>Wiring</b> — Buttons between their pins and GND (active-${state.control.buttons.activeLow?'LOW, using internal pull-ups':'HIGH'})${state.control.buttons.useEnablePin ? `; the enable control is wired as a ${state.control.buttons.enableMode==='toggle'?'momentary push-button':'maintained 2-position switch'}` : ''}.</li>`);
+  } else if(state.control.mode==='mavlink'){
+    items.push(`<li><b>Wiring</b> — MAVLink telemetry TX/RX from the flight controller to GP${state.mavlinkUart.rxPin}/GP${state.mavlinkUart.txPin}, matched at ${state.mavlinkUart.baud} baud on both ends.</li>`);
+  } else if(state.control.mode==='crsf'){
+    items.push(`<li><b>Wiring</b> — CRSF TX/RX from the receiver to GP${state.crsfUart.rxPin}/GP${state.crsfUart.txPin}. Fixed at 420000 baud — nothing to match, just wire it up.</li>`);
+  }
+  if(needsMavlink()){
+    const needsVfrHud = state.speed.mode==='gps' && state.speed.gps.source==='mavlink';
+    items.push(`<li><b>Telemetry stream</b> — Confirm the flight controller is streaming <span class="mono">RC_CHANNELS</span>${needsVfrHud?' and <span class="mono">VFR_HUD</span>':''} on that port (most autopilots stream these by default on a telem port).</li>`);
+  }
+  if(needsCrsf()){
+    items.push(`<li><b>CRSF link</b> — Confirm the receiver is actually outputting CRSF on that wire (not SBUS or PWM) and that its firmware streams RC channels to the flight-controller port at the default rate.</li>`);
+  }
+  if(needsGpsModule()){
+    items.push(`<li><b>GPS module wiring</b> — GPS module TX to GP${state.gpsModule.uart.rxPin} (its TX is our RX), at ${state.gpsModule.uart.baud} baud — check the module's default, some ship at 4800 or 38400 instead of 9600.</li>`);
+    if(gpsSendToFcActive()){
+      items.push(`<li><b>Companion GPS relay</b> — The flight controller needs a GPS_INPUT-capable setup on its receiving end (ArduPilot: set <span class="mono">GPS_TYPE</span> to MAVLink on the corresponding instance; PX4: enable the matching MAVLink GPS driver). It only starts sending once the module reports a valid fix.</li>`);
+    }
+  }
+  items.push(`<li><b>Column count</b> — ${state.columns} sets each pattern's horizontal scale and each baked image's resample width; re-generate if you change it.</li>`);
+  items.push(state.watchdog.enabled
+    ? `<li><b>Watchdog</b> — On, ${Math.min(8300,Math.max(200,state.watchdog.timeoutMs||4000))} ms. Once <span class="mono">rp2040.wdt_begin()</span> runs it can't be turned off in software until the next power cycle — that's an RP2040 hardware limitation, not a bug.</li>`
+    : `<li><b>Watchdog</b> — Off. A genuine hang would leave the rig frozen until power-cycled; worth turning on, especially if it's feeding GPS to a flight controller.</li>`);
+  const patCount = state.images.filter(i=>i.type==='pattern').length;
+  if(patCount) items.push(`<li><b>Live patterns</b> — ${patCount} pattern${patCount!==1?'s are':' is'} computed on the RP2040 every column rather than stored as an image, so ${patCount!==1?'they':'it'} run${patCount!==1?'':'s'} indefinitely without repeating a fixed frame. Heavier ones (plasma, low-poly cells, circuit lines, fluid glow) cost more CPU per column — if the draw speed looks slower than configured at very short delays, drop the detail/cell count or pick a lighter pattern.</li>`);
+  document.getElementById('preflightList').innerHTML = items.join('');
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(()=> t.classList.remove('show'), 2200);
+}
+
+/* ======================================================================
+   LIVE PREVIEW — strip (left, stationary) + infinite scrolling light ribbon (right)
+   ====================================================================== */
+const CELL = 2; // native px per LED, per the 2x2-block convention; upscaled via canvas.style for visibility
+const PREVIEW_VISIBLE_COLUMNS = 160; // width of the scrolling viewport, independent of image/pattern length
+const PREVIEW_SCRUB_MAX = 4000; // generous manual-scrub range for exploring far into a pattern
+const preview = { playing:false, col:0, lastTs:0, stripId:null, imageId:null, timeMs:0 };
+let previewSpeedMs = 20;
+
+function getPreviewCtx(){
+  const rec = state.images.find(r=>r.id===preview.imageId);
+  const strip = state.strips.find(s=>s.id===preview.stripId);
+  if(!rec || !strip) return null;
+  const ps = rec.perStrip.find(p=>p.stripId===strip.id);
+  if(!ps) return null;
+  return { rec, strip, ps };
+}
+// Mirrors the firmware exactly: baked images index modulo their own width (loop forever),
+// patterns are evaluated live at a continuously advancing coordinate (never repeat). Time-based
+// patterns (e.g. fluid glow) use real elapsed preview time, just like millis() on the device.
+function columnColors(rec, ps, col){
+  const rows = ps.ledCount;
+  const out = new Array(rows);
+  if(rec.type==='pattern'){
+    const u = col / state.columns;
+    const tSec = preview.timeMs/1000;
+    for(let led=0; led<rows; led++){
+      const v = rows>1 ? led/(rows-1) : 0;
+      out[led] = patternPixel(rec.pattern, u, v, tSec);
+    }
+  } else {
+    const c = ((col % state.columns) + state.columns) % state.columns;
+    for(let led=0; led<rows; led++){
+      const si = (c*rows+led)*3;
+      out[led] = [ps.data[si], ps.data[si+1], ps.data[si+2]];
+    }
+  }
+  return out;
+}
+function paintColumnBlock(ctx, colors, xOffsetPx){
+  const rows = colors.length;
+  const imgData = ctx.createImageData(CELL, rows*CELL);
+  for(let led=0; led<rows; led++){
+    const [r,g,b] = colors[led];
+    for(let dy=0; dy<CELL; dy++){
+      for(let dx=0; dx<CELL; dx++){
+        const idx = ((led*CELL+dy)*CELL+dx)*4;
+        imgData.data[idx]=r; imgData.data[idx+1]=g; imgData.data[idx+2]=b; imgData.data[idx+3]=255;
+      }
+    }
+  }
+  ctx.putImageData(imgData, xOffsetPx, 0);
+}
+function drawColumnToStrip(col){
+  const c = getPreviewCtx(); if(!c) return;
+  const colors = columnColors(c.rec, c.ps, col);
+  const canvas = document.getElementById('prevStripCanvas');
+  paintColumnBlock(canvas.getContext('2d'), colors, 0);
+}
+// Shifts everything already on the ribbon one column further from the strip, then paints the
+// newest column in right next to the strip — a true infinite conveyor, since old columns just
+// scroll off the far edge rather than the canvas ever needing to fill up and reset.
+function scrollTrailBy(colors){
+  const canvas = document.getElementById('prevTrailCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  if(W > CELL) ctx.drawImage(canvas, 0,0,W-CELL,H, CELL,0,W-CELL,H);
+  paintColumnBlock(ctx, colors, 0);
+}
+function rebuildTrailUpTo(col){
+  const c = getPreviewCtx();
+  const canvas = document.getElementById('prevTrailCanvas');
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  if(!c){ return; }
+  const visCols = Math.max(1, Math.round(canvas.width / CELL));
+  const startK = Math.min(col, visCols-1);
+  for(let k=startK; k>=0; k--){
+    paintColumnBlock(ctx, columnColors(c.rec, c.ps, col-k), k*CELL);
+  }
+  drawColumnToStrip(col);
+}
+function resetPreviewCanvases(){
+  preview.col = 0;
+  preview.timeMs = 0;
+  const c = getPreviewCtx();
+  const stripCanvas = document.getElementById('prevStripCanvas');
+  const trailCanvas = document.getElementById('prevTrailCanvas');
+  const scrub = document.getElementById('prevScrub');
+  if(!c){
+    stripCanvas.width=2; stripCanvas.height=2; stripCanvas.style.width='24px'; stripCanvas.style.height='24px';
+    trailCanvas.width=2; trailCanvas.height=2; trailCanvas.style.width='24px'; trailCanvas.style.height='24px';
+    scrub.max = 0; scrub.value = 0;
+    updatePrevStatus();
+    return;
+  }
+  const rows = c.ps.ledCount;
+  stripCanvas.width = CELL; stripCanvas.height = rows*CELL;
+  const zoomS = Math.max(4, Math.min(16, Math.floor(360/(rows*CELL))));
+  stripCanvas.style.width = (CELL*zoomS)+'px';
+  stripCanvas.style.height = (rows*CELL*zoomS)+'px';
+
+  trailCanvas.width = PREVIEW_VISIBLE_COLUMNS*CELL; trailCanvas.height = rows*CELL;
+  const zoomT = Math.max(1, Math.min(6, Math.floor(640/(PREVIEW_VISIBLE_COLUMNS*CELL))));
+  trailCanvas.style.width = (PREVIEW_VISIBLE_COLUMNS*CELL*zoomT)+'px';
+  trailCanvas.style.height = (rows*CELL*zoomT)+'px';
+
+  scrub.max = PREVIEW_SCRUB_MAX;
+  scrub.value = 0;
+  rebuildTrailUpTo(0);
+  updatePrevStatus();
+}
+function updatePrevStatus(){
+  document.getElementById('prevStatus').textContent = preview.playing ? 'playing…' : 'paused';
+  const c = getPreviewCtx();
+  const note = c && c.rec.type==='pattern' ? 'running forever' : (c ? `loops every ${state.columns}` : '');
+  document.getElementById('prevScrubLabel').textContent = `col ${preview.col}${note ? ' · '+note : ''}`;
+}
+function updatePlayBtn(){
+  document.getElementById('prevPlayBtn').textContent = preview.playing ? '⏸ Pause' : '▶ Play';
+}
+function updatePreviewSpeedHint(){
+  const hint = document.getElementById('prev-speed-hint');
+  if(state.speed.mode==='preset') hint.textContent = `Your configured preset delay is ${state.speed.preset.delayMs} ms — override freely, this only drives the on-screen preview.`;
+  else if(state.speed.mode==='rc') hint.textContent = `On the rig this comes live from RC channel ${state.speed.rc.channel}; this field just drives the on-screen preview.`;
+  else hint.textContent = `On the rig this comes live from GPS groundspeed; this field just drives the on-screen preview.`;
+}
+function populatePreviewSelectors(){
+  const stripSel = document.getElementById('prev-strip');
+  const imgSel = document.getElementById('prev-image');
+  if(!state.strips.find(s=>s.id===preview.stripId)) preview.stripId = state.strips[0] ? state.strips[0].id : null;
+  stripSel.innerHTML = state.strips.map(s=>`<option value="${s.id}">${escapeHtml(s.name)} (GP${s.pin}, ${s.count}px)</option>`).join('');
+  if(preview.stripId!=null) stripSel.value = preview.stripId;
+
+  if(!state.images.find(r=>r.id===preview.imageId)) preview.imageId = state.images[0] ? state.images[0].id : null;
+  imgSel.innerHTML = state.images.map(r=>`<option value="${r.id}">${escapeHtml(r.name)}${r.type==='pattern'?' (pattern — infinite)':''}</option>`).join('') || `<option value="">No images yet</option>`;
+  if(preview.imageId!=null) imgSel.value = preview.imageId;
+
+  updatePreviewSpeedHint();
+  resetPreviewCanvases();
+}
+document.getElementById('prev-strip').addEventListener('change', e=>{ preview.stripId=parseInt(e.target.value); resetPreviewCanvases(); });
+document.getElementById('prev-image').addEventListener('change', e=>{ preview.imageId=parseInt(e.target.value); resetPreviewCanvases(); });
+document.getElementById('prev-speed').addEventListener('input', e=>{ previewSpeedMs = Math.max(1, parseInt(e.target.value||20)); });
+document.getElementById('prevPlayBtn').addEventListener('click', ()=>{
+  if(!getPreviewCtx()) return;
+  preview.playing = !preview.playing; preview.lastTs = 0; updatePlayBtn(); updatePrevStatus();
+});
+document.getElementById('prevResetBtn').addEventListener('click', ()=>{
+  preview.playing=false; updatePlayBtn();
+  preview.col=0; preview.timeMs=0; rebuildTrailUpTo(0);
+  document.getElementById('prevScrub').value=0;
+  updatePrevStatus();
+});
+document.getElementById('prevScrub').addEventListener('input', e=>{
+  preview.playing = false; updatePlayBtn();
+  preview.col = parseInt(e.target.value||0);
+  rebuildTrailUpTo(preview.col);
+  updatePrevStatus();
+});
+let previewLastFrameTs = null;
+function previewTick(ts){
+  if(preview.playing){
+    if(previewLastFrameTs==null) previewLastFrameTs = ts;
+    preview.timeMs += (ts - previewLastFrameTs); // real elapsed time, independent of column-step rate — mirrors millis()
+    previewLastFrameTs = ts;
+    const c = getPreviewCtx();
+    if(c){
+      if(!preview.lastTs) preview.lastTs = ts;
+      if(ts - preview.lastTs >= previewSpeedMs){
+        preview.lastTs = ts;
+        preview.col++;
+        scrollTrailBy(columnColors(c.rec, c.ps, preview.col));
+        drawColumnToStrip(preview.col);
+        const scrub = document.getElementById('prevScrub');
+        scrub.value = Math.min(preview.col, parseInt(scrub.max));
+        updatePrevStatus();
+      }
+    } else { preview.playing=false; updatePlayBtn(); }
+  } else {
+    previewLastFrameTs = null;
+  }
+  requestAnimationFrame(previewTick);
+}
+requestAnimationFrame(previewTick);
+
+/* ======================================================================
+   SAVE / LOAD SETUP
+   ====================================================================== */
+function serializeSetup(){
+  return {
+    loomSetup: 1,
+    strips: state.strips,
+    nextStripId: state.nextStripId,
+    performance: state.performance,
+    watchdog: state.watchdog,
+    control: state.control,
+    speed: state.speed,
+    rcLinkProtocol: state.rcLinkProtocol,
+    mavlinkUart: state.mavlinkUart,
+    crsfUart: state.crsfUart,
+    gpsModule: state.gpsModule,
+    columns: state.columns,
+    fitMode: state.fitMode
+  };
+}
+function applySetup(obj){
+  if(!obj || typeof obj!=='object') throw new Error('Not a valid setup file');
+  if(Array.isArray(obj.strips) && obj.strips.length){
+    state.strips = obj.strips;
+    state.nextStripId = obj.nextStripId || (Math.max(...obj.strips.map(s=>s.id||0))+1);
+  }
+  if(obj.performance) Object.assign(state.performance, obj.performance);
+  if(obj.watchdog) Object.assign(state.watchdog, obj.watchdog);
+  if(obj.control){
+    Object.assign(state.control, obj.control);
+  }
+  if(obj.speed){
+    Object.assign(state.speed, obj.speed);
+  }
+  if(obj.rcLinkProtocol) state.rcLinkProtocol = obj.rcLinkProtocol;
+  if(obj.mavlinkUart) Object.assign(state.mavlinkUart, obj.mavlinkUart);
+  if(obj.crsfUart) Object.assign(state.crsfUart, obj.crsfUart);
+  if(obj.gpsModule) Object.assign(state.gpsModule, obj.gpsModule);
+  if(obj.columns) state.columns = obj.columns;
+  if(obj.fitMode) state.fitMode = obj.fitMode;
+}
+document.getElementById('saveSetupBtn').addEventListener('click', async ()=>{
+  const json = JSON.stringify(serializeSetup(), null, 2);
+  const filename = 'avionix-glow-setup.json';
+  try{
+    const downloads = await claude.use('downloads');
+    if(downloads){
+      await downloads.save({ filename, data: json });
+      showToast('Setup saved — check the download prompt');
+      return;
+    }
+  }catch(e){ /* fall through to blob fallback */ }
+  const blob = new Blob([json], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+  showToast('Setup saved');
+});
+document.getElementById('loadSetupBtn').addEventListener('click', ()=>{
+  document.getElementById('loadSetupInput').click();
+});
+document.getElementById('loadSetupInput').addEventListener('change', e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const obj = JSON.parse(ev.target.result);
+      applySetup(obj);
+      document.getElementById('columnsInput').value = state.columns;
+      document.getElementById('fitModeInput').value = state.fitMode;
+      reconvertAllImages();
+      renderAll();
+      showToast('Setup loaded');
+    }catch(err){
+      showToast('Could not read that file — is it a saved setup .json?');
+    }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+/* ======================================================================
+   INIT
+   ====================================================================== */
+function renderAll(){
+  renderSteps();
+  renderStrips();
+  renderPerfPanel();
+  renderReliabilityPanel();
+  renderControlModeGroup();
+  renderControlPanels();
+  renderSpeedModeGroup();
+  renderSpeedPanels();
+  renderSpeedShared();
+  renderImages();
+  updatePinWarnings();
+}
+document.getElementById('columnsInput').value = state.columns;
+renderPatternBuilder();
+renderAll();
+</script>
+</body>
+</html>
