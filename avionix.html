@@ -2238,6 +2238,8 @@ function renderProperties(){
       html+=checkboxField('showArc','Show Value Arc',c.showArc!==false);
       html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
       html+=checkboxField('mirrored','Mirrored (fills from the opposite end)',!!c.mirrored);
+      html+=checkboxField('fixedCircleBBox','Fixed Full-Circle Bounding Box',c.fixedCircleBBox!==false);
+      html+=`<span class="field-hint" style="display:block;margin-top:-4px;margin-bottom:8px">Keeps the centre (and radius) fixed at exactly where a full 360° sweep would put them, regardless of the actual sweep - easier to align gauges with different sweep settings. Turn off to let a smaller sweep grow larger and fill more of its box instead.</span>`;
     }
     if(inst.type==='bar-gauge'){
       html+=checkboxField('showTrack','Show Track',c.showTrack!==false);
@@ -5112,7 +5114,14 @@ function drawArcGauge(ctx,w,h,value,min,max,label,unit,color,digits,c){
   const availW = Math.max(10, w - pad*2);
   const availH = Math.max(10, h - pad*2 - bottomReserve);
 
-  const bb = arcUnitBBox(arcStartDeg, sweep);
+  // Fixed mode (default): always the full-circle bounding box, regardless
+  // of actual sweep - keeps the centre (and radius) fixed at exactly
+  // where a complete 360-degree sweep would put them, so gauges with
+  // different sweep settings stay easy to align against each other.
+  // Turned off: fits to the space the arc's own actual shape occupies -
+  // a 180-degree gauge grows to fill more of its box than a 270-degree
+  // one does, but the centre shifts between different sweep settings.
+  const bb = c.fixedCircleBBox!==false ? {x0:-1,x1:1,y0:-1,y1:1} : arcUnitBBox(arcStartDeg, sweep);
   // The label ring pads the arc outward by a constant radial amount, so expand
   // each edge additively — scaling about the origin would be wrong for sweeps
   // whose bounding box does not straddle the centre.
@@ -6402,6 +6411,11 @@ void drawArc(int cx, int cy, int radius, float startDeg, float endDeg, uint16_t 
   // rather than recomputed per ring, since the segment count only needs
   // to be "dense enough", not recalculated for a 1-2px radius change.
   int rStart = radius - thickness/2;
+  // One SPI transaction for the whole arc (all rings, all segments)
+  // instead of one per segment - a no-op on the framebuffer path (no SPI
+  // bus involved there), but a real reduction in per-segment SPI overhead
+  // on the direct-draw path used by panels too large to buffer in SRAM.
+  GFX.startWrite();
   for (int t = 0; t < thickness; t++) {
     int rr = rStart + t;
     if (rr <= 0) continue;
@@ -6414,6 +6428,7 @@ void drawArc(int cx, int cy, int radius, float startDeg, float endDeg, uint16_t 
       px = nx; py = ny;
     }
   }
+  GFX.endWrite();
 }
 
 void rotLine(int cx, int cy, float x1, float y1, float x2, float y2, float rot, uint16_t color) {
@@ -6431,10 +6446,12 @@ void thickLine(float x1, float y1, float x2, float y2, int lw, uint16_t color) {
   float dx = x2-x1, dy = y2-y1;
   float len = sqrtf(dx*dx+dy*dy);
   float px = (len>0) ? -dy/len : 0, py = (len>0) ? dx/len : 1;
+  GFX.startWrite();
   for (int i=0;i<lw;i++) {
     float off = i - (lw-1)/2.0f;
     GFX.drawLine((int)(x1+px*off), (int)(y1+py*off), (int)(x2+px*off), (int)(y2+py*off), color);
   }
+  GFX.endWrite();
 }
 
 // Rotated rectangle: GFX has no native concept of this, so the 4 corners
@@ -6454,7 +6471,9 @@ void fillRotatedRect(int cx, int cy, float w, float h, float rotDeg, uint16_t co
 void drawRotatedRectOutline(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
   int rx[4], ry[4];
   rotatedRectCorners(cx, cy, w, h, rotDeg, rx, ry);
+  GFX.startWrite();
   for (int i = 0; i < 4; i++) GFX.drawLine(rx[i], ry[i], rx[(i+1)%4], ry[(i+1)%4], color);
+  GFX.endWrite();
 }
 
 // Rotated triangle (upward-pointing before rotation): same approach as the
@@ -6472,7 +6491,9 @@ void fillRotatedTriangle(int cx, int cy, float w, float h, float rotDeg, uint16_
 void drawRotatedTriangleOutline(int cx, int cy, float w, float h, float rotDeg, uint16_t color) {
   int rx[3], ry[3];
   rotatedTriangleCorners(cx, cy, w, h, rotDeg, rx, ry);
+  GFX.startWrite();
   for (int i = 0; i < 3; i++) GFX.drawLine(rx[i], ry[i], rx[(i+1)%3], ry[(i+1)%3], color);
+  GFX.endWrite();
 }
 
 // Rotated ellipse fill: for each row, solves where that row crosses the
@@ -6496,18 +6517,21 @@ bool ellipseRowSpan(int dy, float rx, float ry, float rotDeg, float &x0, float &
 }
 void fillRotatedEllipse(int cx, int cy, float rx, float ry, float rotDeg, uint16_t color) {
   int maxR = (int)ceilf(max(rx,ry));
+  GFX.startWrite();
   for (int dy = -maxR; dy <= maxR; dy++) {
     float x0, x1;
     if (ellipseRowSpan(dy, rx, ry, rotDeg, x0, x1)) {
       GFX.drawFastHLine(cx + (int)x0, cy + dy, (int)(x1 - x0) + 1, color);
     }
   }
+  GFX.endWrite();
 }
 void drawRotatedEllipseOutline(int cx, int cy, float rx, float ry, float rotDeg, uint16_t color) {
   float rad = rotDeg * PI / 180.0f;
   float c = cosf(rad), s = sinf(rad);
   int segs = max(24, min(120, (int)(max(rx,ry)*0.6f)));
   int px=0, py=0;
+  GFX.startWrite();
   for (int i = 0; i <= segs; i++) {
     float t = (i / (float)segs) * PI * 2;
     float lx = cosf(t)*rx, ly = sinf(t)*ry;
@@ -6515,6 +6539,7 @@ void drawRotatedEllipseOutline(int cx, int cy, float rx, float ry, float rotDeg,
     if (i > 0) GFX.drawLine(px, py, x, y, color);
     px = x; py = y;
   }
+  GFX.endWrite();
 }
 
 // Adafruit_GFX text size is an integer multiple of the 6x8 base font - there
@@ -6607,12 +6632,14 @@ void checkerLine(int x1, int y1, int x2, int y2, uint16_t colorA, uint16_t color
   float dx = x2-x1, dy = y2-y1;
   float len = sqrtf(dx*dx+dy*dy);
   int steps = max(1, (int)(len/segLen));
+  GFX.startWrite();
   for (int i=0;i<steps;i++) {
     float t0 = (float)i/steps, t1 = (float)(i+1)/steps;
     int sx = x1 + (int)(dx*t0), sy = y1 + (int)(dy*t0);
     int ex = x1 + (int)(dx*t1), ey = y1 + (int)(dy*t1);
     GFX.drawLine(sx, sy, ex, ey, (i%2==0) ? colorA : colorB);
   }
+  GFX.endWrite();
 }
 // Same alternating technique, walked around a circle's circumference
 // instead of along a straight line - used for a checker-style circle
@@ -6620,12 +6647,14 @@ void checkerLine(int x1, int y1, int x2, int y2, uint16_t colorA, uint16_t color
 // covers correctly).
 void checkerCircleOutline(int cx, int cy, float r, uint16_t colorA, uint16_t colorB, int segDeg=15) {
   int steps = max(1, (int)(360/segDeg));
+  GFX.startWrite();
   for (int i=0;i<steps;i++) {
     float a0 = i*segDeg*PI/180.0f, a1 = (i+1)*segDeg*PI/180.0f;
     int sx = cx+(int)(cosf(a0)*r), sy = cy+(int)(sinf(a0)*r);
     int ex = cx+(int)(cosf(a1)*r), ey = cy+(int)(sinf(a1)*r);
     GFX.drawLine(sx, sy, ex, ey, (i%2==0) ? colorA : colorB);
   }
+  GFX.endWrite();
 }
 // Draws a thicker alternating black/white halo first (three parallel
 // offset passes for real thickness, each an alternating checkerLine), then
@@ -6638,18 +6667,27 @@ void outlinedLine(int x1, int y1, int x2, int y2, uint16_t mainColor, uint16_t b
   float dx = x2-x1, dy = y2-y1;
   float len = sqrtf(dx*dx+dy*dy);
   float px = (len>0) ? -dy/len : 0, py = (len>0) ? dx/len : 1;
+  // Outer transaction so the inner checkerLine() calls' own startWrite()/
+  // endWrite() become cheap no-ops (nested transactions are safe/
+  // reference-counted) - the whole halo-plus-main-stroke shape becomes one
+  // SPI transaction instead of several.
+  GFX.startWrite();
   for (int i=-1;i<=1;i++) {
     float off = i;
     checkerLine((int)(x1+px*off), (int)(y1+py*off), (int)(x2+px*off), (int)(y2+py*off), blackC, whiteC);
   }
   GFX.drawLine(x1, y1, x2, y2, mainColor);
+  GFX.endWrite();
 }
 void outlinedCircleOutline(int cx, int cy, float r, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  GFX.startWrite();
   checkerCircleOutline(cx, cy, r-1, blackC, whiteC);
   checkerCircleOutline(cx, cy, r+1, whiteC, blackC);
   GFX.drawCircle(cx, cy, r, mainColor);
+  GFX.endWrite();
 }
 void outlinedFillTriangle(int x0,int y0,int x1,int y1,int x2,int y2, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  GFX.startWrite();
   GFX.fillTriangle(x0,y0,x1,y1,x2,y2, blackC);
   int cx=(x0+x1+x2)/3, cy=(y0+y1+y2)/3;
   // Two successive 1px insets toward the centroid: an outer black ring
@@ -6663,11 +6701,14 @@ void outlinedFillTriangle(int x0,int y0,int x1,int y1,int x2,int y2, uint16_t ma
   GFX.fillTriangle(wx0+(cx>wx0?1:cx<wx0?-1:0), wy0+(cy>wy0?1:cy<wy0?-1:0),
                     wx1+(cx>wx1?1:cx<wx1?-1:0), wy1+(cy>wy1?1:cy<wy1?-1:0),
                     wx2+(cx>wx2?1:cx<wx2?-1:0), wy2+(cy>wy2?1:cy<wy2?-1:0), mainColor);
+  GFX.endWrite();
 }
 void outlinedFillCircle(int cx, int cy, float r, uint16_t mainColor, uint16_t blackC, uint16_t whiteC) {
+  GFX.startWrite();
   GFX.fillCircle(cx, cy, r+1, blackC);
   GFX.fillCircle(cx, cy, max(0.0f,r), whiteC);
   GFX.fillCircle(cx, cy, max(0.0f,r-1), mainColor);
+  GFX.endWrite();
 }
 void ditherFillRect(int x, int y, int w, int h, uint16_t color) {
   GFX.startWrite();
@@ -6999,8 +7040,15 @@ float getMavlinkValue(const char* source) {
   return 0;
 }
 
-// Haversine distance and bearing to home position
-float homeDistanceM() {
+// Haversine distance and bearing to home position - cached once per
+// drawAll() frame (see the cache-reset flags at the top of drawAll()),
+// since multiple instruments (Radar, Home Arrow, Home Distance) can each
+// independently need this same, trig-heavy calculation within one
+// synchronous frame, where mav can't have changed between those calls -
+// recomputing it per instrument instead of once per frame is pure waste.
+bool _homeDistCached = false, _homeBearingCached = false;
+float _cachedHomeDist = 0, _cachedHomeBearing = 0;
+float _homeDistanceMRaw() {
   if (!mav.homeSet) return 0;
   const float R = 6371000.0f;
   float dLat = (mav.lat - mav.homeLat) * PI / 180.0f;
@@ -7008,7 +7056,11 @@ float homeDistanceM() {
   float a = sinf(dLat/2)*sinf(dLat/2) + cosf(mav.homeLat*PI/180)*cosf(mav.lat*PI/180)*sinf(dLon/2)*sinf(dLon/2);
   return R * 2 * atan2f(sqrtf(a), sqrtf(1-a));
 }
-float homeBearingDeg() {
+float homeDistanceM() {
+  if (!_homeDistCached) { _cachedHomeDist = _homeDistanceMRaw(); _homeDistCached = true; }
+  return _cachedHomeDist;
+}
+float _homeBearingDegRaw() {
   if (!mav.homeSet) return 0;
   // Bearing FROM current position TO home - not the other way around. The
   // standard great-circle bearing formula computes "from point 1 to point
@@ -7018,6 +7070,10 @@ float homeBearingDeg() {
   float x = cosf(mav.lat*PI/180)*sinf(mav.homeLat*PI/180) - sinf(mav.lat*PI/180)*cosf(mav.homeLat*PI/180)*cosf((mav.homeLon-mav.lon)*PI/180);
   float b = atan2f(y, x) * 180.0f / PI;
   return fmodf(b + 360.0f, 360.0f);
+}
+float homeBearingDeg() {
+  if (!_homeBearingCached) { _cachedHomeBearing = _homeBearingDegRaw(); _homeBearingCached = true; }
+  return _cachedHomeBearing;
 }
 ${ledStripOn ? `
 // Evaluates each GROUP's own condition against live telemetry once, then
@@ -7399,11 +7455,17 @@ ${hw.board!=='rp2040' ? '  receiveMavlink();\n' : '  // receiveMavlink() now run
       lastMavOk = mavOk;
     }
   }
-` : ''}${demoModeOn ? `  // No real telemetry recently - synthesize plausible values so the
-  // instruments animate instead of sitting dead at zero. Real data always
-  // wins the moment it arrives - mav is updated by receiveMavlink()${hw.board!=='rp2040' ? ', called\n  // above, right before this check runs' : ' running\n  // on core1, completely independent of this loop'}.
-  if (!mavOk) updateDemoValues();
-` : ''}${ledStripOn ? validLedStrips.map((strip,s)=>`  updateLedStrip${s}();\n`).join('') : ''}  if (millis() - lastDraw >= DRAW_INTERVAL_MS) { drawAll(); lastDraw = millis(); }
+` : ''}  if (millis() - lastDraw >= DRAW_INTERVAL_MS) {
+${demoModeOn ? `    // No real telemetry recently - synthesize plausible values so the
+    // instruments animate instead of sitting dead at zero. Real data always
+    // wins the moment it arrives - mav is updated by receiveMavlink()${hw.board!=='rp2040' ? ', called\n    // above, right before this check runs' : ' running\n    // on core1, completely independent of this loop'}.
+    // Gated here (not every loop() iteration) since this is only ever read
+    // by drawAll() below, which is itself gated the same way - computing it
+    // more often than the display can actually show it just burns CPU for
+    // values nothing will ever read before they're overwritten again.
+    if (!mavOk) updateDemoValues();
+` : ''}${ledStripOn ? validLedStrips.map((strip,s)=>`    updateLedStrip${s}();\n`).join('') : ''}    drawAll(); lastDraw = millis();
+  }
 }
 `;
 
@@ -7415,6 +7477,10 @@ ${hw.board!=='rp2040' ? '  receiveMavlink();\n' : '  // receiveMavlink() now run
 // Section 8 : Master draw dispatch
 // ------------------------------------------------------------
 void drawAll() {
+  // Invalidate the home bearing/distance cache once per actual frame -
+  // whichever instrument asks for it first this frame computes it fresh,
+  // everything else in the same frame reuses that same cached value.
+  _homeDistCached = false; _homeBearingCached = false;
 ${(blMode==='rc'||((isU8g2||isAdafruitMonoContrast)&&contrastMode==='rc'))?`  // Brightness/contrast set from an RC channel can change in flight, so\n  // it is re-applied every frame here rather than once in setup().\n${blMode==='rc'?`  analogWrite(TFT_BL, constrain(map((int)getMavlinkValue("${hw.blRcSource||'RC_CHANNELS.chan7_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isU8g2&&contrastMode==='rc')?`  _u8g2.setContrast(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}${(isAdafruitMonoContrast&&contrastMode==='rc')?`  tft.ssd1306_command(SSD1306_SETCONTRAST);\n  tft.ssd1306_command(constrain(map((int)getMavlinkValue("${hw.contrastRcSource||'RC_CHANNELS.chan8_raw'}"), 1000, 2000, 0, 255), 0, 255));\n`:''}`:''}${useIndexedCanvas ? '' : fillScreen}
 `;
   if(useIndexedCanvas){
@@ -7876,7 +7942,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`          rightOk = (distR <= safeR);`);
     L.push(`        }`);
     L.push(`        GFX.setTextColor(lblColor);`);
-    L.push(`        if (leftOk)  { GFX.setCursor(lax-ladderOffX+(${ladderDX}), lay-ladderOffY+(${ladderDY})); GFX.print(abs(pp)); }`);
+    L.push(`        if (leftOk)  { GFX.setCursor(lax-ladderOffX-(${ladderDX}), lay-ladderOffY+(${ladderDY})); GFX.print(abs(pp)); }`);
     L.push(`        if (rightOk) { GFX.setCursor(rax-ladderOffX+(${ladderDX}), ray-ladderOffY+(${ladderDY})); GFX.print(abs(pp)); }`);
     L.push(`      }`);
     L.push(`    }`);
@@ -8475,19 +8541,20 @@ function generateInstrumentCode(inst, i) {
     // Geometry fully determined at design time (instrument size, sweep,
     // and whether the label/scale are shown) - not runtime telemetry - so
     // it's computed once here exactly like the editor preview does, via
-    // the same arcUnitBBox fit-and-center algorithm, and emitted as plain
-    // numbers rather than recomputed on the device every frame. This was
-    // previously a crude fixed formula (gy = h/2+h*0.1, gr = h*0.55-4) that
-    // didn't account for the arc's actual bounding box for a given sweep,
-    // or reserve room for the label - causing a real position mismatch
-    // between the editor and the generated sketch, and the bottom label
-    // landing in the wrong place relative to a differently-sized arc.
+    // the same fixed full-circle bounding box, and emitted as plain
+    // numbers rather than recomputed on the device every frame. Always
+    // uses the full-circle box (not the partial arc's own shape) so the
+    // centre and radius stay fixed at exactly where a complete 360-degree
+    // sweep would put them, regardless of the actual sweep angle - makes
+    // gauges with different sweep settings easy to align against each
+    // other, rather than each sweep shifting the centre to a different
+    // spot to maximize how much of the available box it fills.
     const gapFrac = showScale ? 0.22 : 0.05;
     const pad = 2;
     const bottomReserve = showName ? Math.max(9, Math.min(inst.w,inst.h)*0.16) : 0;
     const availW = Math.max(10, inst.w - pad*2);
     const availH = Math.max(10, inst.h - pad*2 - bottomReserve);
-    const bb = arcUnitBBox(arcStartDeg, sweep);
+    const bb = c.fixedCircleBBox!==false ? {x0:-1,x1:1,y0:-1,y1:1} : arcUnitBBox(arcStartDeg, sweep); // fixed mode (default): always the full-circle box, so centre/radius stay put across different sweeps; off: fits to the arc's own actual shape, maximizing size at the cost of a shifting centre - see the editor preview's matching comment for why.
     const ex0=bb.x0-gapFrac, ex1=bb.x1+gapFrac, ey0=bb.y0-gapFrac, ey1=bb.y1+gapFrac;
     const gr = Math.max(6, Math.min(availW/(ex1-ex0), availH/(ey1-ey0)));
     const gcxLocal = pad + availW/2 - ((ex0+ex1)/2)*gr;
