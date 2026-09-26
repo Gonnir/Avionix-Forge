@@ -17,6 +17,8 @@
   --orange2:#ffb060;
   --cyan:#4dd2c9;
   --green:#5fe88a;
+  --lime:#59ea59;
+  --lime2:#7ef27e;
 }
 * { box-sizing:border-box; }
 html { scroll-behavior:smooth; }
@@ -78,7 +80,7 @@ h1 em { color:var(--orange); font-style:normal; }
 }
 
 .tools {
-  display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:22px;
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:22px;
   padding:0 0 110px;
 }
 .card {
@@ -90,6 +92,7 @@ h1 em { color:var(--orange); font-style:normal; }
   animation:fadeUp .8s .3s both;
 }
 .card:nth-child(2) { animation-delay:.42s; }
+.card:nth-child(3) { animation-delay:.54s; }
 .card:hover {
   transform:translateY(-7px);
   border-color:rgba(255,157,58,.55);
@@ -103,6 +106,8 @@ h1 em { color:var(--orange); font-style:normal; }
 .card:hover::before { transform:scale(1.25); }
 .card.experimental::before { background:radial-gradient(circle,rgba(77,210,201,.13),transparent 68%); }
 .card.experimental:hover { border-color:rgba(77,210,201,.5); }
+.card.glow::before { background:radial-gradient(circle,rgba(89,234,89,.15),transparent 68%); }
+.card.glow:hover { border-color:rgba(89,234,89,.55); box-shadow:0 35px 90px rgba(0,0,0,.4),0 0 45px rgba(89,234,89,.08); }
 
 .card-head { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; position:relative; z-index:1; }
 .logo-box {
@@ -121,6 +126,7 @@ h1 em { color:var(--orange); font-style:normal; }
 }
 .card h2 span { color:var(--orange); }
 .experimental h2 span { color:var(--cyan); }
+.glow h2 span { color:var(--lime); }
 .card p { position:relative; z-index:1; color:var(--muted); line-height:1.7; min-height:82px; }
 .features {
   position:relative; z-index:1; margin:25px 0 30px; padding:0; list-style:none;
@@ -132,8 +138,9 @@ h1 em { color:var(--orange); font-style:normal; }
   background:var(--orange); box-shadow:0 0 10px rgba(255,157,58,.55);
 }
 .experimental .features li::before { background:var(--cyan); box-shadow:0 0 10px rgba(77,210,201,.55); }
+.glow .features li::before { background:var(--lime); box-shadow:0 0 10px rgba(89,234,89,.55); }
 .cta {
-  position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between;
+  position:relative; z-index:1; display:flex; align-items:center; justify-content:flex-end;
   gap:15px; padding-top:18px; border-top:1px solid var(--line);
 }
 .button {
@@ -143,6 +150,8 @@ h1 em { color:var(--orange); font-style:normal; }
 }
 .button:hover { transform:translateX(3px); background:var(--orange2); }
 .experimental .button { background:var(--cyan); color:#061514; }
+.glow .button { background:var(--lime); color:#04170a; }
+.glow .button:hover { background:var(--lime2); }
 .url-label { color:#687585; font:10px "JetBrains Mono",monospace; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 
 footer {
@@ -210,9 +219,9 @@ footer {
         </div>
         <h2>AVIONIX <span>FORGE</span></h2>
         <p>Instrument cluster editor</p>
-        
+        <span class="url-label">/Avionix-Forge/avionix</span>
         <div class="cta">
-          <span class="url-label">/Avionix-Forge/avionix</span>
+          
           <span class="button">Open tool <span>→</span></span>
         </div>
       </a>
@@ -235,10 +244,35 @@ footer {
         </div>
         <h2>AVIONIX <span> FORGE </span> Lua</h2>
         <p>EdgeTX LUA telemetry screen editor (experimental)</p>
-    
+		<span class="url-label">/Avionix-Forge/experimental_lua</span>
         <div class="cta">
-          <span class="url-label">/Avionix-Forge/experimental_lua</span>
+          
           <span class="button">Open tool<span>→</span></span>
+        </div>
+      </a>
+
+      <a class="card glow" href="https://gonnir.github.io/Avionix-Forge/avionix_glow">
+        <div class="card-head">
+          <div class="logo-box"><svg class="logo-mark" viewBox="0 0 1254 1254" width="30" height="30" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AvionixForge logo">
+    <defs>
+      <linearGradient id="logoBg" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0" stop-color="#171717"/>
+        <stop offset="1" stop-color="#0d0d0d"/>
+      </linearGradient>
+    </defs>
+    <rect x="37" y="37" width="1180" height="1180" rx="275" fill="url(#logoBg)" stroke="#59ea59" stroke-width="24"/>
+    <path d="M 626.0,252.0 L 274.0,892.0 L 377.0,892.0 L 408.0,834.0 L 366.0,791.0 L 363.0,778.0 L 371.0,768.0 L 462.0,766.0 L 568.0,715.0 L 647.0,668.0 L 722.0,616.0 L 798.0,554.0 L 851.0,501.0 L 739.0,575.0 L 654.0,624.0 L 551.0,674.0 L 486.0,698.0 L 626.0,442.0 L 696.0,568.0 L 775.0,523.0 Z M 805.0,581.0 L 734.0,640.0 L 799.0,760.0 L 868.0,763.0 L 879.0,772.0 L 880.0,785.0 L 865.0,814.0 L 852.0,829.0 L 841.0,834.0 L 873.0,892.0 L 975.0,892.0 Z M 1006.0,373.0 L 999.0,372.0 L 981.0,379.0 L 939.0,412.0 L 859.0,392.0 L 853.0,400.0 L 909.0,437.0 L 873.0,469.0 L 850.0,465.0 L 843.0,471.0 L 871.0,494.0 L 923.0,453.0 L 948.0,515.0 L 955.0,507.0 L 953.0,430.0 L 996.0,393.0 Z" fill="#fff"/>
+    <path d="M 734.0,640.0 L 799.0,760.0 L 868.0,763.0 L 877.0,769.0 L 881.0,779.0 L 914.0,779.0 L 806.0,581.0 Z M 1006.0,373.0 L 999.0,372.0 L 981.0,379.0 L 939.0,412.0 L 870.0,393.0 L 859.0,392.0 L 852.0,398.0 L 853.0,400.0 L 905.0,432.0 L 909.0,437.0 L 873.0,469.0 L 850.0,465.0 L 843.0,471.0 L 860.0,483.0 L 868.0,494.0 L 871.0,494.0 L 885.0,481.0 L 923.0,453.0 L 946.0,515.0 L 948.0,515.0 L 955.0,507.0 L 953.0,430.0 L 996.0,393.0 L 1003.0,383.0 Z M 701.0,388.0 L 702.0,565.0 L 775.0,523.0 Z M 851.0,501.0 L 788.0,544.0 L 701.0,597.0 L 701.0,631.0 L 790.0,561.0 L 827.0,527.0 Z" fill="#fff"/>
+    <path d="M 392.0,788.0 L 442.0,837.0 L 459.0,845.0 L 501.0,851.0 L 514.0,855.0 L 523.0,860.0 L 536.0,876.0 L 539.0,895.0 L 537.0,905.0 L 529.0,920.0 L 510.0,935.0 L 493.0,939.0 L 484.0,938.0 L 476.0,941.0 L 474.0,945.0 L 474.0,980.0 L 476.0,983.0 L 537.0,984.0 L 549.0,967.0 L 569.0,956.0 L 595.0,950.0 L 628.0,949.0 L 655.0,953.0 L 673.0,960.0 L 688.0,972.0 L 695.0,984.0 L 760.0,984.0 L 763.0,980.0 L 762.0,942.0 L 758.0,939.0 L 726.0,936.0 L 708.0,926.0 L 700.0,918.0 L 692.0,904.0 L 690.0,896.0 L 692.0,872.0 L 700.0,858.0 L 710.0,848.0 L 733.0,834.0 L 765.0,824.0 L 831.0,816.0 L 838.0,813.0 L 846.0,805.0 L 858.0,784.0 L 520.0,777.0 L 516.0,780.0 L 515.0,789.0 L 506.0,795.0 Z" fill="#59ea59"/>
+  </svg></div>
+          <div class="badge">Glow</div>
+        </div>
+        <h2>AVIONIX <span>Glow</span></h2>
+        <p>Light-painting rig configurator</p>
+		<span class="url-label">/Avionix-Forge/avionix_glow</span>
+        <div class="cta">
+          
+          <span class="button">Open tool <span>→</span></span>
         </div>
       </a>
     </section>
