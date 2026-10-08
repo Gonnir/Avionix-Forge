@@ -1,0 +1,1533 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Avionix LED</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTI1NCAxMjU0IiB3aWR0aD0iMTI1NCIgaGVpZ2h0PSIxMjU0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQXZpb25peEZvcmdlIGxvZ28iPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsb2dvQmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTcxNzE3Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzBkMGQwZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMzciIHk9IjM3IiB3aWR0aD0iMTE4MCIgaGVpZ2h0PSIxMTgwIiByeD0iMjc1IiBmaWxsPSJ1cmwoI2xvZ29CZykiIHN0cm9rZT0iI2E2NmJmZiIgc3Ryb2tlLXdpZHRoPSIyNCIvPgogIDxwYXRoIGQ9Ik0gNjI2LjAsMjUyLjAgTCAyNzQuMCw4OTIuMCBMIDM3Ny4wLDg5Mi4wIEwgNDA4LjAsODM0LjAgTCAzNjYuMCw3OTEuMCBMIDM2My4wLDc3OC4wIEwgMzcxLjAsNzY4LjAgTCA0NjIuMCw3NjYuMCBMIDU2OC4wLDcxNS4wIEwgNjQ3LjAsNjY4LjAgTCA3MjIuMCw2MTYuMCBMIDc5OC4wLDU1NC4wIEwgODUxLjAsNTAxLjAgTCA3MzkuMCw1NzUuMCBMIDY1NC4wLDYyNC4wIEwgNTUxLjAsNjc0LjAgTCA0ODYuMCw2OTguMCBMIDYyNi4wLDQ0Mi4wIEwgNjk2LjAsNTY4LjAgTCA3NzUuMCw1MjMuMCBaIE0gODA1LjAsNTgxLjAgTCA3MzQuMCw2NDAuMCBMIDc5OS4wLDc2MC4wIEwgODY4LjAsNzYzLjAgTCA4NzkuMCw3NzIuMCBMIDg4MC4wLDc4NS4wIEwgODY1LjAsODE0LjAgTCA4NTIuMCw4MjkuMCBMIDg0MS4wLDgzNC4wIEwgODczLjAsODkyLjAgTCA5NzUuMCw4OTIuMCBaIE0gMTAwNi4wLDM3My4wIEwgOTk5LjAsMzcyLjAgTCA5ODEuMCwzNzkuMCBMIDkzOS4wLDQxMi4wIEwgODU5LjAsMzkyLjAgTCA4NTMuMCw0MDAuMCBMIDkwOS4wLDQzNy4wIEwgODczLjAsNDY5LjAgTCA4NTAuMCw0NjUuMCBMIDg0My4wLDQ3MS4wIEwgODcxLjAsNDk0LjAgTCA5MjMuMCw0NTMuMCBMIDk0OC4wLDUxNS4wIEwgOTU1LjAsNTA3LjAgTCA5NTMuMCw0MzAuMCBMIDk5Ni4wLDM5My4wIFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNIDczNC4wLDY0MC4wIEwgNzk5LjAsNzYwLjAgTCA4NjguMCw3NjMuMCBMIDg3Ny4wLDc2OS4wIEwgODgxLjAsNzc5LjAgTCA5MTQuMCw3NzkuMCBMIDgwNi4wLDU4MS4wIFogTSAxMDA2LjAsMzczLjAgTCA5OTkuMCwzNzIuMCBMIDk4MS4wLDM3OS4wIEwgOTM5LjAsNDEyLjAgTCA4NzAuMCwzOTMuMCBMIDg1OS4wLDM5Mi4wIEwgODUyLjAsMzk4LjAgTCA4NTMuMCw0MDAuMCBMIDkwNS4wLDQzMi4wIEwgOTA5LjAsNDM3LjAgTCA4NzMuMCw0NjkuMCBMIDg1MC4wLDQ2NS4wIEwgODQzLjAsNDcxLjAgTCA4NjAuMCw0ODMuMCBMIDg2OC4wLDQ5NC4wIEwgODcxLjAsNDk0LjAgTCA4ODUuMCw0ODEuMCBMIDkyMy4wLDQ1My4wIEwgOTQ2LjAsNTE1LjAgTCA5NDguMCw1MTUuMCBMIDk1NS4wLDUwNy4wIEwgOTUzLjAsNDMwLjAgTCA5OTYuMCwzOTMuMCBMIDEwMDMuMCwzODMuMCBaIE0gNzAxLjAsMzg4LjAgTCA3MDIuMCw1NjUuMCBMIDc3NS4wLDUyMy4wIFogTSA4NTEuMCw1MDEuMCBMIDc4OC4wLDU0NC4wIEwgNzAxLjAsNTk3LjAgTCA3MDEuMCw2MzEuMCBMIDc5MC4wLDU2MS4wIEwgODI3LjAsNTI3LjAgWiIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik0gMzkyLjAsNzg4LjAgTCA0NDIuMCw4MzcuMCBMIDQ1OS4wLDg0NS4wIEwgNTAxLjAsODUxLjAgTCA1MTQuMCw4NTUuMCBMIDUyMy4wLDg2MC4wIEwgNTM2LjAsODc2LjAgTCA1MzkuMCw4OTUuMCBMIDUzNy4wLDkwNS4wIEwgNTI5LjAsOTIwLjAgTCA1MTAuMCw5MzUuMCBMIDQ5My4wLDkzOS4wIEwgNDg0LjAsOTM4LjAgTCA0NzYuMCw5NDEuMCBMIDQ3NC4wLDk0NS4wIEwgNDc0LjAsOTgwLjAgTCA0NzYuMCw5ODMuMCBMIDUzNy4wLDk4NC4wIEwgNTQ5LjAsOTY3LjAgTCA1NjkuMCw5NTYuMCBMIDU5NS4wLDk1MC4wIEwgNjI4LjAsOTQ5LjAgTCA2NTUuMCw5NTMuMCBMIDY3My4wLDk2MC4wIEwgNjg4LjAsOTcyLjAgTCA2OTUuMCw5ODQuMCBMIDc2MC4wLDk4NC4wIEwgNzYzLjAsOTgwLjAgTCA3NjIuMCw5NDIuMCBMIDc1OC4wLDkzOS4wIEwgNzI2LjAsOTM2LjAgTCA3MDguMCw5MjYuMCBMIDcwMC4wLDkxOC4wIEwgNjkyLjAsOTA0LjAgTCA2OTAuMCw4OTYuMCBMIDY5Mi4wLDg3Mi4wIEwgNzAwLjAsODU4LjAgTCA3MTAuMCw4NDguMCBMIDczMy4wLDgzNC4wIEwgNzY1LjAsODI0LjAgTCA4MzEuMCw4MTYuMCBMIDgzOC4wLDgxMy4wIEwgODQ2LjAsODA1LjAgTCA4NTguMCw3ODQuMCBMIDUyMC4wLDc3Ny4wIEwgNTE2LjAsNzgwLjAgTCA1MTUuMCw3ODkuMCBMIDUwNi4wLDc5NS4wIFoiIGZpbGw9IiNhNjZiZmYiLz4KPC9zdmc+Cg==">
+<script>
+/* theme: dark by default, remembered per browser */
+try { const t = localStorage.getItem("avionixLed.theme"); if (t === "light" || t === "dark") document.documentElement.dataset.theme = t; } catch(e) {}
+</script>
+<style>
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --panel2:#f0f2f5; --line:#d9dde3; --text:#1d2330; --muted:#6a7383;
+  --accent:#7c3aed; --accent-weak:#efe5ff; --warn:#b26a00; --warn-bg:#fff4e0; --err:#c62828; --err-bg:#fdecec;
+  --ok:#2e7d32; --led-off:#14161b; --sel:#ffb300; --code-bg:#0f1420; --code-text:#d6deeb;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12151b; --panel:#1a1e26; --panel2:#222733; --line:#2f3644; --text:#e4e8ef; --muted:#97a1b3;
+    --accent:#9461ff; --accent-weak:#2e2245; --warn:#ffb74d; --warn-bg:#3a2c12; --err:#ff6b6b; --err-bg:#3d1c1c;
+    --ok:#81c784; --led-off:#07080a; --sel:#ffc94d; --code-bg:#0b0e15; --code-text:#d6deeb;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12151b; --panel:#1a1e26; --panel2:#222733; --line:#2f3644; --text:#e4e8ef; --muted:#97a1b3;
+  --accent:#9461ff; --accent-weak:#2e2245; --warn:#ffb74d; --warn-bg:#3a2c12; --err:#ff6b6b; --err-bg:#3d1c1c;
+  --ok:#81c784; --led-off:#07080a; --sel:#ffc94d; --code-bg:#0b0e15; --code-text:#d6deeb;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+header h1{font-size:17px;margin:0 8px 0 0;font-weight:650;display:flex;align-items:center;gap:10px}
+header h1 .brand-led{color:#a66bff}
+:root[data-theme="light"] header h1 .brand-led{color:#7c3aed}
+header h1 img{width:34px;height:34px;display:block}
+#btnTheme{min-width:38px}
+header .spacer{flex:1}
+button,select,input{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:5px 10px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+button.small{padding:2px 7px;font-size:12px}
+button.danger:hover{border-color:var(--err);color:var(--err)}
+select,input[type=number],input[type=text]{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:4px 6px;min-width:0}
+input[type=number]{width:78px}
+input[type=color]{width:38px;height:28px;padding:0 2px;border:1px solid var(--line);border-radius:6px;background:var(--panel);cursor:pointer}
+label{display:inline-flex;align-items:center;gap:6px}
+main{display:grid;grid-template-columns:320px minmax(0,1fr) 320px;gap:12px;padding:12px 16px;align-items:start}
+@media (max-width:1100px){main{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.panel h2 .grow{flex:1}
+.card{border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:8px;background:var(--panel2)}
+.row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:4px 0}
+.row > .lbl{color:var(--muted);font-size:12px;min-width:70px}
+.muted{color:var(--muted)}
+.hint{color:var(--muted);font-size:12px;margin:6px 0 0}
+.grid2{display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:center}
+.grid2 > span{color:var(--muted);font-size:12px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden}
+.seg button{border:0;border-radius:0;border-right:1px solid var(--line);background:var(--panel)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--accent);color:#fff}
+/* LED canvas */
+.strip{margin-bottom:14px}
+.strip-head{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:13px}
+.strip-head b{cursor:pointer}
+.strip-head .tag{font-size:11px;border:1px solid var(--line);border-radius:4px;padding:0 5px;color:var(--muted)}
+.strip-head .tag.offtag{color:var(--err);border-color:var(--err)}
+.leds{display:flex;flex-wrap:wrap;gap:4px;background:#1b1f27;padding:6px;border-radius:6px;user-select:none;-webkit-user-select:none;touch-action:none}
+.led{width:24px;height:24px;border-radius:4px;background:#0b0c0f;border:1px solid #3a404c;position:relative;cursor:pointer;font-size:8px;line-height:1;color:#fff}
+.led.sel{outline:2px solid var(--sel);outline-offset:1px}
+.led .fx{position:absolute;right:1px;bottom:1px;text-shadow:0 0 2px #000,0 0 2px #000;font-weight:700}
+.led .ix{position:absolute;left:1px;top:1px;opacity:.55;text-shadow:0 0 2px #000}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px}
+.empty{padding:30px;text-align:center;color:var(--muted)}
+.msgs div{padding:6px 8px;border-radius:6px;margin:4px 0;font-size:12.5px}
+.msgs .err{background:var(--err-bg);color:var(--err)}
+.msgs .warn{background:var(--warn-bg);color:var(--warn)}
+.msgs .info{background:var(--accent-weak)}
+table.ranges{width:100%;border-collapse:collapse;font-size:12px}
+table.ranges td{padding:3px 2px;vertical-align:middle}
+table.ranges input[type=number]{width:62px}
+.stripchk{display:flex;flex-wrap:wrap;gap:2px 8px}
+.stripchk label{font-size:12px}
+textarea.code{width:100%;height:420px;background:var(--code-bg);color:var(--code-text);border:1px solid var(--line);border-radius:8px;padding:10px;font:12px/1.45 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;white-space:pre;resize:vertical}
+.stats{display:grid;grid-template-columns:auto auto;gap:2px 12px;font-size:12.5px}
+.stats span:nth-child(odd){color:var(--muted)}
+.testbar{display:flex;gap:8px;align-items:center;margin-top:6px;font-size:12px}
+.testbar input[type=range]{flex:1;min-width:80px}
+.full{grid-column:1/-1}
+details summary{cursor:pointer;color:var(--muted);font-size:12.5px}
+.kbd{font:11px ui-monospace,monospace;border:1px solid var(--line);border-radius:3px;padding:0 3px}
+</style>
+</head>
+<body>
+<header>
+  <h1><img src="data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMTI1NCAxMjU0IiB3aWR0aD0iMTI1NCIgaGVpZ2h0PSIxMjU0IiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHJvbGU9ImltZyIgYXJpYS1sYWJlbD0iQXZpb25peEZvcmdlIGxvZ28iPgogIDxkZWZzPgogICAgPGxpbmVhckdyYWRpZW50IGlkPSJsb2dvQmciIHgxPSIwIiB5MT0iMCIgeDI9IjEiIHkyPSIxIj4KICAgICAgPHN0b3Agb2Zmc2V0PSIwIiBzdG9wLWNvbG9yPSIjMTcxNzE3Ii8+CiAgICAgIDxzdG9wIG9mZnNldD0iMSIgc3RvcC1jb2xvcj0iIzBkMGQwZCIvPgogICAgPC9saW5lYXJHcmFkaWVudD4KICA8L2RlZnM+CiAgPHJlY3QgeD0iMzciIHk9IjM3IiB3aWR0aD0iMTE4MCIgaGVpZ2h0PSIxMTgwIiByeD0iMjc1IiBmaWxsPSJ1cmwoI2xvZ29CZykiIHN0cm9rZT0iI2E2NmJmZiIgc3Ryb2tlLXdpZHRoPSIyNCIvPgogIDxwYXRoIGQ9Ik0gNjI2LjAsMjUyLjAgTCAyNzQuMCw4OTIuMCBMIDM3Ny4wLDg5Mi4wIEwgNDA4LjAsODM0LjAgTCAzNjYuMCw3OTEuMCBMIDM2My4wLDc3OC4wIEwgMzcxLjAsNzY4LjAgTCA0NjIuMCw3NjYuMCBMIDU2OC4wLDcxNS4wIEwgNjQ3LjAsNjY4LjAgTCA3MjIuMCw2MTYuMCBMIDc5OC4wLDU1NC4wIEwgODUxLjAsNTAxLjAgTCA3MzkuMCw1NzUuMCBMIDY1NC4wLDYyNC4wIEwgNTUxLjAsNjc0LjAgTCA0ODYuMCw2OTguMCBMIDYyNi4wLDQ0Mi4wIEwgNjk2LjAsNTY4LjAgTCA3NzUuMCw1MjMuMCBaIE0gODA1LjAsNTgxLjAgTCA3MzQuMCw2NDAuMCBMIDc5OS4wLDc2MC4wIEwgODY4LjAsNzYzLjAgTCA4NzkuMCw3NzIuMCBMIDg4MC4wLDc4NS4wIEwgODY1LjAsODE0LjAgTCA4NTIuMCw4MjkuMCBMIDg0MS4wLDgzNC4wIEwgODczLjAsODkyLjAgTCA5NzUuMCw4OTIuMCBaIE0gMTAwNi4wLDM3My4wIEwgOTk5LjAsMzcyLjAgTCA5ODEuMCwzNzkuMCBMIDkzOS4wLDQxMi4wIEwgODU5LjAsMzkyLjAgTCA4NTMuMCw0MDAuMCBMIDkwOS4wLDQzNy4wIEwgODczLjAsNDY5LjAgTCA4NTAuMCw0NjUuMCBMIDg0My4wLDQ3MS4wIEwgODcxLjAsNDk0LjAgTCA5MjMuMCw0NTMuMCBMIDk0OC4wLDUxNS4wIEwgOTU1LjAsNTA3LjAgTCA5NTMuMCw0MzAuMCBMIDk5Ni4wLDM5My4wIFoiIGZpbGw9IiNmZmYiLz4KICA8cGF0aCBkPSJNIDczNC4wLDY0MC4wIEwgNzk5LjAsNzYwLjAgTCA4NjguMCw3NjMuMCBMIDg3Ny4wLDc2OS4wIEwgODgxLjAsNzc5LjAgTCA5MTQuMCw3NzkuMCBMIDgwNi4wLDU4MS4wIFogTSAxMDA2LjAsMzczLjAgTCA5OTkuMCwzNzIuMCBMIDk4MS4wLDM3OS4wIEwgOTM5LjAsNDEyLjAgTCA4NzAuMCwzOTMuMCBMIDg1OS4wLDM5Mi4wIEwgODUyLjAsMzk4LjAgTCA4NTMuMCw0MDAuMCBMIDkwNS4wLDQzMi4wIEwgOTA5LjAsNDM3LjAgTCA4NzMuMCw0NjkuMCBMIDg1MC4wLDQ2NS4wIEwgODQzLjAsNDcxLjAgTCA4NjAuMCw0ODMuMCBMIDg2OC4wLDQ5NC4wIEwgODcxLjAsNDk0LjAgTCA4ODUuMCw0ODEuMCBMIDkyMy4wLDQ1My4wIEwgOTQ2LjAsNTE1LjAgTCA5NDguMCw1MTUuMCBMIDk1NS4wLDUwNy4wIEwgOTUzLjAsNDMwLjAgTCA5OTYuMCwzOTMuMCBMIDEwMDMuMCwzODMuMCBaIE0gNzAxLjAsMzg4LjAgTCA3MDIuMCw1NjUuMCBMIDc3NS4wLDUyMy4wIFogTSA4NTEuMCw1MDEuMCBMIDc4OC4wLDU0NC4wIEwgNzAxLjAsNTk3LjAgTCA3MDEuMCw2MzEuMCBMIDc5MC4wLDU2MS4wIEwgODI3LjAsNTI3LjAgWiIgZmlsbD0iI2ZmZiIvPgogIDxwYXRoIGQ9Ik0gMzkyLjAsNzg4LjAgTCA0NDIuMCw4MzcuMCBMIDQ1OS4wLDg0NS4wIEwgNTAxLjAsODUxLjAgTCA1MTQuMCw4NTUuMCBMIDUyMy4wLDg2MC4wIEwgNTM2LjAsODc2LjAgTCA1MzkuMCw4OTUuMCBMIDUzNy4wLDkwNS4wIEwgNTI5LjAsOTIwLjAgTCA1MTAuMCw5MzUuMCBMIDQ5My4wLDkzOS4wIEwgNDg0LjAsOTM4LjAgTCA0NzYuMCw5NDEuMCBMIDQ3NC4wLDk0NS4wIEwgNDc0LjAsOTgwLjAgTCA0NzYuMCw5ODMuMCBMIDUzNy4wLDk4NC4wIEwgNTQ5LjAsOTY3LjAgTCA1NjkuMCw5NTYuMCBMIDU5NS4wLDk1MC4wIEwgNjI4LjAsOTQ5LjAgTCA2NTUuMCw5NTMuMCBMIDY3My4wLDk2MC4wIEwgNjg4LjAsOTcyLjAgTCA2OTUuMCw5ODQuMCBMIDc2MC4wLDk4NC4wIEwgNzYzLjAsOTgwLjAgTCA3NjIuMCw5NDIuMCBMIDc1OC4wLDkzOS4wIEwgNzI2LjAsOTM2LjAgTCA3MDguMCw5MjYuMCBMIDcwMC4wLDkxOC4wIEwgNjkyLjAsOTA0LjAgTCA2OTAuMCw4OTYuMCBMIDY5Mi4wLDg3Mi4wIEwgNzAwLjAsODU4LjAgTCA3MTAuMCw4NDguMCBMIDczMy4wLDgzNC4wIEwgNzY1LjAsODI0LjAgTCA4MzEuMCw4MTYuMCBMIDgzOC4wLDgxMy4wIEwgODQ2LjAsODA1LjAgTCA4NTguMCw3ODQuMCBMIDUyMC4wLDc3Ny4wIEwgNTE2LjAsNzgwLjAgTCA1MTUuMCw3ODkuMCBMIDUwNi4wLDc5NS4wIFoiIGZpbGw9IiNhNjZiZmYiLz4KPC9zdmc+Cg==" alt=""><span>Avionix <span class="brand-led">LED</span></span></h1>
+  <label>Board
+    <select id="board">
+      <option value="ch32">CH32V003F4P6 (openwch core)</option>
+      <option value="stm8">STM8S103F3P6 (Sduino)</option>
+      <option value="nano">Arduino Nano (ATmega328P)</option>
+      <option value="rp2040">RP2040 Zero (arduino-pico)</option>
+    </select>
+  </label>
+  <span class="spacer"></span>
+  <button id="btnTheme" title="Switch light / dark mode" aria-label="Switch light / dark mode"></button>
+  <button id="btnNew">New</button>
+  <button id="btnLoad">Load setup…</button>
+  <input type="file" id="fileLoad" accept=".json,application/json" hidden>
+  <button id="btnSave">Save setup (.json)</button>
+  <button id="btnDownload" class="primary">Download .ino</button>
+</header>
+
+<main>
+  <!-- left: strips + inputs -->
+  <section>
+    <div class="panel">
+      <h2><span class="grow">LED strips</span><button class="small" id="addStrip">+ Add strip</button></h2>
+      <div id="stripList"></div>
+      <p class="hint">WS2812B / SK6812 type strips. Colour order is GRB for most WS2812B strips.</p>
+    </div>
+    <div class="panel">
+      <h2><span class="grow">PWM inputs (RC receiver)</span><button class="small" id="addInput">+ Add input</button></h2>
+      <div id="inputList"></div>
+      <p class="hint">Reads the standard RC servo pulse (about 1000–2000 µs). The test slider drives the live preview.</p>
+    </div>
+  </section>
+
+  <!-- center: LED canvas + code -->
+  <section>
+    <div class="panel">
+      <h2><span class="grow">LEDs</span>
+        <label style="text-transform:none;letter-spacing:0"><input type="checkbox" id="animate" checked> Live preview</label>
+      </h2>
+      <div class="toolbar">
+        <button class="small" id="selAll">Select all</button>
+        <button class="small" id="selNone">Select none</button>
+        <button class="small" id="selInvert">Invert</button>
+        <span class="muted" id="selCount" style="font-size:12px"></span>
+      </div>
+      <div id="canvas"></div>
+      <p class="hint">Click an LED to select it. <span class="kbd">Ctrl</span>/<span class="kbd">⌘</span>+click adds or removes, <span class="kbd">Shift</span>+click selects a range, drag across LEDs to paint a selection, click a strip name to select the whole strip.</p>
+    </div>
+    <div class="panel">
+      <h2><span class="grow">Generated Arduino code</span>
+        <button class="small" id="btnCopy">Copy</button>
+      </h2>
+      <div class="msgs" id="msgs"></div>
+      <textarea class="code" id="code" readonly spellcheck="false"></textarea>
+      <details style="margin-top:8px"><summary>How to upload</summary>
+        <div id="howto" class="hint" style="font-size:12.5px"></div>
+      </details>
+    </div>
+  </section>
+
+  <!-- right: effect editor + resources -->
+  <section>
+    <div class="panel" id="fxPanel">
+      <h2><span class="grow">Colour &amp; effect</span></h2>
+      <div id="fxBody"></div>
+    </div>
+    <div class="panel">
+      <h2>Resources</h2>
+      <div class="stats" id="stats"></div>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+/* ======================================================================
+   Board definitions
+   ====================================================================== */
+const BOARDS = {
+  ch32: {
+    name: "CH32V003F4P6",
+    dataPins: ["PC0","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PD0","PD2","PD3","PD4","PD5","PD6","PA1","PA2"],
+    inPins:   ["PC0","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PD0","PD2","PD3","PD4","PD5","PD6","PA1","PA2"],
+    pinNotes: { PD5:"Serial TX", PD6:"Serial RX", PA1:"crystal pin, only if no crystal is fitted", PA2:"crystal pin, only if no crystal is fitted" },
+    maxStripLeds: 340, warnStripLeds: 280, ramTotal: 2048, flash: 16384, ramBudget: 1100,
+  },
+  stm8: {
+    name: "STM8S103F3P6",
+    dataPins: ["PC3","PC4","PC5","PC6","PC7","PD2","PD3","PD4","PD5","PD6","PA1","PA2","PA3"],
+    inPins:   ["PC3","PC4","PC5","PC6","PC7","PD2","PD3","PD4","PD5","PD6","PA1","PA2","PA3","PB4","PB5"],
+    pinNotes: { PD5:"Serial TX", PD6:"Serial RX", PB4:"open-drain, no pull-up", PB5:"open-drain, on-board LED" },
+    maxStripLeds: 200, warnStripLeds: 150, ramTotal: 1024, flash: 8192, ramBudget: 800,
+  },
+  nano: {
+    name: "Arduino Nano",
+    dataPins: ["D2","D3","D4","D5","D6","D7","D8","D9","D10","D11","D12","D13","A0","A1","A2","A3","A4","A5"],
+    inPins:   ["D2","D3","D4","D5","D6","D7","D8","D9","D10","D11","D12","D13","A0","A1","A2","A3","A4","A5"],
+    pinNotes: { D13:"on-board LED", A4:"I2C SDA", A5:"I2C SCL" },
+    maxStripLeds: 400, warnStripLeds: 330, ramTotal: 2048, flash: 30720, ramBudget: 1500,
+  },
+  rp2040: {
+    name: "RP2040 Zero",
+    dataPins: ["GP0","GP1","GP2","GP3","GP4","GP5","GP6","GP7","GP8","GP9","GP10","GP11","GP12","GP13","GP14","GP15","GP26","GP27","GP28","GP29","GP16"],
+    inPins:   ["GP0","GP1","GP2","GP3","GP4","GP5","GP6","GP7","GP8","GP9","GP10","GP11","GP12","GP13","GP14","GP15","GP26","GP27","GP28","GP29"],
+    pinNotes: { GP16:"on-board RGB LED" },
+    maxStripLeds: 1000, warnStripLeds: 1000, ramTotal: 264 * 1024, flash: 2048 * 1024, ramBudget: 200000,
+  }
+};
+/* Arduino pin expression for a pin label (Nano: D2 -> 2, A0 -> A0; RP2040: GP5 -> 5) */
+function arduinoPin(label){ return label[0] === "D" ? label.slice(1) : label.startsWith("GP") ? label.slice(2) : label; }
+const MAX_STRIPS = 8, MAX_INPUTS = 4, MAX_RANGES = 8;
+const ORDERS = ["GRB","RGB","BRG","RBG","GBR","BGR"];
+
+const BLINK_PRESETS = [
+  { name:"Blink once a second", period:1000, count:1, on:500, gap:0 },
+  { name:"Short flash every second", period:1000, count:1, on:80, gap:0 },
+  { name:"Double flash", period:1200, count:2, on:60, gap:90 },
+  { name:"Triple flash", period:1500, count:3, on:50, gap:70 },
+  { name:"Fast strobe", period:120, count:1, on:30, gap:0 },
+  { name:"Slow blink", period:2000, count:1, on:1000, gap:0 },
+];
+
+function defaultLook(){
+  return { fx:"solid", c1:"#ffffff", c2:"#000000", period:1000, count:1, on:500, gap:0, offset:0,
+           lo:20, hi:100, speed:80, smooth:true, pwm:null };
+}
+let uid = 1;
+const newId = p => p + (uid++) + "_" + Math.random().toString(36).slice(2,6);
+
+function defaultState(){
+  return { v:1, board:"ch32", strips:[ makeStrip("Strip 1", "PC4", 16) ], inputs:[] };
+}
+function makeStrip(name, pin, count){
+  const s = { id:newId("s"), name, pin, count, order:"GRB", bright:255, leds:[] };
+  resizeStrip(s, count);
+  return s;
+}
+function resizeStrip(s, n){
+  while (s.leds.length < n) s.leds.push(defaultLook());
+  s.leds.length = n; s.count = n;
+}
+
+/* ======================================================================
+   State, persistence
+   ====================================================================== */
+let state = loadAuto() || defaultState();
+let sel = new Set();          // "stripId:index"
+let anchor = null;            // {sid, i}
+let edit = defaultLook();     // look in the effect panel
+
+function store(){ try { localStorage.setItem("rcLedEditor.v1", JSON.stringify(state)); } catch(e){} }
+function loadAuto(){
+  try { const t = localStorage.getItem("rcLedEditor.v1"); if (t) return sanitize(JSON.parse(t)); } catch(e){}
+  return null;
+}
+function sanitize(o){
+  if (!o || !Array.isArray(o.strips)) throw new Error("Not an editor setup file");
+  const st = { v:1, board: BOARDS[o.board] ? o.board : "ch32", strips:[], inputs:[] };
+  for (const s of o.strips.slice(0, MAX_STRIPS)){
+    const n = clampInt(s.count, 1, 1000, 1);
+    const ns = { id: String(s.id || newId("s")), name: String(s.name || "Strip"), pin: String(s.pin || ""),
+                 count:n, order: ORDERS.includes(s.order) ? s.order : "GRB", bright: clampInt(s.bright,1,255,255), leds:[] };
+    const leds = Array.isArray(s.leds) ? s.leds : [];
+    for (let i=0;i<n;i++) ns.leds.push(normLook(leds[i]));
+    st.strips.push(ns);
+  }
+  for (const p of (o.inputs || []).slice(0, MAX_INPUTS)){
+    st.inputs.push({ id:String(p.id || newId("i")), name:String(p.name||"Input"), pin:String(p.pin||""),
+      mode: p.mode === "switch" ? "switch" : "color",
+      noSignal: ["own","on","off","hold"].includes(p.noSignal) ? p.noSignal : (p.mode==="switch"?"on":"own"),
+      test: clampInt(p.test, 900, 2100, 1500), testNoSig: !!p.testNoSig,
+      ranges: (p.ranges||[]).slice(0,MAX_RANGES).map(r => ({ lo:clampInt(r.lo,500,2500,1000), hi:clampInt(r.hi,500,2500,2000),
+        color: isHex(r.color) ? r.color : "#ff0000", strips: Array.isArray(r.strips) ? r.strips.map(String) : [] })) });
+  }
+  return st;
+}
+function normLook(l){
+  const d = defaultLook(); if (!l || typeof l !== "object") return d;
+  return { fx: ["solid","blink","flicker"].includes(l.fx) ? l.fx : "solid",
+    c1: isHex(l.c1) ? l.c1 : d.c1, c2: isHex(l.c2) ? l.c2 : d.c2,
+    period: clampInt(l.period, 20, 60000, d.period), count: clampInt(l.count,1,8,d.count),
+    on: clampInt(l.on,5,60000,d.on), gap: clampInt(l.gap,0,60000,d.gap), offset: clampInt(l.offset,0,60000,0),
+    lo: clampInt(l.lo,0,100,d.lo), hi: clampInt(l.hi,0,100,d.hi), speed: clampInt(l.speed,20,5000,d.speed),
+    smooth: l.smooth !== false, pwm: l.pwm ? String(l.pwm) : null };
+}
+function clampInt(v, lo, hi, dflt){ v = Math.round(Number(v)); if (!isFinite(v)) return dflt; return Math.max(lo, Math.min(hi, v)); }
+function isHex(c){ return typeof c === "string" && /^#[0-9a-fA-F]{6}$/.test(c); }
+function hexToRgb(h){ return [parseInt(h.slice(1,3),16), parseInt(h.slice(3,5),16), parseInt(h.slice(5,7),16)]; }
+function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+function cIdent(s){ return String(s).replace(/\*\//g,"*").replace(/[\r\n]/g," "); }
+
+/* ======================================================================
+   Effect math (identical integer maths to the generated firmware)
+   ====================================================================== */
+function hash8(a, b){
+  let x = (Math.imul(a & 0xFFFF, 0x9E37) ^ Math.imul(b & 0xFFFF, 0x79B9)) & 0xFFFF;
+  x ^= x >> 7;
+  x = Math.imul(x, 0x5BD1) & 0xFFFF;
+  x ^= x >> 9;
+  return (x >> 3) & 0xFF;
+}
+function pct255(p){ return Math.round(p * 255 / 100); }
+function blinkOn(l, now){
+  const ph = (now + l.offset) % l.period, step = l.on + l.gap;
+  return ph < step * l.count && (ph % step) < l.on;
+}
+function flickerLevel(l, gi, now){
+  const sp = l.speed, lo = pct255(Math.min(l.lo,l.hi)), hi = pct255(Math.max(l.lo,l.hi));
+  const kb = Math.floor(now / sp) & 0xFFFF, rb = now % sp;
+  const off = (hash8(gi, 0x5A5A) * sp) >> 8;
+  let r = rb + off, k = kb;
+  if (r >= sp){ r -= sp; k = (k + 1) & 0xFFFF; }
+  let v = hash8(gi, k);
+  if (l.smooth){
+    const finv = Math.floor(65535 / sp), f = (r * finv) >> 8, v2 = hash8(gi, (k + 1) & 0xFFFF);
+    v = (v * (256 - f) + v2 * f) >> 8;
+  }
+  return lo + (((hi - lo) * v) >> 8);
+}
+
+/* Preview copy of the firmware's input state */
+const sim = { color:{}, off:{} };
+function simInputs(){
+  for (const p of state.inputs){
+    const ctrl = ctrlStrips(p);
+    if (p.testNoSig){
+      if (p.noSignal === "hold") continue;
+      if (p.mode === "color") delete sim.color[p.id];
+      else sim.off[p.id] = p.noSignal === "off" ? ctrl : [];
+      continue;
+    }
+    const us = p.test;
+    const r = p.ranges.find(r => us >= Math.min(r.lo,r.hi) && us <= Math.max(r.lo,r.hi));
+    if (!r) continue;   // valid pulse, no range: keep last state
+    if (p.mode === "color") sim.color[p.id] = hexToRgb(r.color);
+    else sim.off[p.id] = ctrl.filter(id => !r.strips.includes(id));
+  }
+}
+function ctrlStrips(p){ const set = new Set(); for (const r of p.ranges) for (const id of r.strips) set.add(id); return [...set].filter(id => state.strips.some(s => s.id === id)); }
+function stripIsOff(sid){
+  for (const p of state.inputs) if (p.mode === "switch" && (sim.off[p.id] || []).includes(sid)) return true;
+  return false;
+}
+function ledRgb(l, gi, now, bright, on){
+  if (!on) return [0,0,0];
+  let c = hexToRgb(l.c1);
+  if (l.pwm && sim.color[l.pwm] && state.inputs.some(p => p.id === l.pwm && p.mode === "color")) c = sim.color[l.pwm];
+  if (l.fx === "blink" && !blinkOn(l, now)) c = hexToRgb(l.c2);
+  if (l.fx === "flicker"){ const lv = flickerLevel(l, gi, now); c = c.map(x => (x * (lv + 1)) >> 8); }
+  if (bright !== 255) c = c.map(x => (x * (bright + 1)) >> 8);
+  return c;
+}
+
+/* ======================================================================
+   Rendering: strip list
+   ====================================================================== */
+const $ = id => document.getElementById(id);
+function board(){ return BOARDS[state.board]; }
+function usedPins(exceptObj){
+  const u = new Map();
+  for (const s of state.strips) if (s !== exceptObj) u.set(s.pin, s.name);
+  for (const p of state.inputs) if (p !== exceptObj) u.set(p.pin, p.name);
+  return u;
+}
+function pinOptions(list, cur, exceptObj){
+  const used = usedPins(exceptObj), notes = board().pinNotes;
+  let h = "";
+  if (!list.includes(cur)) h += `<option value="${esc(cur)}" selected>${esc(cur || "—")} (not valid)</option>`;
+  for (const p of list){
+    const extra = [notes[p], used.has(p) ? "used by " + used.get(p) : ""].filter(Boolean).join(", ");
+    h += `<option value="${p}" ${p===cur?"selected":""}>${p}${extra ? " · " + esc(extra) : ""}</option>`;
+  }
+  return h;
+}
+function firstFreePin(list){ const u = usedPins(null); return list.find(p => !u.has(p)) || list[0]; }
+
+function renderStrips(){
+  const el = $("stripList");
+  if (!state.strips.length){ el.innerHTML = `<div class="muted" style="font-size:12px">No strips yet.</div>`; return; }
+  el.innerHTML = state.strips.map((s, k) => `
+    <div class="card" data-sid="${s.id}">
+      <div class="row"><input type="text" data-f="name" value="${esc(s.name)}" style="flex:1" aria-label="Strip name">
+        <button class="small danger" data-act="del" title="Remove strip">✕</button></div>
+      <div class="grid2">
+        <span>Data pin</span><select data-f="pin">${pinOptions(board().dataPins, s.pin, s)}</select>
+        <span>LEDs</span><input type="number" data-f="count" min="1" max="${board().maxStripLeds}" value="${s.count}">
+        <span>Colour order</span><select data-f="order">${ORDERS.map(o => `<option ${o===s.order?"selected":""}>${o}</option>`).join("")}</select>
+        <span>Brightness</span><label><input type="range" data-f="bright" min="1" max="255" value="${s.bright}"><span class="muted" style="font-size:12px;width:34px">${Math.round(s.bright/2.55)}%</span></label>
+      </div>
+    </div>`).join("");
+}
+$("stripList").addEventListener("change", e => {
+  const card = e.target.closest("[data-sid]"); if (!card) return;
+  const s = state.strips.find(x => x.id === card.dataset.sid), f = e.target.dataset.f;
+  if (f === "name") s.name = e.target.value.trim() || "Strip";
+  else if (f === "pin") s.pin = e.target.value;
+  else if (f === "count"){ resizeStrip(s, clampInt(e.target.value, 1, board().maxStripLeds, s.count)); pruneSel(); }
+  else if (f === "order") s.order = e.target.value;
+  else if (f === "bright") s.bright = clampInt(e.target.value, 1, 255, 255);
+  changed(true);
+});
+$("stripList").addEventListener("input", e => {
+  if (e.target.dataset.f !== "bright") return;
+  const card = e.target.closest("[data-sid]"), s = state.strips.find(x => x.id === card.dataset.sid);
+  s.bright = clampInt(e.target.value, 1, 255, 255);
+  e.target.nextElementSibling.textContent = Math.round(s.bright/2.55) + "%";
+  changed(false);
+});
+$("stripList").addEventListener("click", e => {
+  if (e.target.dataset.act !== "del") return;
+  const card = e.target.closest("[data-sid]"), s = state.strips.find(x => x.id === card.dataset.sid);
+  if (!confirm(`Remove "${s.name}"?`)) return;
+  state.strips = state.strips.filter(x => x !== s);
+  for (const p of state.inputs) for (const r of p.ranges) r.strips = r.strips.filter(id => id !== s.id);
+  pruneSel(); changed(true);
+});
+$("addStrip").onclick = () => {
+  if (state.strips.length >= MAX_STRIPS) return alert(`Up to ${MAX_STRIPS} strips.`);
+  state.strips.push(makeStrip("Strip " + (state.strips.length + 1), firstFreePin(board().dataPins), 16));
+  changed(true);
+};
+
+/* ======================================================================
+   Rendering: PWM inputs
+   ====================================================================== */
+function renderInputs(){
+  const el = $("inputList");
+  if (!state.inputs.length){ el.innerHTML = `<div class="muted" style="font-size:12px">No inputs. Add one to change colours or switch strips from a receiver channel.</div>`; return; }
+  el.innerHTML = state.inputs.map((p, k) => {
+    const nsOpts = p.mode === "color"
+      ? [["own","LEDs use their own colour"],["hold","Keep last colour"]]
+      : [["on","All its strips on"],["off","All its strips off"],["hold","Keep last state"]];
+    const rows = p.ranges.map((r, j) => `
+      <tr data-r="${j}">
+        <td><input type="number" data-rf="lo" value="${r.lo}" min="500" max="2500" aria-label="from µs"></td>
+        <td>–</td>
+        <td><input type="number" data-rf="hi" value="${r.hi}" min="500" max="2500" aria-label="to µs"></td>
+        <td>${p.mode === "color"
+          ? `<input type="color" data-rf="color" value="${r.color}" aria-label="colour">`
+          : `<div class="stripchk">${state.strips.map(s => `<label><input type="checkbox" data-rf="strip" value="${s.id}" ${r.strips.includes(s.id)?"checked":""}>${esc(s.name)}</label>`).join("") || '<span class="muted">no strips</span>'}</div>`}</td>
+        <td><button class="small danger" data-act="delr" title="Remove range">✕</button></td>
+      </tr>`).join("");
+    return `
+    <div class="card" data-iid="${p.id}">
+      <div class="row"><input type="text" data-f="name" value="${esc(p.name)}" style="flex:1" aria-label="Input name">
+        <button class="small danger" data-act="del" title="Remove input">✕</button></div>
+      <div class="grid2">
+        <span>Pin</span><select data-f="pin">${pinOptions(board().inPins, p.pin, p)}</select>
+        <span>Use</span><select data-f="mode">
+          <option value="color" ${p.mode==="color"?"selected":""}>Change LED colour</option>
+          <option value="switch" ${p.mode==="switch"?"selected":""}>Turn strips on / off</option></select>
+        <span>No signal</span><select data-f="noSignal">${nsOpts.map(([v,t]) => `<option value="${v}" ${p.noSignal===v?"selected":""}>${t}</option>`).join("")}</select>
+      </div>
+      <div class="hint" style="margin:8px 0 4px">${p.mode==="color"
+        ? "Pulse ranges (µs) and the colour each one gives. LEDs follow this input when their effect has “Colour from input” set to it."
+        : "Pulse ranges (µs) and which strips are ON in that range. Strips ticked in any range are controlled by this input; the others are left alone."}</div>
+      <table class="ranges"><tbody>${rows}</tbody></table>
+      <div class="row"><button class="small" data-act="addr">+ Add range</button></div>
+      <div class="testbar"><span class="muted">Test</span>
+        <input type="range" data-f="test" min="900" max="2100" step="5" value="${p.test}" ${p.testNoSig?"disabled":""} aria-label="Test pulse width">
+        <span data-out style="width:58px">${p.test} µs</span>
+        <label><input type="checkbox" data-f="testNoSig" ${p.testNoSig?"checked":""}>no signal</label></div>
+    </div>`;
+  }).join("");
+}
+function inputOf(e){ const c = e.target.closest("[data-iid]"); return c ? state.inputs.find(x => x.id === c.dataset.iid) : null; }
+$("inputList").addEventListener("change", e => {
+  const p = inputOf(e); if (!p) return;
+  const f = e.target.dataset.f, rf = e.target.dataset.rf;
+  if (f === "name") p.name = e.target.value.trim() || "Input";
+  else if (f === "pin") p.pin = e.target.value;
+  else if (f === "mode"){
+    p.mode = e.target.value; p.noSignal = p.mode === "color" ? "own" : "on";
+    p.ranges = defaultRanges(p.mode); sim.color = {}; sim.off = {};
+  }
+  else if (f === "noSignal") p.noSignal = e.target.value;
+  else if (f === "testNoSig") p.testNoSig = e.target.checked;
+  else if (f === "test") p.test = clampInt(e.target.value, 900, 2100, 1500);
+  else if (rf){
+    const r = p.ranges[+e.target.closest("[data-r]").dataset.r];
+    if (rf === "lo" || rf === "hi") r[rf] = clampInt(e.target.value, 500, 2500, r[rf]);
+    else if (rf === "color") r.color = e.target.value;
+    else if (rf === "strip"){
+      r.strips = r.strips.filter(id => id !== e.target.value);
+      if (e.target.checked) r.strips.push(e.target.value);
+    }
+  }
+  changed(f !== "test");
+});
+$("inputList").addEventListener("input", e => {
+  if (e.target.dataset.f === "test"){
+    const p = inputOf(e); p.test = +e.target.value;
+    e.target.parentNode.querySelector("[data-out]").textContent = p.test + " µs";
+    store();
+  } else if (e.target.dataset.rf === "color"){
+    const p = inputOf(e); p.ranges[+e.target.closest("[data-r]").dataset.r].color = e.target.value;
+  }
+});
+$("inputList").addEventListener("click", e => {
+  const p = inputOf(e); if (!p) return;
+  const act = e.target.dataset.act;
+  if (act === "del"){
+    if (!confirm(`Remove input "${p.name}"?`)) return;
+    state.inputs = state.inputs.filter(x => x !== p);
+    for (const s of state.strips) for (const l of s.leds) if (l.pwm === p.id) l.pwm = null;
+    if (edit.pwm === p.id) edit.pwm = null;
+    changed(true);
+  } else if (act === "addr"){
+    if (p.ranges.length >= MAX_RANGES) return alert(`Up to ${MAX_RANGES} ranges per input.`);
+    const last = p.ranges[p.ranges.length - 1];
+    const lo = last ? Math.min(2400, Math.max(last.lo, last.hi) + 50) : 1000;
+    p.ranges.push({ lo, hi: Math.min(2500, lo + 300), color:"#ffffff", strips:[] });
+    changed(true);
+  } else if (act === "delr"){
+    p.ranges.splice(+e.target.closest("[data-r]").dataset.r, 1); changed(true);
+  }
+});
+function defaultRanges(mode){
+  if (mode === "color") return [
+    { lo:900, hi:1300, color:"#ff0000", strips:[] }, { lo:1350, hi:1650, color:"#00ff00", strips:[] }, { lo:1700, hi:2100, color:"#0000ff", strips:[] } ];
+  return [ { lo:900, hi:1450, color:"#ffffff", strips:[] }, { lo:1550, hi:2100, color:"#ffffff", strips: state.strips.map(s => s.id) } ];
+}
+$("addInput").onclick = () => {
+  if (state.inputs.length >= MAX_INPUTS) return alert(`Up to ${MAX_INPUTS} inputs.`);
+  state.inputs.push({ id:newId("i"), name:"Input " + (state.inputs.length + 1), pin: firstFreePin(board().inPins),
+    mode:"color", noSignal:"own", test:1500, testNoSig:false, ranges: defaultRanges("color") });
+  changed(true);
+};
+
+/* ======================================================================
+   LED canvas + selection
+   ====================================================================== */
+let ledEls = [];   // [{el, s, i, gi}]
+function renderCanvas(){
+  const el = $("canvas");
+  ledEls = [];
+  if (!state.strips.length){ el.innerHTML = `<div class="empty">Add a strip to start.</div>`; return; }
+  let gi = 0, h = "";
+  for (const s of state.strips){
+    h += `<div class="strip" data-sid="${s.id}"><div class="strip-head"><b data-act="selstrip" title="Select the whole strip">${esc(s.name)}</b>
+      <span class="tag">${esc(s.pin)}</span><span class="tag">${s.count} LEDs</span><span class="tag">${s.order}</span>
+      <span class="tag offtag" data-offtag hidden>switched off by input</span></div><div class="leds">`;
+    for (let i = 0; i < s.count; i++, gi++){
+      const l = s.leds[i];
+      const fx = (l.fx === "blink" ? "B" : l.fx === "flicker" ? "F" : "") + (l.pwm ? "P" : "");
+      h += `<div class="led${sel.has(s.id+":"+i)?" sel":""}" data-i="${i}" title="${esc(s.name)} #${i+1}"><span class="ix">${i+1}</span><span class="fx">${fx}</span></div>`;
+    }
+    h += `</div></div>`;
+  }
+  el.innerHTML = h;
+  gi = 0;
+  for (const sEl of el.querySelectorAll(".strip")){
+    const s = state.strips.find(x => x.id === sEl.dataset.sid);
+    sEl._offtag = sEl.querySelector("[data-offtag]");
+    sEl.querySelectorAll(".led").forEach((d, i) => { ledEls.push({ el:d, s, i, gi: gi++ , stripEl:sEl}); });
+  }
+  updateSelCount();
+  paint(performance.now());
+}
+function keyOf(s, i){ return s.id + ":" + i; }
+function setSelClass(){ for (const o of ledEls) o.el.classList.toggle("sel", sel.has(keyOf(o.s, o.i))); updateSelCount(); }
+function updateSelCount(){ $("selCount").textContent = sel.size ? `${sel.size} selected` : "Nothing selected"; }
+function pruneSel(){ for (const k of [...sel]){ const [sid, i] = k.split(":"); const s = state.strips.find(x => x.id === sid); if (!s || +i >= s.count) sel.delete(k); } }
+
+let drag = null; // {mode:'add'|'remove'}
+function ledFromEvent(e){
+  const t = document.elementFromPoint(e.clientX, e.clientY);
+  const d = t && t.closest && t.closest(".led"); if (!d) return null;
+  return ledEls.find(o => o.el === d) || null;
+}
+$("canvas").addEventListener("pointerdown", e => {
+  const head = e.target.closest("[data-act=selstrip]");
+  if (head){
+    const s = state.strips.find(x => x.id === head.closest(".strip").dataset.sid);
+    if (!(e.ctrlKey || e.metaKey || e.shiftKey)) sel.clear();
+    for (let i = 0; i < s.count; i++) sel.add(keyOf(s, i));
+    anchor = { sid:s.id, i:0 }; setSelClass(); selectionChanged(); return;
+  }
+  const o = ledFromEvent(e); if (!o) return;
+  e.preventDefault();
+  const k = keyOf(o.s, o.i);
+  if (e.shiftKey && anchor && anchor.sid === o.s.id){
+    const a = Math.min(anchor.i, o.i), b = Math.max(anchor.i, o.i);
+    if (!(e.ctrlKey || e.metaKey)) sel.clear();
+    for (let i = a; i <= b; i++) sel.add(keyOf(o.s, i));
+    setSelClass(); selectionChanged(); return;
+  }
+  if (e.ctrlKey || e.metaKey){
+    drag = { mode: sel.has(k) ? "remove" : "add" };
+    drag.mode === "add" ? sel.add(k) : sel.delete(k);
+  } else {
+    sel.clear(); sel.add(k); drag = { mode:"add" };
+  }
+  anchor = { sid:o.s.id, i:o.i };
+  setSelClass();
+});
+window.addEventListener("pointermove", e => {
+  if (!drag) return;
+  const o = ledFromEvent(e); if (!o) return;
+  const k = keyOf(o.s, o.i);
+  if (drag.mode === "add" && !sel.has(k)){ sel.add(k); o.el.classList.add("sel"); updateSelCount(); }
+  if (drag.mode === "remove" && sel.has(k)){ sel.delete(k); o.el.classList.remove("sel"); updateSelCount(); }
+});
+window.addEventListener("pointerup", () => { if (drag){ drag = null; selectionChanged(); } });
+$("selAll").onclick = () => { for (const o of ledEls) sel.add(keyOf(o.s, o.i)); setSelClass(); selectionChanged(); };
+$("selNone").onclick = () => { sel.clear(); setSelClass(); selectionChanged(); };
+$("selInvert").onclick = () => { for (const o of ledEls){ const k = keyOf(o.s, o.i); sel.has(k) ? sel.delete(k) : sel.add(k); } setSelClass(); selectionChanged(); };
+
+function selectedLooks(){
+  const out = [];
+  for (const o of ledEls) if (sel.has(keyOf(o.s, o.i))) out.push(o.s.leds[o.i]);
+  return out;
+}
+function selectionChanged(){
+  const looks = selectedLooks();
+  if (looks.length) edit = JSON.parse(JSON.stringify(looks[0]));
+  renderFx();
+}
+
+/* ======================================================================
+   Effect panel
+   ====================================================================== */
+function renderFx(){
+  const looks = selectedLooks();
+  const mixed = looks.length > 1 && looks.some(l => lookKey(l) !== lookKey(looks[0]));
+  const colorInputs = state.inputs.filter(p => p.mode === "color");
+  const l = edit;
+  const presetIdx = BLINK_PRESETS.findIndex(p => p.period===l.period && p.count===l.count && p.on===l.on && (p.count===1 || p.gap===l.gap));
+  let h = `
+    <div class="row"><div class="seg" role="group" aria-label="Effect">
+      ${["solid","blink","flicker"].map(fx => `<button data-fx="${fx}" class="${l.fx===fx?"on":""}">${fx==="solid"?"Solid":fx==="blink"?"Blink":"Flicker"}</button>`).join("")}
+    </div></div>`;
+  if (l.fx === "solid"){
+    h += `<div class="grid2" style="margin-top:8px"><span>Colour</span><input type="color" data-e="c1" value="${l.c1}"></div>`;
+  } else if (l.fx === "blink"){
+    h += `<div class="grid2" style="margin-top:8px">
+      <span>Blink colour</span><input type="color" data-e="c1" value="${l.c1}">
+      <span>Base colour</span><input type="color" data-e="c2" value="${l.c2}">
+      <span>Pattern</span><select data-e="preset"><option value="-1">Custom</option>${BLINK_PRESETS.map((p,i) => `<option value="${i}" ${i===presetIdx?"selected":""}>${p.name}</option>`).join("")}</select>
+      <span>Repeat every</span><label><input type="number" data-e="period" min="20" max="60000" value="${l.period}"> ms</label>
+      <span>Flashes</span><input type="number" data-e="count" min="1" max="8" value="${l.count}">
+      <span>Flash length</span><label><input type="number" data-e="on" min="5" max="60000" value="${l.on}"> ms</label>
+      ${l.count > 1 ? `<span>Gap between</span><label><input type="number" data-e="gap" min="0" max="60000" value="${l.gap}"> ms</label>` : ""}
+      <span>Start delay</span><label><input type="number" data-e="offset" min="0" max="60000" value="${l.offset}"> ms</label>
+    </div>
+    <p class="hint">Start delay shifts the pattern, so two groups with the same pattern can alternate.</p>`;
+  } else {
+    h += `<div class="grid2" style="margin-top:8px">
+      <span>Colour</span><input type="color" data-e="c1" value="${l.c1}">
+      <span>Dim level</span><label><input type="range" data-e="lo" min="0" max="100" value="${l.lo}"><span class="muted" style="width:36px">${l.lo}%</span></label>
+      <span>Bright level</span><label><input type="range" data-e="hi" min="0" max="100" value="${l.hi}"><span class="muted" style="width:36px">${l.hi}%</span></label>
+      <span>Change every</span><label><input type="number" data-e="speed" min="20" max="5000" value="${l.speed}"> ms</label>
+      <span>Smooth</span><label><input type="checkbox" data-e="smooth" ${l.smooth?"checked":""}> fade between levels</label>
+    </div>
+    <p class="hint">Each LED gets its own random pattern between the dim and bright level.</p>`;
+  }
+  h += `<div class="grid2" style="margin-top:8px"><span>Colour from input</span>
+      <select data-e="pwm"><option value="">None (fixed colour)</option>
+      ${colorInputs.map(p => `<option value="${p.id}" ${l.pwm===p.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select></div>
+      ${colorInputs.length ? `<p class="hint">While the input is inside one of its ranges, that range's colour replaces the ${l.fx==="blink"?"blink":"main"} colour.</p>` : `<p class="hint">Add a PWM input set to “Change LED colour” to drive the colour from the receiver.</p>`}
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="applyFx" ${looks.length?"":"disabled"}>Apply to ${looks.length || "selected"} LED${looks.length===1?"":"s"}</button>
+      <button id="offFx" ${looks.length?"":"disabled"}>Turn off</button>
+    </div>
+    ${mixed ? `<p class="hint">The selected LEDs have different settings. The panel shows the first one; applying sets all of them.</p>` : ""}
+    ${!looks.length ? `<p class="hint">Select LEDs on the left to change them. Selecting an LED loads its settings here, so you can copy a setup by selecting the source, then the targets, then Apply.</p>` : ""}`;
+  const errs = lookProblems(l);
+  if (errs.length) h += `<div class="msgs">${errs.map(t => `<div class="warn">${esc(t)}</div>`).join("")}</div>`;
+  $("fxBody").innerHTML = h;
+}
+function lookProblems(l){
+  const out = [];
+  if (l.fx === "blink"){
+    const len = l.count * l.on + (l.count - 1) * l.gap;
+    if (len > l.period) out.push(`The flashes take ${len} ms, longer than the ${l.period} ms repeat time, so the pattern gets cut off.`);
+  }
+  if (l.fx === "flicker" && l.lo > l.hi) out.push("Dim level is above bright level; they will be swapped.");
+  return out;
+}
+$("fxBody").addEventListener("click", e => {
+  const fx = e.target.dataset.fx;
+  if (fx){ edit.fx = fx; renderFx(); return; }
+  if (e.target.id === "applyFx") applyEdit(edit);
+  if (e.target.id === "offFx"){ const off = defaultLook(); off.c1 = "#000000"; edit = off; applyEdit(off); }
+});
+$("fxBody").addEventListener("input", e => {
+  const f = e.target.dataset.e; if (!f) return;
+  if (f === "lo" || f === "hi"){ edit[f] = +e.target.value; e.target.nextElementSibling.textContent = edit[f] + "%"; }
+  else if (f === "c1" || f === "c2") edit[f] = e.target.value;
+});
+$("fxBody").addEventListener("change", e => {
+  const f = e.target.dataset.e; if (!f) return;
+  const v = e.target.value;
+  if (f === "preset"){ const p = BLINK_PRESETS[+v]; if (p) Object.assign(edit, { period:p.period, count:p.count, on:p.on, gap:p.gap }); }
+  else if (f === "c1" || f === "c2") edit[f] = v;
+  else if (f === "pwm") edit.pwm = v || null;
+  else if (f === "smooth") edit.smooth = e.target.checked;
+  else if (f === "lo" || f === "hi") edit[f] = clampInt(v, 0, 100, 50);
+  else if (f === "period") edit.period = clampInt(v, 20, 60000, 1000);
+  else if (f === "count") edit.count = clampInt(v, 1, 8, 1);
+  else if (f === "on") edit.on = clampInt(v, 5, 60000, 100);
+  else if (f === "gap") edit.gap = clampInt(v, 0, 60000, 0);
+  else if (f === "offset") edit.offset = clampInt(v, 0, 60000, 0);
+  else if (f === "speed") edit.speed = clampInt(v, 20, 5000, 80);
+  renderFx();
+});
+function applyEdit(l){
+  for (const o of ledEls) if (sel.has(keyOf(o.s, o.i))) o.s.leds[o.i] = JSON.parse(JSON.stringify(l));
+  changed(true);
+}
+
+/* ======================================================================
+   Live preview
+   ====================================================================== */
+const t0 = performance.now();
+function paint(ts){
+  const now = Math.floor(ts - t0) >>> 0;
+  simInputs();
+  let lastStrip = null, off = false;
+  for (const o of ledEls){
+    if (o.s !== lastStrip){ lastStrip = o.s; off = stripIsOff(o.s.id); o.stripEl._offtag.hidden = !off; }
+    const c = ledRgb(o.s.leds[o.i], o.gi, now, o.s.bright, !off);
+    o.el.style.background = (c[0]|c[1]|c[2]) ? `rgb(${c[0]},${c[1]},${c[2]})` : "";
+  }
+}
+function loop(ts){ if ($("animate").checked) paint(ts); requestAnimationFrame(loop); }
+$("animate").onchange = () => { if (!$("animate").checked){ for (const o of ledEls) o.el.style.background = ""; } };
+
+/* ======================================================================
+   Validation
+   ====================================================================== */
+function validate(){
+  const b = board(), msgs = [];
+  const pins = new Map();
+  for (const s of state.strips){
+    if (!b.dataPins.includes(s.pin)) msgs.push(["err", `${s.name}: pin ${s.pin || "(none)"} can't drive a strip on the ${b.name}. Pick another data pin.`]);
+    if (s.count > b.maxStripLeds) msgs.push(["err", `${s.name}: ${s.count} LEDs is more than the ${b.name} can buffer (${b.maxStripLeds} per strip).`]);
+    else if (s.count > b.warnStripLeds) msgs.push(["warn", `${s.name}: ${s.count} LEDs leaves little RAM free on the ${b.name}. Test it, or split it into two strips.`]);
+    (pins.get(s.pin) || pins.set(s.pin, []).get(s.pin)).push(s.name);
+    if (b.pinNotes[s.pin]) msgs.push(["warn", `${s.name} uses ${s.pin} (${b.pinNotes[s.pin]}).`]);
+  }
+  for (const p of state.inputs){
+    if (!b.inPins.includes(p.pin)) msgs.push(["err", `${p.name}: pin ${p.pin || "(none)"} isn't usable as an input on the ${b.name}.`]);
+    (pins.get(p.pin) || pins.set(p.pin, []).get(p.pin)).push(p.name);
+    if (!p.ranges.length) msgs.push(["warn", `${p.name} has no ranges, so it does nothing.`]);
+    const rs = p.ranges.map(r => [Math.min(r.lo,r.hi), Math.max(r.lo,r.hi)]).sort((a,b) => a[0]-b[0]);
+    for (let i = 1; i < rs.length; i++) if (rs[i][0] <= rs[i-1][1]) { msgs.push(["warn", `${p.name}: ranges ${rs[i-1][0]}–${rs[i-1][1]} and ${rs[i][0]}–${rs[i][1]} overlap; the first one in the list wins.`]); break; }
+    if (p.mode === "switch" && !ctrlStrips(p).length) msgs.push(["warn", `${p.name}: tick at least one strip in a range, otherwise it switches nothing.`]);
+    if (p.mode === "color" && !state.strips.some(s => s.leds.some(l => l.pwm === p.id))) msgs.push(["info", `${p.name}: no LED uses this input yet. Select LEDs and set “Colour from input”.`]);
+  }
+  for (const [pin, who] of pins) if (who.length > 1) msgs.push(["err", `Pin ${pin} is used by ${who.join(" and ")}.`]);
+  const looks = buildLooks().looks;
+  const ram = ramUse(looks.length);
+  if (ram > b.ramBudget) msgs.push(["err", `The LEDs need about ${ram} B of RAM, more than the ~${b.ramBudget} B the ${b.name} has free. Shorten the longest strip or use fewer different settings.`]);
+  else if (ram > b.ramBudget * 0.85) msgs.push(["warn", `RAM is nearly full (about ${ram} of ~${b.ramBudget} B free for LEDs).`]);
+  if (looks.length > 255) msgs.push(["err", `Too many different LED settings (${looks.length}); the limit is 255.`]);
+  for (const l of looks){ const p = lookProblems(l.look); if (p.length){ msgs.push(["warn", "One of the blink settings: " + p[0]]); break; } }
+  return msgs;
+}
+
+/* ======================================================================
+   Code generation
+   ====================================================================== */
+function lookKey(l){
+  const k = { fx:l.fx, c1:l.c1, pwm:l.pwm || null };
+  if (l.fx === "blink") Object.assign(k, { c2:l.c2, period:l.period, count:l.count, on:l.on, gap:l.count>1?l.gap:0, offset:l.offset % l.period });
+  if (l.fx === "flicker") Object.assign(k, { lo:Math.min(l.lo,l.hi), hi:Math.max(l.lo,l.hi), speed:l.speed, smooth:l.smooth });
+  return JSON.stringify(k);
+}
+function buildLooks(){
+  const map = new Map(), looks = [], ledLook = [];
+  for (const s of state.strips) for (const l of s.leds){
+    const k = lookKey(l);
+    if (!map.has(k)){ map.set(k, looks.length); looks.push({ key:k, look:l }); }
+    ledLook.push(map.get(k));
+  }
+  return { looks, ledLook };
+}
+function hx(n, w){ return "0x" + n.toString(16).toUpperCase().padStart(w, "0"); }
+function wrapList(arr, perLine, indent){
+  const lines = [];
+  for (let i = 0; i < arr.length; i += perLine) lines.push(indent + arr.slice(i, i + perLine).join(", "));
+  return lines.join(",\n");
+}
+function pinParts(pin){ return { port: pin[1], bit: +pin[2] }; }
+
+function generate(){
+  const b = board(), bk = state.board, isStm = bk === "stm8", isAvr = bk === "nano";
+  const { looks, ledLook } = buildLooks();
+  const strips = state.strips, inputs = state.inputs;
+  const inIndex = new Map(inputs.map((p, i) => [p.id, i]));
+  const maxLen = Math.max(1, ...strips.map(s => s.count));
+  const ranges = [];
+  const inRows = inputs.map(p => {
+    const first = ranges.length;
+    const ctrl = ctrlStrips(p);
+    const maskOf = ids => strips.reduce((m, s, i) => ids.includes(s.id) ? m | (1 << i) : m, 0);
+    for (const r of p.ranges){
+      const c = hexToRgb(r.color);
+      ranges.push({ lo:Math.min(r.lo,r.hi), hi:Math.max(r.lo,r.hi), c, mask: maskOf(r.strips) });
+    }
+    const ns = { own:0, on:0, off:1, hold:2 }[p.noSignal] ?? 0;
+    return { p, first, n: p.ranges.length, mode: p.mode === "color" ? 0 : 1, ns, ctrl: maskOf(ctrl) };
+  });
+  const NI = inputs.length;
+  const L = [];
+  const C = s => L.push(s);
+  const stamp = new Date().toISOString().slice(0, 16).replace("T", " ");
+
+  C(`/*`);
+  C(` * RC LED controller, generated by Avionix LED (${stamp})`);
+  C(` * Board : ${b.name}${{
+    ch32: " with the openwch Arduino core (Tools > Clock: 48MHz Internal)",
+    stm8: " with the Sduino core (Board: STM8S103F3 Breakout Board)",
+    nano: " (Board: Arduino Nano, ATmega328P, 16 MHz)",
+    rp2040: " with the arduino-pico core (Board: Waveshare RP2040 Zero)" }[bk]}`);
+  C(` * Strips: ${strips.map(s => `${cIdent(s.name)} on ${s.pin}, ${s.count} LEDs ${s.order}`).join("; ") || "none"}`);
+  if (NI) C(` * Inputs: ${inputs.map(p => `${cIdent(p.name)} on ${p.pin} (${p.mode === "color" ? "colour" : "strip on/off"})`).join("; ")}`);
+  if (bk === "rp2040"){
+    C(` * LED type: WS2812B / SK6812 (800 kHz), sent with the Adafruit NeoPixel library`);
+    C(` * (install it from Library Manager); it uses the RP2040's PIO hardware for timing.`);
+  } else {
+    C(` * LED type: WS2812B / SK6812 (800 kHz), driven by the small bit-bang driver below,`);
+    C(` * so no LED library is needed. Only one strip buffer is kept in RAM (largest strip x 3 bytes).`);
+  }
+  C(` */`);
+  C(`#include <Arduino.h>`);
+  if (bk === "rp2040") C(`#include <Adafruit_NeoPixel.h>`);
+  if (isAvr) C(`#include <avr/pgmspace.h>`);
+  C(``);
+  C(`#define NUM_STRIPS   ${strips.length}`);
+  C(`#define NUM_LOOKS    ${looks.length}`);
+  C(`#define NUM_INPUTS   ${NI}`);
+  C(`#define MAX_LEDS     ${maxLen}   /* longest strip */`);
+  C(`#define FRAME_MS     20`);
+  C(``);
+  C(`#define FX_SOLID     0`);
+  C(`#define FX_BLINK     1`);
+  C(`#define FX_FLICKER   2`);
+  C(`#define NO_INPUT     255`);
+  C(``);
+  C(`typedef struct {`);
+  C(`  uint8_t  fx;`);
+  C(`  uint8_t  c1[3];      /* main colour: solid / blink "on" / flicker colour */`);
+  C(`  uint8_t  c2[3];      /* blink base colour */`);
+  C(`  uint16_t period;     /* blink: repeat time ms; flicker: change time ms */`);
+  C(`  uint16_t onMs;       /* blink: flash length */`);
+  C(`  uint16_t gapMs;      /* blink: gap between flashes */`);
+  C(`  uint16_t offset;     /* blink: start delay */`);
+  C(`  uint8_t  count;      /* blink: flashes per period */`);
+  C(`  uint8_t  lo, hi;     /* flicker: dim / bright level 0..255 */`);
+  C(`  uint8_t  smooth;     /* flicker: fade between levels */`);
+  C(`  uint8_t  input;      /* PWM input whose colour replaces c1, NO_INPUT = none */`);
+  C(`} LedLook;`);
+  C(``);
+  C(`typedef struct {`);
+  C(`  uint16_t first;      /* index of the strip's first LED in LED_LOOK */`);
+  C(`  uint16_t count;`);
+  C(`  uint8_t  posR, posG, posB;  /* byte position of R, G, B (colour order) */`);
+  C(`  uint8_t  bright;`);
+  C(`} LedStrip;`);
+  C(``);
+  C(`static const LedLook LOOKS[NUM_LOOKS] = {`);
+  looks.forEach(({ look:l }, i) => {
+    const fx = { solid:"FX_SOLID", blink:"FX_BLINK", flicker:"FX_FLICKER" }[l.fx];
+    const c1 = hexToRgb(l.c1), c2 = l.fx === "blink" ? hexToRgb(l.c2) : [0,0,0];
+    let period = 1, on = 0, gap = 0, off = 0, cnt = 0, lo = 0, hi = 0, sm = 0;
+    if (l.fx === "blink"){ period = l.period; on = l.on; gap = l.count > 1 ? l.gap : 0; off = l.offset % l.period; cnt = l.count; }
+    if (l.fx === "flicker"){ period = l.speed; lo = pct255(Math.min(l.lo,l.hi)); hi = pct255(Math.max(l.lo,l.hi)); sm = l.smooth ? 1 : 0; }
+    const inp = l.pwm && inIndex.has(l.pwm) && inputs[inIndex.get(l.pwm)].mode === "color" ? inIndex.get(l.pwm) : "NO_INPUT";
+    C(`  { ${fx}, {${c1.join(",")}}, {${c2.join(",")}}, ${period}, ${on}, ${gap}, ${off}, ${cnt}, ${lo}, ${hi}, ${sm}, ${inp} }${i < looks.length - 1 ? "," : ""}  /* ${i} */`);
+  });
+  C(`};`);
+  C(``);
+  C(`static const LedStrip STRIPS[NUM_STRIPS] = {`);
+  let first = 0;
+  strips.forEach((s, i) => {
+    C(`  { ${first}, ${s.count}, ${s.order.indexOf("R")}, ${s.order.indexOf("G")}, ${s.order.indexOf("B")}, ${s.bright} }${i < strips.length - 1 ? "," : ""}  /* ${cIdent(s.name)} */`);
+    first += s.count;
+  });
+  C(`};`);
+  C(``);
+  C(`/* look index of every LED, all strips in order */`);
+  if (isAvr){
+    C(`/* (kept in flash with PROGMEM to save the Nano's RAM) */`);
+    C(`static const uint8_t LED_LOOK[${Math.max(1, ledLook.length)}] PROGMEM = {`);
+  } else C(`static const uint8_t LED_LOOK[${Math.max(1, ledLook.length)}] = {`);
+  C(wrapList(ledLook.length ? ledLook : [0], 24, "  "));
+  C(`};`);
+  if (NI){
+    C(``);
+    C(`#define MODE_COLOR   0`);
+    C(`#define MODE_SWITCH  1`);
+    C(`#define NOSIG_DEFAULT 0   /* colour: LEDs use their own colour; switch: strips on */`);
+    C(`#define NOSIG_OFF     1   /* switch: strips off */`);
+    C(`#define NOSIG_HOLD    2   /* keep the last state */`);
+    C(``);
+    C(`typedef struct { uint16_t lo, hi; uint8_t r, g, b; uint8_t mask; } PwmRange;`);
+    C(`typedef struct { uint8_t mode, first, count, noSignal, ctrlMask; } PwmInput;`);
+    C(``);
+    C(`static const PwmRange RANGES[${ranges.length || 1}] = {`);
+    if (!ranges.length) C(`  { 0, 0, 0, 0, 0, 0 }`);
+    ranges.forEach((r, i) => C(`  { ${r.lo}, ${r.hi}, ${r.c.join(", ")}, ${hx(r.mask,2)} }${i < ranges.length - 1 ? "," : ""}`));
+    C(`};`);
+    C(`static const PwmInput INPUTS[NUM_INPUTS] = {`);
+    inRows.forEach((r, i) => C(`  { ${r.mode ? "MODE_SWITCH" : "MODE_COLOR"}, ${r.first}, ${r.n}, ${["NOSIG_DEFAULT","NOSIG_OFF","NOSIG_HOLD"][r.ns]}, ${hx(r.ctrl,2)} }${i < NI - 1 ? "," : ""}  /* ${cIdent(r.p.name)} on ${r.p.pin} */`));
+    C(`};`);
+  }
+  C(``);
+
+  C(`/* ---------------- state ---------------- */`);
+  C(`static uint8_t  buf[MAX_LEDS * 3];`);
+  C(`static uint8_t  frameCol[NUM_LOOKS][3];`);
+  C(`static uint16_t flkK[NUM_LOOKS];     /* flicker: step number */`);
+  C(`static uint16_t flkR[NUM_LOOKS];     /* flicker: ms into the step */`);
+  C(`static uint8_t  stripOff;            /* bit per strip, set = switched off by an input */`);
+  if (NI){
+    C(`static uint8_t  inColor[NUM_INPUTS][3];`);
+    C(`static uint8_t  inColorOk[NUM_INPUTS];`);
+    C(`static uint8_t  inOff[NUM_INPUTS];`);
+    C(`static uint8_t  inFail[NUM_INPUTS];`);
+    C(`static uint8_t  curIn;`);
+  } else {
+    C(`static uint32_t lastFrame;`);
+  }
+  C(``);
+
+  /* ---------------- board specific driver ---------------- */
+  ({ ch32: genCh32, stm8: genStm8, nano: genNano, rp2040: genRp2040 })[bk](C, strips, inputs);
+
+  C(``);
+  C(`/* ---------------- effects ---------------- */`);
+  C(`static uint8_t hash8(uint16_t a, uint16_t b)`);
+  C(`{`);
+  C(`  uint16_t x = (uint16_t)((uint16_t)(a * 0x9E37u) ^ (uint16_t)(b * 0x79B9u));`);
+  C(`  x ^= x >> 7;`);
+  C(`  x = (uint16_t)(x * 0x5BD1u);`);
+  C(`  x ^= x >> 9;`);
+  C(`  return (uint8_t)(x >> 3);`);
+  C(`}`);
+  C(``);
+  C(`static uint8_t scale8(uint8_t v, uint8_t s)`);
+  C(`{`);
+  C(`  return (uint8_t)(((uint16_t)v * ((uint16_t)s + 1)) >> 8);`);
+  C(`}`);
+  if (NI){
+    C(``);
+    C(`static void inputDefault(uint8_t i)`);
+    C(`{`);
+    C(`  inColorOk[i] = 0;`);
+    C(`  inOff[i] = (INPUTS[i].mode == MODE_SWITCH && INPUTS[i].noSignal == NOSIG_OFF) ? INPUTS[i].ctrlMask : 0;`);
+    C(`}`);
+    C(``);
+    C(`static void applyInput(uint8_t i, uint16_t us)`);
+    C(`{`);
+    C(`  const PwmInput *in = &INPUTS[i];`);
+    C(`  uint8_t k;`);
+    C(`  if (us < 500 || us > 2500) {          /* no valid pulse */`);
+    C(`    if (inFail[i] < 255) inFail[i]++;`);
+    C(`    if (inFail[i] == 4 && in->noSignal != NOSIG_HOLD) inputDefault(i);   /* ~4 missed frames */`);
+    C(`    return;`);
+    C(`  }`);
+    C(`  inFail[i] = 0;`);
+    C(`  for (k = in->first; k < (uint8_t)(in->first + in->count); k++) {`);
+    C(`    const PwmRange *r = &RANGES[k];`);
+    C(`    if (us >= r->lo && us <= r->hi) {`);
+    C(`      if (in->mode == MODE_COLOR) {`);
+    C(`        inColor[i][0] = r->r; inColor[i][1] = r->g; inColor[i][2] = r->b;`);
+    C(`        inColorOk[i] = 1;`);
+    C(`      } else {`);
+    C(`        inOff[i] = in->ctrlMask & (uint8_t)~r->mask;`);
+    C(`      }`);
+    C(`      return;`);
+    C(`    }`);
+    C(`  }`);
+    C(`  /* valid pulse outside every range: keep the last state */`);
+    C(`}`);
+  }
+  C(``);
+  C(`static void computeLooks(uint32_t now)`);
+  C(`{`);
+  C(`  uint8_t l;`);
+  if (NI){
+    C(`  stripOff = 0;`);
+    C(`  for (l = 0; l < NUM_INPUTS; l++) stripOff |= inOff[l];`);
+  }
+  C(`  for (l = 0; l < NUM_LOOKS; l++) {`);
+  C(`    const LedLook *lk = &LOOKS[l];`);
+  C(`    const uint8_t *c = lk->c1;`);
+  if (NI) C(`    if (lk->input != NO_INPUT && inColorOk[lk->input]) c = inColor[lk->input];`);
+  C(`    if (lk->fx == FX_BLINK) {`);
+  C(`      uint16_t ph = (uint16_t)((now + lk->offset) % lk->period);`);
+  C(`      uint16_t step = lk->onMs + lk->gapMs;`);
+  C(`      if (!(ph < (uint32_t)step * lk->count && (ph % step) < lk->onMs)) c = lk->c2;`);
+  C(`    } else if (lk->fx == FX_FLICKER) {`);
+  C(`      flkK[l] = (uint16_t)(now / lk->period);`);
+  C(`      flkR[l] = (uint16_t)(now % lk->period);`);
+  C(`    }`);
+  C(`    frameCol[l][0] = c[0]; frameCol[l][1] = c[1]; frameCol[l][2] = c[2];`);
+  C(`  }`);
+  C(`}`);
+  C(``);
+  C(`static uint8_t flickerLevel(uint8_t l, uint16_t gi)`);
+  C(`{`);
+  C(`  const LedLook *lk = &LOOKS[l];`);
+  C(`  uint16_t sp = lk->period;`);
+  C(`  uint16_t r = flkR[l] + (uint16_t)(((uint32_t)hash8(gi, 0x5A5A) * sp) >> 8);  /* per-LED phase */`);
+  C(`  uint16_t k = flkK[l];`);
+  C(`  uint8_t v;`);
+  C(`  if (r >= sp) { r -= sp; k++; }`);
+  C(`  v = hash8(gi, k);`);
+  C(`  if (lk->smooth) {`);
+  C(`    uint8_t f = (uint8_t)(((uint32_t)r * (uint16_t)(65535u / sp)) >> 8);`);
+  C(`    uint8_t v2 = hash8(gi, (uint16_t)(k + 1));`);
+  C(`    v = (uint8_t)(((uint16_t)v * (uint16_t)(256 - f) + (uint16_t)v2 * f) >> 8);`);
+  C(`  }`);
+  C(`  return (uint8_t)(lk->lo + (((uint16_t)(lk->hi - lk->lo) * v) >> 8));`);
+  C(`}`);
+  C(``);
+  C(`static void renderStrip(uint8_t s)`);
+  C(`{`);
+  C(`  const LedStrip *st = &STRIPS[s];`);
+  C(`  uint8_t *p = buf;`);
+  C(`  uint8_t on = !(stripOff & (uint8_t)(1u << s));`);
+  C(`  uint16_t i;`);
+  C(`  for (i = 0; i < st->count; i++, p += 3) {`);
+  C(`    uint16_t gi = st->first + i;`);
+  C(isAvr ? `    uint8_t l = pgm_read_byte(&LED_LOOK[gi]);` : `    uint8_t l = LED_LOOK[gi];`);
+  C(`    uint8_t r = 0, g = 0, b = 0;`);
+  C(`    if (on) {`);
+  C(`      r = frameCol[l][0]; g = frameCol[l][1]; b = frameCol[l][2];`);
+  C(`      if (LOOKS[l].fx == FX_FLICKER) {`);
+  C(`        uint8_t lv = flickerLevel(l, gi);`);
+  C(`        r = scale8(r, lv); g = scale8(g, lv); b = scale8(b, lv);`);
+  C(`      }`);
+  C(`      if (st->bright != 255) {`);
+  C(`        r = scale8(r, st->bright); g = scale8(g, st->bright); b = scale8(b, st->bright);`);
+  C(`      }`);
+  C(`    }`);
+  C(`    p[st->posR] = r; p[st->posG] = g; p[st->posB] = b;`);
+  C(`  }`);
+  C(`}`);
+  C(``);
+  C(`void setup()`);
+  C(`{`);
+  if (NI) C(`  uint8_t i;`);
+  C(`  boardInit();`);
+  if (NI) C(`  for (i = 0; i < NUM_INPUTS; i++) inputDefault(i);`);
+  C(`}`);
+  C(``);
+  C(`void loop()`);
+  C(`{`);
+  C(`  uint8_t s;`);
+  if (NI){
+    C(`  /* read one receiver channel per frame; this also paces the frame to the`);
+    C(`     receiver's ~50 Hz, and to ~25 ms when there is no signal */`);
+    C(`  applyInput(curIn, measurePulse(curIn));`);
+    C(`  if (++curIn >= NUM_INPUTS) curIn = 0;`);
+  } else {
+    C(`  while ((uint32_t)(millis() - lastFrame) < FRAME_MS) { }`);
+    C(`  lastFrame = millis();`);
+  }
+  C(`  computeLooks(millis());`);
+  C(`  for (s = 0; s < NUM_STRIPS; s++) {`);
+  C(`    renderStrip(s);`);
+  C(`    sendStrip(s);`);
+  C(`  }`);
+  C(`}`);
+  return L.join("\n") + "\n";
+}
+
+function genCh32(C, strips, inputs){
+  const NI = inputs.length;
+  C(`/* ---------------- CH32V003 driver ---------------- */`);
+  C(`/* WS2812 timing by NOP counts. Built for 48 MHz (Tools > Clock: 48MHz Internal).`);
+  C(`   If the colours come out wrong, adjust the four .rept numbers. */`);
+  C(`#if F_CPU == 48000000`);
+  C(`#define WS_T0H() __asm__ volatile(".rept 12\\n\\tnop\\n\\t.endr")`);
+  C(`#define WS_T0L() __asm__ volatile(".rept 30\\n\\tnop\\n\\t.endr")`);
+  C(`#define WS_T1H() __asm__ volatile(".rept 32\\n\\tnop\\n\\t.endr")`);
+  C(`#define WS_T1L() __asm__ volatile(".rept 10\\n\\tnop\\n\\t.endr")`);
+  C(`#elif F_CPU == 24000000`);
+  C(`#define WS_T0H() __asm__ volatile(".rept 5\\n\\tnop\\n\\t.endr")`);
+  C(`#define WS_T0L() __asm__ volatile(".rept 14\\n\\tnop\\n\\t.endr")`);
+  C(`#define WS_T1H() __asm__ volatile(".rept 15\\n\\tnop\\n\\t.endr")`);
+  C(`#define WS_T1L() __asm__ volatile(".rept 4\\n\\tnop\\n\\t.endr")`);
+  C(`#else`);
+  C(`#error "Set Tools > Clock to 48MHz Internal (24MHz also works)."`);
+  C(`#endif`);
+  C(``);
+  const port = p => "GPIO" + pinParts(p).port;
+  C(`static GPIO_TypeDef * const STRIP_PORT[NUM_STRIPS] = { ${strips.map(s => port(s.pin)).join(", ")} };`);
+  C(`static const uint8_t STRIP_BIT[NUM_STRIPS] = { ${strips.map(s => pinParts(s.pin).bit).join(", ")} };`);
+  if (NI){
+    C(`static GPIO_TypeDef * const IN_PORT[NUM_INPUTS] = { ${inputs.map(p => port(p.pin)).join(", ")} };`);
+    C(`static const uint8_t IN_BIT[NUM_INPUTS] = { ${inputs.map(p => pinParts(p.pin).bit).join(", ")} };`);
+  }
+  C(``);
+  C(`static void pinConfig(GPIO_TypeDef *port, uint8_t bit, uint32_t cfg)`);
+  C(`{`);
+  C(`  port->CFGLR = (port->CFGLR & ~(0xFUL << (bit * 4))) | (cfg << (bit * 4));`);
+  C(`}`);
+  C(``);
+  C(`static void boardInit(void)`);
+  C(`{`);
+  C(`  uint8_t i;`);
+  C(`  RCC->APB2PCENR |= RCC_APB2Periph_GPIOA | RCC_APB2Periph_GPIOC | RCC_APB2Periph_GPIOD;`);
+  C(`  for (i = 0; i < NUM_STRIPS; i++) {`);
+  C(`    STRIP_PORT[i]->BCR = 1UL << STRIP_BIT[i];`);
+  C(`    pinConfig(STRIP_PORT[i], STRIP_BIT[i], 0x3);      /* push-pull output, 30 MHz */`);
+  C(`  }`);
+  if (NI){
+    C(`  for (i = 0; i < NUM_INPUTS; i++) {`);
+    C(`    pinConfig(IN_PORT[i], IN_BIT[i], 0x8);            /* input with pull */`);
+    C(`    IN_PORT[i]->BSHR = 1UL << IN_BIT[i];               /* ...pull-up */`);
+    C(`  }`);
+  }
+  C(`}`);
+  C(``);
+  C(`/* Interrupts are only blocked for one byte (~10 us) at a time, so millis() keeps counting. */`);
+  C(`static void wsSend(GPIO_TypeDef *port, uint32_t mask, const uint8_t *p, uint16_t n)`);
+  C(`{`);
+  C(`  volatile uint32_t *set = &port->BSHR;`);
+  C(`  volatile uint32_t *clr = &port->BCR;`);
+  C(`  while (n--) {`);
+  C(`    uint8_t v = *p++;`);
+  C(`    uint8_t i;`);
+  C(`    noInterrupts();`);
+  C(`    for (i = 0; i < 8; i++) {`);
+  C(`      if (v & 0x80) { *set = mask; WS_T1H(); *clr = mask; WS_T1L(); }`);
+  C(`      else          { *set = mask; WS_T0H(); *clr = mask; WS_T0L(); }`);
+  C(`      v <<= 1;`);
+  C(`    }`);
+  C(`    interrupts();`);
+  C(`  }`);
+  C(`}`);
+  C(``);
+  C(`static void sendStrip(uint8_t s)`);
+  C(`{`);
+  C(`  wsSend(STRIP_PORT[s], 1UL << STRIP_BIT[s], buf, STRIPS[s].count * 3);`);
+  C(`}`);
+  if (NI){
+    C(``);
+    C(`/* Width of the next high pulse in microseconds, 0 if there is none within ~25 ms. */`);
+    C(`static uint16_t measurePulse(uint8_t i)`);
+    C(`{`);
+    C(`  GPIO_TypeDef *port = IN_PORT[i];`);
+    C(`  uint32_t m = 1UL << IN_BIT[i];`);
+    C(`  uint32_t t0 = micros(), t1;`);
+    C(`  while (port->INDR & m)    if (micros() - t0 > 25000UL) return 0;   /* wait for low */`);
+    C(`  while (!(port->INDR & m)) if (micros() - t0 > 25000UL) return 0;   /* wait for rising edge */`);
+    C(`  t1 = micros();`);
+    C(`  while (port->INDR & m)    if (micros() - t1 > 3000UL) return 0;`);
+    C(`  return (uint16_t)(micros() - t1);`);
+    C(`}`);
+  }
+}
+
+function genStm8(C, strips, inputs){
+  const NI = inputs.length;
+  const ODR = { A:0x5000, B:0x5005, C:0x500A, D:0x500F };
+  C(`/* ---------------- STM8S103 driver ---------------- */`);
+  C(`/* Sduino compiles sketches as plain C with SDCC. The WS2812 timing is done in`);
+  C(`   assembly at 16 MHz (20 cycles per bit): high 6 cycles for a 0, 12 for a 1. */`);
+  C(`#if F_CPU != 16000000L`);
+  C(`#error "This code expects the STM8S103 at 16 MHz."`);
+  C(`#endif`);
+  C(``);
+  C(`uint8_t *ws_ptr;      /* used by the assembly below */`);
+  C(`uint16_t ws_len;`);
+  C(``);
+  strips.forEach((s, i) => {
+    const pp = pinParts(s.pin), odr = hx(ODR[pp.port], 4);
+    C(`/* ${cIdent(s.name)}: ${s.pin} */`);
+    C(`void ws_send_${i}(void)`);
+    C(`{`);
+    C(`  __asm`);
+    C(`    pushw x`);
+    C(`    pushw y`);
+    C(`    ldw x, _ws_ptr`);
+    C(`    ldw y, _ws_len`);
+    C(`    sim`);
+    C(`00001$:`);
+    C(`    ld a, (x)`);
+    C(`    incw x`);
+    C(`    push #8`);
+    C(`00002$:`);
+    C(`    bset ${odr}, #${pp.bit}     ; line high`);
+    C(`    sll a                 ; next bit -> carry`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    bccm ${odr}, #${pp.bit}     ; low here if the bit is 0`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    bres ${odr}, #${pp.bit}     ; low here if the bit is 1`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    nop`);
+    C(`    dec (1, sp)`);
+    C(`    jrne 00002$`);
+    C(`    pop a`);
+    C(`    rim                   ; let millis() tick between bytes`);
+    C(`    nop`);
+    C(`    sim`);
+    C(`    decw y`);
+    C(`    jrne 00001$`);
+    C(`    rim`);
+    C(`    popw y`);
+    C(`    popw x`);
+    C(`  __endasm;`);
+    C(`}`);
+    C(``);
+  });
+  C(`static void sendStrip(uint8_t s)`);
+  C(`{`);
+  C(`  ws_ptr = buf;`);
+  C(`  ws_len = STRIPS[s].count * 3;`);
+  C(`  switch (s) {`);
+  strips.forEach((s, i) => C(`    case ${i}: ws_send_${i}(); break;`));
+  C(`  }`);
+  C(`}`);
+  C(``);
+  const gp = p => "GPIO" + pinParts(p).port;
+  C(`static GPIO_TypeDef * const STRIP_PORT[NUM_STRIPS] = { ${strips.map(s => gp(s.pin)).join(", ")} };`);
+  C(`static const uint8_t STRIP_MASK[NUM_STRIPS] = { ${strips.map(s => hx(1 << pinParts(s.pin).bit, 2)).join(", ")} };`);
+  if (NI){
+    C(`static GPIO_TypeDef * const IN_PORT[NUM_INPUTS] = { ${inputs.map(p => gp(p.pin)).join(", ")} };`);
+    C(`static const uint8_t IN_MASK[NUM_INPUTS] = { ${inputs.map(p => hx(1 << pinParts(p.pin).bit, 2)).join(", ")} };`);
+  }
+  C(``);
+  C(`static void boardInit(void)`);
+  C(`{`);
+  C(`  uint8_t i;`);
+  C(`  for (i = 0; i < NUM_STRIPS; i++) {`);
+  C(`    GPIO_TypeDef *g = STRIP_PORT[i];`);
+  C(`    uint8_t m = STRIP_MASK[i];`);
+  C(`    g->ODR &= (uint8_t)~m;`);
+  C(`    g->DDR |= m;       /* output */`);
+  C(`    g->CR1 |= m;       /* push-pull */`);
+  C(`    g->CR2 |= m;       /* fast edges */`);
+  C(`  }`);
+  if (NI){
+    C(`  for (i = 0; i < NUM_INPUTS; i++) {`);
+    C(`    GPIO_TypeDef *g = IN_PORT[i];`);
+    C(`    uint8_t m = IN_MASK[i];`);
+    C(`    g->DDR &= (uint8_t)~m;   /* input */`);
+    C(`    g->CR1 |= m;             /* pull-up */`);
+    C(`    g->CR2 &= (uint8_t)~m;   /* no interrupt */`);
+    C(`  }`);
+    C(`  /* TIM2 free-running at 1 MHz for pulse measurement (analogWrite is not used) */`);
+    C(`  TIM2->CR1 = 0;`);
+    C(`  TIM2->IER = 0;`);
+    C(`  TIM2->PSCR = 4;          /* 16 MHz / 2^4 */`);
+    C(`  TIM2->ARRH = 0xFF;`);
+    C(`  TIM2->ARRL = 0xFF;`);
+    C(`  TIM2->EGR = 1;           /* load the prescaler */`);
+    C(`  TIM2->CR1 = 1;`);
+  }
+  C(`}`);
+  if (NI){
+    C(``);
+    C(`static uint16_t usNow(void)`);
+    C(`{`);
+    C(`  uint8_t h = TIM2->CNTRH;    /* reading the high byte latches the low byte */`);
+    C(`  return ((uint16_t)h << 8) | TIM2->CNTRL;`);
+    C(`}`);
+    C(``);
+    C(`/* Width of the next high pulse in microseconds, 0 if there is none within ~25 ms. */`);
+    C(`static uint16_t measurePulse(uint8_t i)`);
+    C(`{`);
+    C(`  GPIO_TypeDef *g = IN_PORT[i];`);
+    C(`  uint8_t m = IN_MASK[i];`);
+    C(`  uint16_t t0 = usNow(), t1;`);
+    C(`  while (g->IDR & m)    if ((uint16_t)(usNow() - t0) > 25000u) return 0;   /* wait for low */`);
+    C(`  while (!(g->IDR & m)) if ((uint16_t)(usNow() - t0) > 25000u) return 0;   /* wait for rising edge */`);
+    C(`  t1 = usNow();`);
+    C(`  while (g->IDR & m)    if ((uint16_t)(usNow() - t1) > 3000u) return 0;`);
+    C(`  return (uint16_t)(usNow() - t1);`);
+    C(`}`);
+  }
+}
+
+function genPulseArduino(C){
+  C(``);
+  C(`/* Width of the next high pulse in microseconds, 0 if there is none within ~25 ms. */`);
+  C(`static uint16_t measurePulse(uint8_t i)`);
+  C(`{`);
+  C(`  uint8_t pin = IN_PIN[i];`);
+  C(`  uint32_t t0 = micros(), t1;`);
+  C(`  while (digitalRead(pin) == HIGH) if (micros() - t0 > 25000UL) return 0;   /* wait for low */`);
+  C(`  while (digitalRead(pin) == LOW)  if (micros() - t0 > 25000UL) return 0;   /* wait for rising edge */`);
+  C(`  t1 = micros();`);
+  C(`  while (digitalRead(pin) == HIGH) if (micros() - t1 > 3000UL) return 0;`);
+  C(`  return (uint16_t)(micros() - t1);`);
+  C(`}`);
+}
+
+function genNano(C, strips, inputs){
+  const NI = inputs.length;
+  C(`/* ---------------- Arduino Nano driver ---------------- */`);
+  C(`#if F_CPU != 16000000L`);
+  C(`#error "This code expects a 16 MHz Nano (ATmega328P)."`);
+  C(`#endif`);
+  C(``);
+  C(`static const uint8_t STRIP_PIN[NUM_STRIPS] = { ${strips.map(s => arduinoPin(s.pin)).join(", ")} };`);
+  C(`static volatile uint8_t *stripPort[NUM_STRIPS];`);
+  C(`static uint8_t stripMask[NUM_STRIPS];`);
+  if (NI) C(`static const uint8_t IN_PIN[NUM_INPUTS] = { ${inputs.map(p => arduinoPin(p.pin)).join(", ")} };`);
+  C(``);
+  C(`static void boardInit(void)`);
+  C(`{`);
+  C(`  uint8_t i;`);
+  C(`  for (i = 0; i < NUM_STRIPS; i++) {`);
+  C(`    pinMode(STRIP_PIN[i], OUTPUT);`);
+  C(`    digitalWrite(STRIP_PIN[i], LOW);`);
+  C(`    stripPort[i] = portOutputRegister(digitalPinToPort(STRIP_PIN[i]));`);
+  C(`    stripMask[i] = digitalPinToBitMask(STRIP_PIN[i]);`);
+  C(`  }`);
+  if (NI) C(`  for (i = 0; i < NUM_INPUTS; i++) pinMode(IN_PIN[i], INPUT_PULLUP);`);
+  C(`}`);
+  C(``);
+  C(`/* WS2812 bits at 16 MHz: 20 cycles per bit, high 5 cycles for a 0 and 13 for a 1`);
+  C(`   (the same timing as the Adafruit NeoPixel 16 MHz loop). Interrupts are only`);
+  C(`   blocked for one byte at a time, so millis() keeps counting. */`);
+  C(`static void wsSend(volatile uint8_t *port, uint8_t mask, const uint8_t *p, uint16_t n)`);
+  C(`{`);
+  C(`  while (n--) {`);
+  C(`    uint8_t b = *p++, bit = 8, hi, lo, next;`);
+  C(`    noInterrupts();`);
+  C(`    hi = *port | mask;`);
+  C(`    lo = *port & (uint8_t)~mask;`);
+  C(`    next = lo;`);
+  C(`    asm volatile(`);
+  C(`      "1:                      \\n\\t"`);
+  C(`      "st   %a[port], %[hi]    \\n\\t"   /* 2  line high            */`);
+  C(`      "sbrc %[byte], 7         \\n\\t"   /* 1-2                     */`);
+  C(`      "mov  %[next], %[hi]     \\n\\t"   /* 0-1 bit is 1: stay high */`);
+  C(`      "dec  %[bit]             \\n\\t"   /* 1                       */`);
+  C(`      "st   %a[port], %[next]  \\n\\t"   /* 2  low here for a 0     */`);
+  C(`      "mov  %[next], %[lo]     \\n\\t"   /* 1                       */`);
+  C(`      "breq 2f                 \\n\\t"   /* 1-2                     */`);
+  C(`      "rol  %[byte]            \\n\\t"   /* 1                       */`);
+  C(`      "rjmp .+0                \\n\\t"   /* 2                       */`);
+  C(`      "nop                     \\n\\t"   /* 1                       */`);
+  C(`      "st   %a[port], %[lo]    \\n\\t"   /* 2  low here for a 1     */`);
+  C(`      "nop                     \\n\\t"   /* 1                       */`);
+  C(`      "rjmp .+0                \\n\\t"   /* 2                       */`);
+  C(`      "rjmp 1b                 \\n\\t"   /* 2                       */`);
+  C(`      "2:                      \\n\\t"`);
+  C(`      "rjmp .+0                \\n\\t"   /* 2                       */`);
+  C(`      "nop                     \\n\\t"   /* 1                       */`);
+  C(`      "st   %a[port], %[lo]    \\n\\t"   /* 2  low here for a 1     */`);
+  C(`      : [byte] "+&r" (b), [bit] "+&r" (bit), [next] "+&r" (next)`);
+  C(`      : [port] "e" (port), [hi] "r" (hi), [lo] "r" (lo)`);
+  C(`      : "memory");`);
+  C(`    interrupts();`);
+  C(`  }`);
+  C(`}`);
+  C(``);
+  C(`static void sendStrip(uint8_t s)`);
+  C(`{`);
+  C(`  wsSend(stripPort[s], stripMask[s], buf, STRIPS[s].count * 3);`);
+  C(`}`);
+  if (NI) genPulseArduino(C);
+}
+
+function genRp2040(C, strips, inputs){
+  const NI = inputs.length;
+  C(`/* ---------------- RP2040 Zero driver ---------------- */`);
+  C(`/* One Adafruit_NeoPixel object per strip. The colour order is already applied in`);
+  C(`   buf, so the bytes are copied straight into the library's pixel buffer. */`);
+  strips.forEach((s, i) => C(`static Adafruit_NeoPixel px${i}(${s.count}, ${arduinoPin(s.pin)}, NEO_GRB + NEO_KHZ800);   /* ${cIdent(s.name)} on ${s.pin} */`));
+  C(`static Adafruit_NeoPixel * const PX[NUM_STRIPS] = { ${strips.map((s, i) => "&px" + i).join(", ")} };`);
+  if (NI) C(`static const uint8_t IN_PIN[NUM_INPUTS] = { ${inputs.map(p => arduinoPin(p.pin)).join(", ")} };`);
+  C(``);
+  C(`static void boardInit(void)`);
+  C(`{`);
+  C(`  uint8_t i;`);
+  C(`  for (i = 0; i < NUM_STRIPS; i++) PX[i]->begin();`);
+  if (NI) C(`  for (i = 0; i < NUM_INPUTS; i++) pinMode(IN_PIN[i], INPUT_PULLUP);`);
+  C(`}`);
+  C(``);
+  C(`static void sendStrip(uint8_t s)`);
+  C(`{`);
+  C(`  memcpy(PX[s]->getPixels(), buf, STRIPS[s].count * 3);`);
+  C(`  PX[s]->show();`);
+  C(`}`);
+  if (NI) genPulseArduino(C);
+}
+
+/* ======================================================================
+   Resources + how-to
+   ====================================================================== */
+function ramUse(nLooks){
+  const maxLen = Math.max(0, ...state.strips.map(s => s.count));
+  let ram = maxLen * 3 + nLooks * 7 + state.inputs.length * 6 + 8;
+  if (state.board === "nano")     /* AVR keeps the look and range tables in RAM */
+    ram += nLooks * 20 + state.inputs.reduce((a, p) => a + 5 + p.ranges.length * 8, 0) + state.strips.length * 10;
+  if (state.board === "rp2040")   /* the NeoPixel library keeps its own copy of every strip */
+    ram += state.strips.reduce((a, s) => a + s.count * 3, 0);
+  return ram;
+}
+function renderStats(){
+  const b = board(), { looks } = buildLooks();
+  const maxLen = Math.max(0, ...state.strips.map(s => s.count));
+  const total = state.strips.reduce((a, s) => a + s.count, 0);
+  const ram = ramUse(looks.length);
+  const flashData = total + looks.length * 20 + state.strips.length * 7 + state.inputs.reduce((a,p) => a + 5 + p.ranges.length * 8, 0);
+  const amps = (total * 0.06).toFixed(1);
+  $("stats").innerHTML = `
+    <span>LEDs total</span><span>${total} on ${state.strips.length} strip${state.strips.length===1?"":"s"}</span>
+    <span>Different settings</span><span>${looks.length}</span>
+    <span>RAM for LEDs</span><span>${ram} B of ~${b.ramBudget} B free</span>
+    <span>Flash for tables</span><span>~${flashData} B of ${b.flash/1024} KB</span>
+    <span>Max current</span><span>${amps} A at full white</span>`;
+  const HOWTO = {
+    nano: `<ol style="padding-left:18px;margin:6px 0">
+        <li>Tools &gt; Board: <b>Arduino Nano</b>, Processor: <b>ATmega328P</b> (try <b>ATmega328P (Old Bootloader)</b> if a clone won't upload).</li>
+        <li>No library needed; the LED driver is in the sketch.</li>
+        <li>Save the file as <code>rc_led_controller/rc_led_controller.ino</code> (the folder must have the same name).</li></ol>`,
+    rp2040: `<ol style="padding-left:18px;margin:6px 0">
+        <li>Install arduino-pico: in Arduino IDE, add <code>https://github.com/earlephilhower/arduino-pico/releases/download/global/package_rp2040_index.json</code> to Additional Boards Manager URLs, then install “Raspberry Pi Pico/RP2040”.</li>
+        <li>Install the <b>Adafruit NeoPixel</b> library from Library Manager.</li>
+        <li>Tools &gt; Board: <b>Waveshare RP2040 Zero</b>. For the first upload, hold BOOT while plugging in USB.</li>
+        <li>Save the file as <code>rc_led_controller/rc_led_controller.ino</code> (the folder must have the same name).</li></ol>`,
+  };
+  const howto = HOWTO[state.board] || (state.board === "stm8"
+    ? `<ol style="padding-left:18px;margin:6px 0">
+        <li>Install Sduino: in Arduino IDE, add <code>https://github.com/tenbaht/sduino/raw/master/package_sduino_stm8_index.json</code> to Additional Boards Manager URLs, then install “Sduino STM8 plain C core”.</li>
+        <li>Tools &gt; Board: <b>STM8S103F3 Breakout Board</b>, Programmer: <b>ST-Link/V2</b>, and upload with “Upload Using Programmer”.</li>
+        <li>Save the file as <code>rc_led_controller/rc_led_controller.ino</code> (the folder must have the same name).</li>
+        <li>The code is plain C on purpose; Sduino can't compile C++ LED libraries.</li></ol>`
+    : `<ol style="padding-left:18px;margin:6px 0">
+        <li>Install the openwch core: in Arduino IDE, add <code>https://github.com/openwch/board_manager_files/raw/main/package_ch32v_index.json</code> to Additional Boards Manager URLs, then install “CH32 MCU EVT Boards”.</li>
+        <li>Tools &gt; Board: <b>CH32V00x</b>, Board Select: <b>CH32V003F4P6</b>, Clock: <b>48MHz Internal</b>, upload with a WCH-LinkE.</li>
+        <li>Save the file as <code>rc_led_controller/rc_led_controller.ino</code> (the folder must have the same name).</li></ol>`);
+  const power = state.board === "rp2040"
+    ? "The RP2040 outputs 3.3 V data; most WS2812B strips accept it, but a 74AHCT125 level shifter makes it reliable."
+    : state.board === "nano" ? "The Nano runs at 5 V, which suits WS2812B strips directly."
+    : "The board can run at 3.3 V or 5 V; at 3.3 V most WS2812B strips still work, but 5 V is more reliable.";
+  $("howto").innerHTML = howto + `<p style="margin:6px 0">Wiring: strip data through a 330 Ω resistor, common ground between the board, the strip supply and the receiver. Receiver signal wire to the input pin. ${power}</p>`;
+}
+
+function renderMsgs(){
+  const m = validate();
+  $("msgs").innerHTML = m.map(([t, s]) => `<div class="${t}">${esc(s)}</div>`).join("");
+  return m;
+}
+
+/* ======================================================================
+   Glue
+   ====================================================================== */
+let genTimer = null;
+function changed(structural){
+  store();
+  if (structural){ renderStrips(); renderInputs(); renderCanvas(); renderFx(); }
+  renderStats();
+  clearTimeout(genTimer);
+  genTimer = setTimeout(regen, 120);
+}
+function regen(){
+  const m = renderMsgs();
+  $("code").value = state.strips.length ? generate() : "// Add a strip to generate code.";
+  return m;
+}
+function renderAll(){
+  $("board").value = state.board;
+  renderStrips(); renderInputs(); renderCanvas(); renderFx(); renderStats(); regen();
+}
+
+$("board").onchange = () => {
+  const old = state.board; state.board = $("board").value;
+  const b = board(), fixed = [];
+  for (const s of state.strips){
+    if (!b.dataPins.includes(s.pin)){ const p = firstFreePin(b.dataPins); fixed.push(`${s.name}: ${s.pin} → ${p}`); s.pin = p; }
+    if (s.count > b.maxStripLeds){ resizeStrip(s, b.maxStripLeds); fixed.push(`${s.name}: shortened to ${b.maxStripLeds} LEDs`); }
+  }
+  for (const p of state.inputs){
+    if (!b.inPins.includes(p.pin)){ const n = firstFreePin(b.inPins); fixed.push(`${p.name}: ${p.pin} → ${n}`); p.pin = n; }
+  }
+  pruneSel(); changed(true);
+  if (fixed.length) setTimeout(() => alert(`Changed for the ${b.name}:\n` + fixed.join("\n")), 10);
+};
+$("btnNew").onclick = () => { if (!confirm("Start a new setup? Unsaved changes are lost (save first if needed).")) return; state = defaultState(); sel.clear(); edit = defaultLook(); renderAll(); store(); };
+$("btnSave").onclick = () => {
+  const blob = new Blob([JSON.stringify(state, null, 1)], { type:"application/json" });
+  download(blob, "rc_led_setup.json");
+};
+$("btnLoad").onclick = () => $("fileLoad").click();
+$("fileLoad").onchange = async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { state = sanitize(JSON.parse(await f.text())); sel.clear(); edit = defaultLook(); renderAll(); store(); }
+  catch(err){ alert("Couldn't load that file: " + err.message); }
+  e.target.value = "";
+};
+$("btnDownload").onclick = () => {
+  const m = regen();
+  if (m.some(x => x[0] === "err") && !confirm("There are errors listed above the code. Download anyway?")) return;
+  download(new Blob([$("code").value], { type:"text/plain" }), "rc_led_controller.ino");
+};
+$("btnCopy").onclick = async () => {
+  regen();
+  try { await navigator.clipboard.writeText($("code").value); }
+  catch(e){ $("code").select(); document.execCommand("copy"); }
+  $("btnCopy").textContent = "Copied"; setTimeout(() => $("btnCopy").textContent = "Copy", 1200);
+};
+function download(blob, name){
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+function syncThemeBtn(){
+  const dark = document.documentElement.dataset.theme !== "light";
+  $("btnTheme").textContent = dark ? "☀" : "☾";
+  $("btnTheme").title = dark ? "Switch to light mode" : "Switch to dark mode";
+}
+$("btnTheme").onclick = () => {
+  const next = document.documentElement.dataset.theme === "light" ? "dark" : "light";
+  document.documentElement.dataset.theme = next;
+  try { localStorage.setItem("avionixLed.theme", next); } catch(e) {}
+  syncThemeBtn();
+};
+syncThemeBtn();
+renderAll();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
