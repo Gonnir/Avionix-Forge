@@ -343,6 +343,7 @@ header{min-height:58px;border-bottom:1px solid var(--border);background:rgba(19,
         </div>
       </div>
     </div>
+    <div id="ledPreviewBar" title="Live preview of the WS2812 LED strips, driven by the telemetry simulation"></div>
   </main>
 
   <aside class="right-panel">
@@ -658,6 +659,7 @@ const STANDARD_INSTRUMENTS = [
   {type:'indicator',name:'Indicator',desc:'Threshold warning lamp',icon:'fa-circle',defaultSize:{w:40,h:40},defaults:{indicatorSource:'SYS_STATUS.battery_remaining',indicatorOp:'<',indicatorThreshold:20,shape:'circle',onColor:'#ff5c5c',offColor:'#1c232e',borderColor:'#3a4555',borderWidth:2,label:'',showLabel:false,labelColor:'#ffffff',rotation:0}},
   {type:'home-arrow',name:'Home Arrow',desc:'Direction to home',icon:'fa-house',defaultSize:{w:100,h:100},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,shape:'circle',rotation:0}},
   {type:'home-distance',name:'Home Distance',desc:'Distance from home in m',icon:'fa-ruler',defaultSize:{w:120,h:60},defaults:{bgColor:'#040810',pointerColor:'#5fe88a',textColor:'#ffffff',labelColor:'#7a8898',borderColor:'#3a4555',borderWidth:1,showUnit:true,rotation:0}},
+  {type:'status-text',name:'Status Text',desc:'FC STATUSTEXT messages (pre-arm, failsafe...)',icon:'fa-comment-dots',defaultSize:{w:200,h:40},defaults:{bgColor:'#040810',borderColor:'#3a4555',showBorder:true,errColor:'#ff5c5c',warnColor:'#ffd93a',infoColor:'#5fe88a',lines:1,timeoutSec:10,scroll:true,scrollSpeed:6,rotation:0}},
   {type:'radar',name:'Radar',desc:'Home/aircraft relative position',icon:'fa-satellite-dish',defaultSize:{w:140,h:140},defaults:{mode:'plane-center',shape:'circle',sweepStyle:'rotate',range:500,bgColor:'#040810',gridColor:'#7a8898',sweepColor:'#5fe88a',blobColor:'#708f7f',planeColor:'#ff9d3a',homeColor:'#5fe88a',borderColor:'#3a4555',borderWidth:1,showRings:true,ringCount:4,showBlobs:true,rotation:0}},
   {type:'shape-rectangle',name:'Rectangle',desc:'Decorative panel shape',icon:'fa-square',category:'Decoration',defaultSize:{w:100,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
   {type:'shape-circle',name:'Circle',desc:'Decorative panel shape',icon:'fa-circle',category:'Decoration',defaultSize:{w:60,h:60},defaults:{fillColor:'#1c232e',outlineColor:'#3a4555',outlineWidth:2,rotation:0}},
@@ -1845,7 +1847,7 @@ function renderProperties(){
   // no-op that would silently do nothing once compiled.
   const isTemplateImage = inst.type==='template-image';
   const rotationUnsupported = ['altimeter-tape','airspeed-tape','tape','heading-tape','heading-arc','vsi-tape',
-    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text',
+    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text','status-text',
     'shape-line' /* angle is already fully controlled by its endpoint percentages */].includes(inst.type);
   if(rotationUnsupported && c.rotation){ c.rotation=0; if(inst.element) inst.element.style.transform='rotate(0deg)'; }
 
@@ -1895,6 +1897,8 @@ function renderProperties(){
     // position internally - there's no user-selectable data source for it
     // at all, so this section is skipped rather than showing an irrelevant
     // MAVLink Source field that the instrument would just ignore.
+  } else if(inst.type==='status-text'){
+    // No source picker: always shows the flight controller's STATUSTEXT stream.
   } else if(inst.type==='radar'){
     // Same reasoning as Home Arrow - radar's plane/home positions are both
     // computed internally from GPS vs home, no user-selectable source.
@@ -2110,6 +2114,8 @@ function renderProperties(){
     html+=colorField('Text Color','textColor',c.textColor||'#5fe88a');
     html+=colorField('Border Color','borderColor',c.borderColor||'#5fe88a');
     html+=checkboxField('showText','Show Text',c.showText!==false);
+    const alignSel=(label,key,def)=>`<div class="field"><label class="field-label">${label}</label><select data-cfg="${key}">${['left','center','right'].map(o=>`<option value="${o}" ${(c[key]||def)===o?'selected':''}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join('')}</select></div>`;
+    html+=alignSel('Text Alignment','modeAlign','center');
     html+=gaugeTextSection(c,[['mode','Mode Text']],true);
   } else if(inst.type==='groundspeed-dial'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
@@ -2195,6 +2201,8 @@ function renderProperties(){
     html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
     html+=checkboxField('showUnit','Show Unit',c.showUnit!==false);
     html+=checkboxField('showValueBox','Show Value Box Background',c.showValueBox!==false);
+    const alignSel=(label,key,def)=>`<div class="field"><label class="field-label">${label}</label><select data-cfg="${key}">${['left','center','right'].map(o=>`<option value="${o}" ${(c[key]||def)===o?'selected':''}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join('')}</select></div>`;
+    html+=`<div class="field-row">${alignSel('Label Alignment','labelAlign','center')}${alignSel('Value Alignment','valueAlign','center')}${alignSel('Unit Alignment','unitAlign','center')}</div>`;
     html+=`<div class="field"><label class="field-label">Unit of Measure</label>
       <select data-cfg="distanceUnit">
         <option value="auto" ${(c.distanceUnit||'auto')==='auto'?'selected':''}>Auto (m, switches to km past 1000m)</option>
@@ -2203,6 +2211,18 @@ function renderProperties(){
         <option value="ft" ${c.distanceUnit==='ft'?'selected':''}>Feet</option>
         <option value="mi" ${c.distanceUnit==='mi'?'selected':''}>Miles</option>
       </select></div>`;
+  } else if(inst.type==='status-text'){
+    html+=colorField('Background','bgColor',c.bgColor||'#040810');
+    html+=colorField('Border Color','borderColor',c.borderColor||'#3a4555');
+    html+=colorField('Error / Critical Text (sev 0-3)','errColor',c.errColor||'#ff5c5c');
+    html+=colorField('Warning Text (sev 4)','warnColor',c.warnColor||'#ffd93a');
+    html+=colorField('Info / Notice Text (sev 5-7)','infoColor',c.infoColor||'#5fe88a');
+    html+=checkboxField('showBorder','Show Border',c.showBorder!==false);
+    html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Message Lines (history)</label><input type="number" data-cfg="lines" value="${c.lines||1}" min="1" max="4"><span class="field-hint">1 = latest message only. 2-4 also keeps the previous messages, newest on top.</span></div>`;
+    html+=`<div class="field"><label class="field-label">Hide After (seconds, 0 = never)</label><input type="number" data-cfg="timeoutSec" value="${c.timeoutSec!==undefined?c.timeoutSec:10}" min="0" max="3600"></div>`;
+    html+=checkboxField('scroll','Scroll Long Messages (else cut off)',c.scroll!==false);
+    html+=`<div class="field"><label class="field-label">Scroll Speed (chars/sec)</label><input type="number" data-cfg="scrollSpeed" value="${c.scrollSpeed||6}" min="1" max="30"></div>`;
+    html+=gaugeTextSection(c,[['text','Message Text']],true);
   } else if(inst.type==='radar'){
     html+=colorField('Background','bgColor',c.bgColor||'#040810');
     html+=colorField('Grid/Rings Color','gridColor',c.gridColor||'#7a8898');
@@ -2258,6 +2278,8 @@ function renderProperties(){
     if(inst.type==='text-value'){
       html+=checkboxField('showBorder','Show Border',c.showBorder!==false);
       html+=`<div class="field">${propGroupLabel('geom','Sizing & Geometry')}<label class="field-label">Border Width (px)</label><input type="number" data-cfg="borderWidth" value="${c.borderWidth!==undefined?c.borderWidth:1}" min="0" max="20"></div>`;
+      const alignSel=(label,key,def)=>`<div class="field"><label class="field-label">${label}</label><select data-cfg="${key}">${['left','center','right'].map(o=>`<option value="${o}" ${(c[key]||def)===o?'selected':''}>${o.charAt(0).toUpperCase()+o.slice(1)}</option>`).join('')}</select></div>`;
+      html+=`<div class="field-row">${alignSel('Value Alignment','valueAlign','right')}${alignSel('Label Alignment','labelAlign','left')}${alignSel('Unit Alignment','unitAlign','right')}</div>`;
     }
   } else if(inst.type==='shape-rectangle'||inst.type==='shape-circle'||inst.type==='shape-oval'||inst.type==='shape-triangle'){
     html+=colorField('Fill Color','fillColor',c.fillColor||'#1c232e');
@@ -3556,6 +3578,7 @@ function drawInstrument(ctx,inst){
     }
     case 'home-arrow': drawHomeArrow(ctx,w,h,gm('HOME_BEARING'),gm('VFR_HUD.heading'),c); break;
     case 'home-distance': drawHomeDistance(ctx,w,h,gm('HOME_DISTANCE'),c); break;
+    case 'status-text': drawStatusText(ctx,w,h,c); break;
     case 'radar': drawRadar(ctx,w,h,gm('HOME_BEARING'),gm('HOME_DISTANCE'),gm('VFR_HUD.heading'),c); break;
     case 'indicator': drawIndicator(ctx,w,h,c); break;
     case 'arc-gauge': drawArcGauge(ctx,w,h,gm(c.mavSource),c.min||0,c.max||100,c.label||'',c.unit||'',resolveColor(c.color||'#ff9d3a'),c.digits||0,c); break;
@@ -4678,8 +4701,9 @@ function drawModeIndicator(ctx,w,h,mode,c){
   if(c.showText!==false){
     ctx.fillStyle=c.textColor||color;
     ctx.font=`bold ${Math.max(9,gSize(c,'mode',h*0.4))}px Orbitron`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
-    gText(ctx,c,'mode',modeName,w/2,h/2);
+    const ma=c.modeAlign||'center';
+    ctx.textAlign=ma; ctx.textBaseline='middle';
+    gText(ctx,c,'mode',modeName,ma==='left'?4:ma==='center'?w/2:w-4,h/2);
   }
 }
 
@@ -4932,8 +4956,10 @@ function drawHomeDistance(ctx,w,h,distance,c){
   // Label
   ctx.fillStyle=labelCol;
   ctx.font=`${Math.max(7,h*0.18)}px JetBrains Mono`;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('HOME DIST',w/2,h*0.22);
+  const hAx=a=>a==='left'?4:a==='right'?w-4:w/2;
+  const la=c.labelAlign||'center', va=c.valueAlign||'center', ua=c.unitAlign||'center';
+  ctx.textAlign=la; ctx.textBaseline='middle';
+  ctx.fillText('HOME DIST',hAx(la),h*0.22);
 
   // Value
   const distUnit=c.distanceUnit||'auto';
@@ -4949,19 +4975,20 @@ function drawHomeDistance(ctx,w,h,distance,c){
     const tw=ctx.measureText(disp).width;
     const boxPad=valSize*0.25;
     ctx.fillStyle=c.valueBoxColor||'#1c232e';
-    ctx.fillRect(w/2-tw/2-boxPad+gDX(c,'value'), h*0.55-valSize/2-boxPad*0.5+gDY(c,'value'), tw+boxPad*2, valSize+boxPad);
+    const bx=va==='left'?4:va==='right'?w-4-tw-boxPad*2:w/2-tw/2-boxPad;
+    ctx.fillRect(bx+gDX(c,'value'), h*0.55-valSize/2-boxPad*0.5+gDY(c,'value'), tw+boxPad*2, valSize+boxPad);
   }
   ctx.fillStyle=ptrColor;
-  ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(disp,w/2,h*0.55);
+  ctx.textAlign=va; ctx.textBaseline='middle';
+  ctx.fillText(disp,va==='left'?4+valSize*0.25:va==='right'?w-4-valSize*0.25:w/2,h*0.55);
 
   // Unit footer
   if(c.showUnit!==false){
     ctx.fillStyle=labelCol;
     ctx.font=`${Math.max(7,h*0.14)}px JetBrains Mono`;
-    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.textAlign=ua; ctx.textBaseline='middle';
     const unitCaption=distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
-    ctx.fillText(unitCaption,w/2,h*0.82);
+    ctx.fillText(unitCaption,hAx(ua),h*0.82);
   }
 }
 
@@ -5354,20 +5381,23 @@ function drawTextValue(ctx,w,h,value,label,unit,color,digits,c){
   if(c.showLabel!==false){
     ctx.fillStyle=c.labelColor||'#7a8898';
     ctx.font=`${gSize(c,'label',Math.max(7,h*0.22))}px Space Grotesk`;
-    ctx.textAlign='left'; ctx.textBaseline='top';
-    gText(ctx,c,'label',label,4,3);
+    const la=c.labelAlign||'left';
+    ctx.textAlign=la; ctx.textBaseline='top';
+    gText(ctx,c,'label',label,la==='left'?4:la==='center'?w/2:w-4,3);
   }
   if(c.showValue!==false && color!=='transparent'){
     ctx.fillStyle=color;
     ctx.font=`bold ${gSize(c,'value',Math.max(11,h*0.5))}px JetBrains Mono`;
-    ctx.textAlign='right'; ctx.textBaseline='bottom';
-    gText(ctx,c,'value',value.toFixed(digits),w-4,h-2);
+    const va=c.valueAlign||'right';
+    ctx.textAlign=va; ctx.textBaseline='bottom';
+    gText(ctx,c,'value',value.toFixed(digits),va==='left'?4:va==='center'?w/2:w-4,h-2);
   }
   if(c.showUnit!==false && unit){
     ctx.fillStyle=c.labelColor||'#7a8898';
     ctx.font=`${gSize(c,'unit',Math.max(7,h*0.22))}px JetBrains Mono`;
-    ctx.textAlign='right'; ctx.textBaseline='top';
-    gText(ctx,c,'unit',unit,w-4,3);
+    const ua=c.unitAlign||'right';
+    ctx.textAlign=ua; ctx.textBaseline='top';
+    gText(ctx,c,'unit',unit,ua==='left'?4:ua==='center'?w/2:w-4,3);
   }
 }
 
@@ -5386,6 +5416,60 @@ function drawStaticText(ctx,w,h,c){
     const tx = align==='left' ? 4 : align==='right' ? w-4 : w/2;
     gText(ctx,c,'text',c.text||'',tx,h/2);
   }
+}
+
+// ---- Status Text (FC STATUSTEXT messages) ----
+// The editor has no real flight controller, so it cycles through a few
+// typical ArduPilot messages every 5 s (newest first, with their age) to
+// show colours, history lines, timeout and scrolling.
+const STATUS_SIM_MSGS=[
+  [6,'ArduPilot ready'],
+  [4,'PreArm: Compass not calibrated'],
+  [3,'PreArm: GPS 1: Bad fix, wait for 3D lock'],
+  [4,'Battery 1 low 10.8V'],
+  [2,'Failsafe: Short event on: type=1'],
+  [6,'Mode AUTO'],
+  [5,'Throttle armed']
+];
+function statusSimList(maxLines,timeoutSec){
+  const PERIOD=5000, now=Date.now(), k=Math.floor(now/PERIOD), out=[];
+  for(let i=0;i<maxLines;i++){
+    const slot=k-i, m=STATUS_SIM_MSGS[((slot%STATUS_SIM_MSGS.length)+STATUS_SIM_MSGS.length)%STATUS_SIM_MSGS.length];
+    const ageMs=now-slot*PERIOD;
+    if(timeoutSec>0 && ageMs>timeoutSec*1000) continue;
+    out.push({sev:m[0],text:m[1]});
+  }
+  return out;
+}
+function drawStatusText(ctx,w,h,c){
+  if(c.bgColor && c.bgColor!=='transparent'){ ctx.fillStyle=c.bgColor; ctx.fillRect(0,0,w,h); }
+  if(c.showBorder!==false && c.borderColor && c.borderColor!=='transparent'){
+    ctx.strokeStyle=c.borderColor; ctx.lineWidth=1; ctx.strokeRect(0.5,0.5,w-1,h-1);
+  }
+  const N=Math.max(1,Math.min(4,parseInt(c.lines)||1));
+  const rowH=(h-4)/N;
+  // Mirror the device's integer-scaled 6x8 font: scale k = floor(px/8), char cell 6k x 8k.
+  const px=gSize(c,'text',Math.max(8,Math.min(rowH*0.5,15.9)));
+  const kScale=Math.max(1,Math.floor(px/8));
+  ctx.font=`${10*kScale}px monospace`; ctx.textAlign='left'; ctx.textBaseline='middle';
+  const cw=Math.max(1,ctx.measureText('M').width);
+  const fit=Math.max(1,Math.floor((w-8)/cw));
+  const speed=Math.max(1,parseFloat(c.scrollSpeed)||6);
+  const list=statusSimList(N,c.timeoutSec!==undefined?parseFloat(c.timeoutSec):10);
+  list.forEach((m,row)=>{
+    const col=m.sev<=3?(c.errColor||'#ff5c5c'):m.sev===4?(c.warnColor||'#ffd93a'):(c.infoColor||'#5fe88a');
+    if(!col||col==='transparent') return;
+    let txt=m.text;
+    if(txt.length>fit){
+      if(c.scroll!==false){
+        const span=txt.length+4, off=Math.floor(Date.now()/1000*speed)%span;
+        let b=''; for(let k=0;k<fit;k++){ const idx=(off+k)%span; b+=idx<txt.length?txt[idx]:' '; }
+        txt=b;
+      } else txt=txt.slice(0,fit);
+    }
+    ctx.fillStyle=col;
+    gText(ctx,c,'text',txt,4,2+rowH*row+rowH/2);
+  });
 }
 
 function drawTemplateImage(ctx,w,h,c,inst){
@@ -6149,6 +6233,7 @@ function buildArduinoCode(){
   // the same validation at every single use site.
   const validLedStrips = (state.ledStrips||[]).filter(s=>s.pin && String(s.pin).trim()!=='' && (s.count||0)>0 && s.groups && s.groups.length>0);
   const ledStripOn = validLedStrips.length>0;
+  const statusTextOn = insts.some(i=>i.type==='status-text');
   const includes=(panel.gfx?panel.gfx+'\n':'')+panel.include+(isI2CPanel()?'\n#include <Wire.h>':'')+(hw.board==='rp2040'?'\n#include "hardware/clocks.h"  // for the clk_peri re-tie fix in setup()':'')+(!isU8g2&&!isTftESPI?'\n#include <Fonts/TomThumb.h>  // compact font for small instruments':'')+((rgbLedOn||ledStripOn)?'\n#include <Adafruit_NeoPixel.h>':'');
   let code=`// ============================================================
 // AvionixForge - Generated Instrument Cluster Code
@@ -6298,9 +6383,25 @@ struct MavlinkData {
   double homeLat, homeLon; // home position (degrees, set on first fix or arm)
   bool homeSet;
   unsigned long lastUpdate;
-};
+${statusTextOn ? `  // Last 4 STATUSTEXT messages from the flight controller, newest first.
+  char stText[4][51];
+  uint8_t stSev[4];       // MAV_SEVERITY: 0=EMERGENCY ... 3=ERROR, 4=WARNING, 5=NOTICE, 6=INFO, 7=DEBUG
+  unsigned long stTime[4]; // millis() when received (refreshed when the same text repeats)
+` : ''}};
 MavlinkData mav;
-
+${statusTextOn ? `
+// Push a status message (called from the MAVLink handler on core1 or from
+// demo mode). A repeat of the newest text only refreshes its timestamp -
+// ArduPilot repeats PreArm failures every few seconds and that must not
+// flood the history. Core1 writes while core0 draws; a torn read can show
+// a garbled line for one frame at worst.
+void pushStatusText(uint8_t sev, const char* txt) {
+  if (mav.stText[0][0] && strncmp(mav.stText[0], txt, 50) == 0) { mav.stTime[0] = millis(); mav.stSev[0] = sev; return; }
+  for (int i = 3; i > 0; i--) { memcpy(mav.stText[i], mav.stText[i-1], 51); mav.stSev[i] = mav.stSev[i-1]; mav.stTime[i] = mav.stTime[i-1]; }
+  strncpy(mav.stText[0], txt, 50); mav.stText[0][50] = 0;
+  mav.stSev[0] = sev; mav.stTime[0] = millis();
+}
+` : ''}
 ${isU8g2 ? `// ------------------------------------------------------------
 // Section 3b : U8g2 → Adafruit GFX compatibility shim
 // The instrument drawing code uses the Adafruit GFX API. This wrapper
@@ -6843,7 +6944,14 @@ void updateDemoValues() {
   mav.pressure    = 1013.0f + sinf(t/25000.0f) * 8.0f;
   mav.slip        = sinf(t/3500.0f) * 0.8f;
   mav.flight_mode = 4;
-  // Fake GPS position circling a fixed home point, so Home Arrow / Home
+${statusTextOn ? `  {
+    // Rotating sample messages, one every 5 s, so Status Text shows something without a flight controller.
+    static const char* const demoMsgs[] = {"ArduPilot ready", "PreArm: Compass not calibrated", "PreArm: GPS 1: Bad fix", "Battery 1 low 10.8V", "Failsafe: Short event on: type=1", "Mode AUTO", "Throttle armed"};
+    static const uint8_t demoSev[] = {6, 4, 3, 4, 2, 6, 5};
+    static unsigned long lastDemoMsg = 0; static uint8_t demoIdx = 0;
+    if (lastDemoMsg == 0 || millis() - lastDemoMsg >= 5000) { lastDemoMsg = millis(); pushStatusText(demoSev[demoIdx], demoMsgs[demoIdx]); demoIdx = (demoIdx + 1) % 7; }
+  }
+` : ''}  // Fake GPS position circling a fixed home point, so Home Arrow / Home
   // Distance instruments have something to point at without a real fix.
   mav.lat = 47.4979 + sin(t/30000.0) * 0.01;
   mav.lon = 19.0402 + cos(t/30000.0) * 0.01;
@@ -6985,7 +7093,8 @@ void handleMavlinkMessage(mavlink_message_t *msg) {
     }
     case MAVLINK_MSG_ID_GPS_RAW_INT: { mavlink_gps_raw_int_t g; mavlink_msg_gps_raw_int_decode(msg, &g); mav.satellites=g.satellites_visible; mav.lat=g.lat/1e7; mav.lon=g.lon/1e7; mav.hdop = (g.eph==UINT16_MAX) ? 0 : g.eph/100.0f; if(!mav.homeSet&&g.fix_type>=3){mav.homeLat=mav.lat;mav.homeLon=mav.lon;mav.homeSet=true;} break; }
     case MAVLINK_MSG_ID_HOME_POSITION: { mavlink_home_position_t hp; mavlink_msg_home_position_decode(msg, &hp); mav.homeLat=hp.latitude/1e7; mav.homeLon=hp.longitude/1e7; mav.homeSet=true; break; }
-    case MAVLINK_MSG_ID_HEARTBEAT: { mavlink_heartbeat_t hb; mavlink_msg_heartbeat_decode(msg, &hb); mav.flight_mode=hb.custom_mode; break; }
+${statusTextOn ? `    case MAVLINK_MSG_ID_STATUSTEXT: { mavlink_statustext_t st; mavlink_msg_statustext_decode(msg, &st); char tb[51]; memcpy(tb, st.text, 50); tb[50] = 0; pushStatusText(st.severity, tb); break; }
+` : ''}    case MAVLINK_MSG_ID_HEARTBEAT: { mavlink_heartbeat_t hb; mavlink_msg_heartbeat_decode(msg, &hb); mav.flight_mode=hb.custom_mode; break; }
     // EFI (MAVLINK_MSG_ID_EFI) is not part of MAVLink common dialect — omitted.
     // To add RPM support, decode it from MAVLINK_MSG_ID_RPM if your autopilot sends it.
     case MAVLINK_MSG_ID_HIGHRES_IMU: { mavlink_highres_imu_t imu; mavlink_msg_highres_imu_decode(msg, &imu); mav.temperature=imu.temperature; mav.pressure=imu.abs_pressure/100.0; break; }
@@ -7721,7 +7830,7 @@ function generateInstrumentCode(inst, i) {
   L.push(`  int cx = x + w/2, cy = y + h/2;`);
   L.push(`  int r  = min(w, h)/2 - 2;`);
   const ROTATION_UNSUPPORTED_TYPES = ['altimeter-tape','airspeed-tape','tape','heading-tape','heading-arc','vsi-tape',
-    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text','shape-line'];
+    'groundspeed-tape','mode-indicator','bar-gauge','text-value','home-distance','static-text','status-text','shape-line'];
   const effectiveRot = ROTATION_UNSUPPORTED_TYPES.includes(inst.type) ? 0 : (c.rotation || 0);
   L.push(`  float rot = ${effectiveRot};`);
 
@@ -7802,7 +7911,7 @@ function generateInstrumentCode(inst, i) {
   //    that border right after it was drawn - it would flash into view on
   //    the very first frame, then be gone for good, since _staticDone
   //    prevents it from ever being redrawn.
-  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line','altimeter-tape','airspeed-tape','tape','groundspeed-tape','vsi-tape','heading-tape','heading-arc','mode-indicator','arc-gauge','bar-gauge','static-text','text-value','home-distance','radar'];
+  const OWN_BACKGROUND_TYPES = ['artificial-horizon','vsi','turn-coordinator','altimeter-dial','groundspeed-dial','compass','dial','home-arrow','shape-rectangle','shape-circle','shape-oval','shape-triangle','shape-screw','shape-line','altimeter-tape','airspeed-tape','tape','groundspeed-tape','vsi-tape','heading-tape','heading-arc','mode-indicator','arc-gauge','bar-gauge','static-text','text-value','home-distance','radar','status-text'];
   const isCircularShape = inst.type==='dial'
     || ((inst.type==='indicator'||inst.type==='home-arrow') && c.shape!=='rectangle');
   if(!OWN_BACKGROUND_TYPES.includes(inst.type)){
@@ -8531,7 +8640,7 @@ function generateInstrumentCode(inst, i) {
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
     { const modeDX = Math.round(gDX(c,'mode')), modeDY = Math.round(gDY(c,'mode'));
-    L.push(`  if (${b(c.showText)} && txtColor != C_TRANSPARENT) { int mSz=gfxSizeF(${sizeExpr(c,'mode','h*0.4f')}); GFX.setCursor(x + 4 + (${modeDX}), y + h/2 + gfxCenterOffset(mSz) + (${modeDY})); GFX.setTextColor(txtColor); GFX.setTextSize(mSz); GFX.print(modeName); }`); }
+    L.push(`  if (${b(c.showText)} && txtColor != C_TRANSPARENT) { int mSz=gfxSizeF(${sizeExpr(c,'mode','h*0.4f')}); GFX.setCursor(${(c.modeAlign||'center')==='left'?'x + 4':(c.modeAlign||'center')==='right'?'x + w - 4 - gfxCharW(mSz)*(int)strlen(modeName)':'x + w/2 - gfxCharW(mSz)*(int)strlen(modeName)/2'} + (${modeDX}), y + h/2 + gfxCenterOffset(mSz) + (${modeDY})); GFX.setTextColor(txtColor); GFX.setTextSize(mSz); GFX.print(modeName); }`); }
   }
   else if (inst.type === 'arc-gauge') {
     const sweep = c.arcSweep === 'custom' ? (c.sweepAngle || 270) : (parseInt(c.arcSweep) || 270);
@@ -8714,6 +8823,49 @@ function generateInstrumentCode(inst, i) {
       L.push(`  }`);
     }
   }
+  else if (inst.type === 'status-text') {
+    const stLines = Math.max(1, Math.min(4, parseInt(c.lines)||1));
+    const stTimeout = Math.max(0, Math.round((c.timeoutSec!==undefined?parseFloat(c.timeoutSec):10)*1000))||0;
+    const stSpeed = Math.max(1, parseInt(c.scrollSpeed)||6);
+    const stDX = Math.round(gDX(c,'text')), stDY = Math.round(gDY(c,'text'));
+    const stHw = state.hw||HW_DEFAULTS;
+    L.push(`  // --- Status Text (flight controller STATUSTEXT) ---`);
+    L.push(bgFillLine(c,'rect'));
+    L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
+    if(stHw.protocol==='crsf'){
+      L.push(`  // CRSF carries no STATUSTEXT messages - nothing to show on this protocol.`);
+    } else {
+      L.push(`  uint16_t stErr = ${hexTo565Const(c.errColor||'#ff5c5c')}, stWarn = ${hexTo565Const(c.warnColor||'#ffd93a')}, stInfo = ${hexTo565Const(c.infoColor||'#5fe88a')};`);
+      L.push(`  float rowH = (h - 4) / (float)${stLines};`);
+      L.push(`  int tSz = gfxSizeF(${sizeExpr(c,'text','constrain(rowH*0.5f, 8.0f, 15.9f)')});`);
+      L.push(`  int fit = max(1, (w - 8) / gfxCharW(tSz));`);
+      L.push(`  GFX.setTextSize(tSz);`);
+      L.push(`  int row = 0;`);
+      L.push(`  for (int i = 0; i < ${stLines}; i++) {`);
+      L.push(`    const char* s = mav.stText[i];`);
+      L.push(`    if (!s[0]) continue;`);
+      if(stTimeout>0) L.push(`    if (millis() - mav.stTime[i] > ${stTimeout}UL) continue;  // expired - hide it`);
+      L.push(`    uint16_t col = mav.stSev[i] <= 3 ? stErr : (mav.stSev[i] == 4 ? stWarn : stInfo);`);
+      L.push(`    if (col == C_TRANSPARENT) continue;`);
+      L.push(`    int len = strlen(s);`);
+      L.push(`    char buf[52];`);
+      L.push(`    if (len <= fit) { memcpy(buf, s, len + 1); }`);
+      if(c.scroll!==false){
+        L.push(`    else {  // too wide: scroll a window of 'fit' characters across the text`);
+        L.push(`      int span = len + 4, off = (int)((millis() / 1000UL * ${stSpeed} + (millis() % 1000UL) * ${stSpeed} / 1000UL) % span);`);
+        L.push(`      for (int k = 0; k < fit && k < 51; k++) { int idx = (off + k) % span; buf[k] = idx < len ? s[idx] : ' '; }`);
+        L.push(`      buf[min(fit, 51)] = 0;`);
+        L.push(`    }`);
+      } else {
+        L.push(`    else { int n = min(fit, 51); memcpy(buf, s, n); buf[n] = 0; }  // too wide: cut off`);
+      }
+      L.push(`    GFX.setTextColor(col);`);
+      L.push(`    GFX.setCursor(x + 4 + (${stDX}), y + 2 + (int)(rowH * row + rowH / 2) + gfxCenterOffset(tSz) + (${stDY}));`);
+      L.push(`    GFX.print(buf);`);
+      L.push(`    row++;`);
+      L.push(`  }`);
+    }
+  }
   else if (inst.type === 'static-text') {
     const escText = escCString(c.text||'');
     const textDX = Math.round(gDX(c,'text')), textDY = Math.round(gDY(c,'text'));
@@ -8728,6 +8880,7 @@ function generateInstrumentCode(inst, i) {
     L.push(`  }`);
   }
   else if (inst.type === 'text-value') {
+    const alignX=(a,wExpr)=>a==='left'?'x + 4':a==='center'?`x + w/2 - (${wExpr})/2`:`x + w - 4 - ${wExpr}`;
     L.push(`  // --- Text Value ---`);
     L.push(`  // Background, border, label, and unit are all redrawn unconditionally`);
     L.push(`  // every frame (no caching/skip logic) - toggling any of them, or a`);
@@ -8738,19 +8891,19 @@ function generateInstrumentCode(inst, i) {
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (${b(c.showBorder)} && borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
     { const labelDX = Math.round(gDX(c,'label')), labelDY = Math.round(gDY(c,'label'));
-    L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(x + 4 + (${labelDX}), y + 3 + (${labelDY})); GFX.print("${c.label||''}"); }`); }
+    L.push(`  if (${b(c.showLabel)} && labelColor != C_TRANSPARENT) { int lSz=gfxSizeF(${sizeExpr(c,'label','h*0.22f')}); GFX.setTextColor(labelColor); GFX.setTextSize(lSz); GFX.setCursor(${alignX(c.labelAlign||'left',`gfxCharW(lSz)*(int)strlen("${c.label||''}")`)} + (${labelDX}), y + 3 + (${labelDY})); GFX.print("${c.label||''}"); }`); }
     { const valueDX = Math.round(gDX(c,'value')), valueDY = Math.round(gDY(c,'value'));
     L.push(`  if (${b(c.showValue)} && color != C_TRANSPARENT) {`);
     L.push(`    int vSz=gfxSizeF(${sizeExpr(c,'value','h*0.5f')});`);
     L.push(`    char vbuf[16]; dtostrf(value, 1, digits, vbuf);`);
     L.push(`    GFX.setTextColor(color); GFX.setTextSize(vSz);`);
-    L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(vSz)*(int)strlen(vbuf) + (${valueDX}), y + h - gfxCharH(vSz) - 2 + (${valueDY})); GFX.print(vbuf);`);
+    L.push(`    GFX.setCursor(${alignX(c.valueAlign||'right','gfxCharW(vSz)*(int)strlen(vbuf)')} + (${valueDX}), y + h - gfxCharH(vSz) - 2 + (${valueDY})); GFX.print(vbuf);`);
     L.push(`  }`); }
     { const unitDX = Math.round(gDX(c,'unit')), unitDY = Math.round(gDY(c,'unit'));
     L.push(`  if (${b(c.showUnit)} && labelColor != C_TRANSPARENT) {`);
     L.push(`    int uSz=gfxSizeF(${sizeExpr(c,'unit','h*0.22f')});`);
     L.push(`    GFX.setTextColor(labelColor); GFX.setTextSize(uSz);`);
-    L.push(`    GFX.setCursor(x + w - 4 - gfxCharW(uSz)*(int)strlen("${c.unit||''}") + (${unitDX}), y + 3 + (${unitDY})); GFX.print("${c.unit||''}");`);
+    L.push(`    GFX.setCursor(${alignX(c.unitAlign||'right',`gfxCharW(uSz)*(int)strlen("${c.unit||''}")`)} + (${unitDX}), y + 3 + (${unitDY})); GFX.print("${c.unit||''}");`);
     L.push(`  }`); }
   }
   else if (inst.type === 'dial') {
@@ -9006,11 +9159,13 @@ function generateInstrumentCode(inst, i) {
     const distUnit = c.distanceUnit || 'auto';
     L.push(`  // --- Home Distance ---`);
     L.push(`  float dist = homeDistanceM();`);
+    const hdLa=c.labelAlign||'center', hdVa=c.valueAlign||'center', hdUa=c.unitAlign||'center';
+    const hdX=(a,wExpr)=>a==='left'?'x + 4':a==='right'?`x + w - 4 - ${wExpr}`:`x + w/2 - (${wExpr})/2`;
     L.push(bgFillLine(c,'rect'));
     L.push(`  if (borderColor != C_TRANSPARENT) GFX.drawRect(x, y, w, h, borderColor);`);
     L.push(`  // GFX has no native centre-align - "HOME DIST" is a fixed 9-char`);
     L.push(`  // string, so its printed width is known without measuring at runtime.`);
-    L.push(`  if (labelColor != C_TRANSPARENT) { int hlSz=gfxSizeF(h*0.18f); int hlW=gfxCharW(hlSz)*9; GFX.setTextColor(labelColor); GFX.setTextSize(hlSz); GFX.setCursor(x+w/2-hlW/2, y+4); GFX.print("HOME DIST"); }`);
+    L.push(`  if (labelColor != C_TRANSPARENT) { int hlSz=gfxSizeF(h*0.18f); int hlW=gfxCharW(hlSz)*9; GFX.setTextColor(labelColor); GFX.setTextSize(hlSz); GFX.setCursor(${hdX(hdLa,'hlW')}, y+4); GFX.print("HOME DIST"); }`);
     L.push(`  if (ptrColor != C_TRANSPARENT) {`);
     L.push(`    int hvSz=gfxSizeF(h*0.38f); int hvCharW=gfxCharW(hvSz), hvCharH=gfxCharH(hvSz);`);
     L.push(`    // Built into one buffer (rather than two separate GFX.print calls)`);
@@ -9032,12 +9187,12 @@ function generateInstrumentCode(inst, i) {
       L.push(`    { char hvtmp[8]; dtostrf(dist*0.000621371f, 1, 2, hvtmp); snprintf(hvbuf, sizeof(hvbuf), "%s mi", hvtmp); }`);
     }
     L.push(`    int hvW = hvCharW * (int)strlen(hvbuf);`);
-    L.push(`    int hvCurX = x + w/2 - hvW/2, hvCurY = y + h*0.5f - hvCharH/2;`);
+    L.push(`    int hvCurX = ${hdVa==='left'?'x + 4 + hvCharW/2 + 2':hdVa==='right'?'x + w - 4 - hvW - hvCharW/2 - 2':'x + w/2 - hvW/2'}, hvCurY = y + h*0.5f - hvCharH/2;`);
     L.push(`    if (${b(c.showValueBox)} && valueBoxColor != C_TRANSPARENT) GFX.fillRect(hvCurX - hvCharW/2 - 2, hvCurY - 2, hvW + hvCharW + 4, hvCharH + 4, valueBoxColor);`);
     L.push(`    GFX.setTextColor(ptrColor); GFX.setTextSize(hvSz); GFX.setCursor(hvCurX, hvCurY); GFX.print(hvbuf);`);
     L.push(`  }`);
     const unitCaption = distUnit==='auto'?'m / km':distUnit==='m'?'meters':distUnit==='km'?'km':distUnit==='ft'?'feet':'miles';
-    L.push(`  if (${b(c.showUnit)} && labelColor != C_TRANSPARENT) { int huSz=gfxSizeF(h*0.14f); GFX.setTextColor(labelColor); GFX.setTextSize(huSz); GFX.setCursor(x+w/2-${Math.ceil(unitCaption.length/2)}*gfxCharW(huSz), y+h*0.82 + gfxCenterOffset(huSz)); GFX.print("${unitCaption}"); }`);
+    L.push(`  if (${b(c.showUnit)} && labelColor != C_TRANSPARENT) { int huSz=gfxSizeF(h*0.14f); GFX.setTextColor(labelColor); GFX.setTextSize(huSz); GFX.setCursor(${hdX(hdUa,`${unitCaption.length}*gfxCharW(huSz)`)}, y+h*0.82 + gfxCenterOffset(huSz)); GFX.print("${unitCaption}"); }`);
   }
   else if (inst.type === 'groundspeed-dial') {
     const maxSpd = c.maxSpeed || 200;
@@ -9931,11 +10086,24 @@ window.addEventListener('load',init);
 .field-hint{font-size:10px;color:var(--muted);font-style:italic;display:block;margin-top:6px}
 .setup-field .field-hint{margin-top:0}
 .setup-subhead{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin:14px 0 8px}
-.modal-body{overflow-x:hidden}
+.modal-body{overflow-x:clip}
 .modal-footer{
   display:flex;justify-content:flex-end;gap:8px;
   padding:14px 20px;border-top:1px solid var(--border);
 }
+.led-prev{display:flex;flex-wrap:wrap;gap:3px;align-items:center;min-height:14px}
+.led-prev i{width:12px;height:12px;border-radius:50%;background:#000;border:1px solid rgba(255,255,255,.18);display:block;flex:0 0 auto}
+.led-prev-sticky{position:sticky;top:49px;z-index:6;background:var(--panel);padding:8px 0 10px;margin:-6px 0 8px;border-bottom:1px solid var(--border)}
+#ledPreviewBar{display:none;flex:0 0 auto;gap:18px;flex-wrap:wrap;align-items:center;padding:8px 16px;border-top:1px solid var(--border);background:var(--panel-2);font-size:11px;color:var(--muted)}
+#ledPreviewBar .lpb-row{display:flex;gap:8px;align-items:center}
+.pin-conflict{outline:2px solid #ff5c5c;outline-offset:-1px;border-color:#ff5c5c !important}
+.pin-warn{outline:2px solid #ffd93a;outline-offset:-1px}
+#pinCheckBox{position:sticky;top:49px;z-index:6;margin:0 0 14px;max-height:34vh;overflow:auto;padding:10px 12px;border-radius:6px;font-size:12px;line-height:1.5;display:none}
+#pinCheckBox.has-errors{display:block;background:#2b1519;border:1px solid #ff5c5c;color:#ff9a9a}
+#pinCheckBox.has-warns{display:block;background:#2a2713;border:1px solid #ffd93a;color:#ffd93a}
+#pinCheckBox.has-errors.has-warns{color:#ff9a9a;background:#2b1519;border-color:#ff5c5c}
+#pinCheckBox ul{margin:4px 0 0 18px;padding:0}
+#pinCheckBox .pc-warn{color:#ffd93a}
 .pin-na{color:var(--muted);font-style:italic;font-size:11px;align-self:center;padding-top:14px}
 </style>
 
@@ -9946,6 +10114,8 @@ window.addEventListener('load',init);
       <button class="modal-close" id="setupModalClose"><i class="fa fa-times"></i></button>
     </div>
     <div class="modal-body">
+
+      <div id="pinCheckBox" role="alert"></div>
 
       <!-- Board -->
       <div class="setup-section">
@@ -10249,6 +10419,7 @@ window.addEventListener('load',init);
       <button class="modal-close" id="ledConfigModalClose"><i class="fa fa-times"></i></button>
     </div>
     <div class="modal-body">
+      <div class="led-prev led-prev-sticky" id="ledConfigPreview"></div>
       <div id="ledConfigList"></div>
       <div id="ledConfigEmpty" class="field-hint" style="display:none;padding:20px 0;text-align:center">Set an LED Count above 0 in Hardware Setup to configure LEDs here.</div>
     </div>
@@ -10422,9 +10593,198 @@ function openSetupModal(){
   }
 
   document.getElementById('setupModal').classList.add('open');
+  checkPins();
 }
 
 function closeSetupModal(){ document.getElementById('setupModal').classList.remove('open'); }
+
+// ── LED strip live preview ──────────────────────────────────────
+// Mirrors the generated updateLedStripN() maths exactly (base factor ->
+// blink/flicker modulation -> off->on colour lerp, later groups win on
+// overlapping LEDs, never-touched LEDs stay dark) and feeds it the same
+// simulated/log telemetry the instruments use.
+function ledGroupColor(led,now){
+  const src=led.source||'SYS_STATUS.battery_remaining';
+  const op=led.op||'<';
+  const thresh=led.threshold!==undefined?led.threshold:20;
+  const blinkMode=led.blinkMode||'none';
+  const speed=Math.max(0.1,led.blinkSpeed!==undefined?led.blinkSpeed:2);
+  let base;
+  if((led.colorMode||'threshold')==='blend'){
+    const bMin=led.blendMin!==undefined?led.blendMin:0, bMax=led.blendMax!==undefined?led.blendMax:100;
+    const v=getMav(src);
+    base=bMin===bMax?(v>=bMax?1:0):Math.min(1,Math.max(0,(v-bMin)/(bMax-bMin)));
+  } else if(src==='MAVLINK_CONNECTED'){
+    const conn=(Date.now()-(state.mavlinkValues['_lastUpdate']||0))<3000;
+    base=(op==='=='?conn:op==='!='?!conn:conn)?1:0;
+  } else {
+    const v=getMav(src);
+    let c=false;
+    switch(op){case '<':c=v<thresh;break;case '>':c=v>thresh;break;case '<=':c=v<=thresh;break;case '>=':c=v>=thresh;break;case '==':c=v==thresh;break;case '!=':c=v!=thresh;break;}
+    base=c?1:0;
+  }
+  let t=base;
+  if(blinkMode==='blink'||blinkMode==='double-blink'){
+    const period=1000/speed, ph=(now%period)/period;
+    const on=blinkMode==='blink'?ph<0.5:(ph<0.125||(ph>=0.25&&ph<0.375));
+    t=base*(on?1:0);
+  } else if(blinkMode==='flicker'){
+    const ft=now/1000*speed;
+    const f=0.5+0.3*Math.sin(ft*2.1)+0.2*Math.sin(ft*4.7)+0.15*Math.sin(ft*9.3);
+    t=base*Math.min(1,Math.max(0,f));
+  }
+  const on=hexToRgb888(led.onColor||'#ff5c5c'), off=hexToRgb888(led.offColor||'#1c232e');
+  const mix=(a,b)=>Math.max(0,Math.min(255,Math.trunc(a+(b-a)*t)));
+  return [mix(off.r,on.r),mix(off.g,on.g),mix(off.b,on.b)];
+}
+function ledStripPixels(strip,now){
+  const n=Math.max(0,strip.count||0), px=new Array(n);
+  for(let i=0;i<n;i++) px[i]=[0,0,0];
+  (strip.groups||[]).forEach(led=>{
+    const from=Math.max(0,(led.from||1)-1);
+    if(from>=n) return;
+    const to=Math.min(n-1,Math.max(from,(led.to||led.from||1)-1));
+    const col=ledGroupColor(led,now);
+    for(let i=from;i<=to;i++) px[i]=col;
+  });
+  return px;
+}
+function paintLedPreview(el,strip,now){
+  if(!el||!strip) return;
+  const px=ledStripPixels(strip,now);
+  if(el.children.length!==px.length){
+    el.innerHTML=px.map(()=>'<i></i>').join('');
+  }
+  for(let i=0;i<px.length;i++){
+    const [r,g,b]=px[i], key=r+','+g+','+b, d=el.children[i];
+    if(d._k!==key){
+      d._k=key; d.style.background=`rgb(${key})`;
+      const lum=Math.max(r,g,b);
+      d.style.boxShadow=lum>90?`0 0 ${Math.round(lum/32)}px rgb(${key})`:'none';
+    }
+  }
+}
+function updateLedPreviews(){
+  const strips=(state.ledStrips||[]).filter(st=>(st.count||0)>0);
+  const bar=document.getElementById('ledPreviewBar');
+  const hasAny=strips.length>0;
+  if(bar){
+    if(!hasAny){ if(bar.style.display!=='none'){ bar.style.display='none'; bar.innerHTML=''; } }
+    else {
+      bar.style.display='flex';
+      const sig=(state.ledStrips||[]).map((st,i)=>(st.count||0)>0?i:-1).join(',');
+      if(bar._sig!==sig){
+        bar._sig=sig;
+        bar.innerHTML='<span style="letter-spacing:.8px;text-transform:uppercase;font-size:10px">LED preview</span>'+
+          (state.ledStrips||[]).map((st,i)=>(st.count||0)>0?`<div class="lpb-row"><span>Strip ${i+1}${st.pin?' · pin '+escAttr(st.pin):''}</span><div class="led-prev" data-bar-strip="${i}"></div></div>`:'').join('');
+      }
+    }
+  }
+  if(!hasAny && !document.querySelector('.led-prev[data-prev-strip]')) return;
+  const now=Date.now();
+  if(bar) bar.querySelectorAll('[data-bar-strip]').forEach(el=>paintLedPreview(el,state.ledStrips[+el.dataset.barStrip],now));
+  if(document.getElementById('setupModal').classList.contains('open'))
+    document.querySelectorAll('#ledStripsList .led-prev[data-prev-strip]').forEach(el=>paintLedPreview(el,state.ledStrips[+el.dataset.prevStrip],now));
+  if(document.getElementById('ledConfigModal').classList.contains('open'))
+    paintLedPreview(document.getElementById('ledConfigPreview'),state.ledStrips[currentLedStripIndex],now);
+}
+setInterval(()=>{ try{ updateLedPreviews(); }catch(e){} },66);
+
+// ── Pin conflict checker ────────────────────────────────────────
+// Reads the live (not yet applied) Hardware Setup fields and reports pins
+// used twice, pins that don't exist on the chosen board, and (RP2040)
+// SPI/UART pins that aren't on a real hardware peripheral. Only the pins the
+// current configuration actually uses are checked: an I2C panel ignores the
+// SPI pin fields and vice versa, USB serial uses no pins, and so on.
+function parsePinNumber(v){
+  v=String(v==null?'':v).trim().toUpperCase();
+  if(v===''||v==='-1') return null;
+  v=v.replace(/^(GPIO|GP|IO|D)/,'');
+  return /^\d+$/.test(v)?parseInt(v,10):null;
+}
+const BOARD_PIN_MAX={rp2040:29,esp32:39,esp32s3:48,mega:69,nano:19,teensy4:41};
+const RP2040_SPI_SCK=[2,6,10,14,18,22,26], RP2040_SPI_MOSI=[3,7,11,15,19,23,27];
+const RP2040_UART_PINS={Serial1:{tx:[0,12,16,28],rx:[1,13,17,29]},Serial2:{tx:[4,8,20,24],rx:[5,9,21,25]}};
+function collectPinUsage(){
+  const val=id=>{const e=document.getElementById(id); return e?e.value:'';};
+  const use=[]; // {pin, role, inputId|null, stripIndex|null}
+  const add=(id,role)=>{ const n=parsePinNumber(val(id)); if(n!==null) use.push({pin:n,role,inputId:id,raw:val(id)}); };
+  const uart=val('hw_uart');
+  if(uart!=='Serial'){ add('hw_rx','Telemetry RX'); add('hw_tx','Telemetry TX'); }
+  if(isI2CPanel()){ add('hw_sda','Screen SDA'); add('hw_scl','Screen SCL'); }
+  else {
+    add('hw_cs','Screen CS'); add('hw_dc','Screen DC'); add('hw_rst','Screen RST');
+    add('hw_sck','Screen SCK'); add('hw_mosi','Screen MOSI'); add('hw_bl','Screen Backlight');
+  }
+  if(val('hw_rgbLed')==='on') add('hw_rgbLedPin','Status LED');
+  (state.ledStrips||[]).forEach((st,i)=>{
+    const n=parsePinNumber(st.pin);
+    if(n!==null) use.push({pin:n,role:'LED Strip '+(i+1),inputId:null,stripIndex:i,raw:st.pin});
+  });
+  return use;
+}
+function checkPins(){
+  const box=document.getElementById('pinCheckBox'); if(!box) return {errors:[],warns:[]};
+  const board=document.getElementById('hw_board').value;
+  const use=collectPinUsage();
+  const errors=[], warns=[], bad=new Set();   // bad: keys 'id:xxx' / 'strip:n'
+  const keyOf=u=>u.inputId?('id:'+u.inputId):('strip:'+u.stripIndex);
+  // duplicates
+  const byPin={};
+  use.forEach(u=>(byPin[u.pin]=byPin[u.pin]||[]).push(u));
+  Object.keys(byPin).forEach(pin=>{
+    const g=byPin[pin];
+    if(g.length>1){ errors.push(`Pin ${pin} is used by ${g.map(u=>u.role).join(' and ')}`); g.forEach(u=>bad.add(keyOf(u))); }
+  });
+  // range
+  const max=BOARD_PIN_MAX[board];
+  if(max!==undefined) use.forEach(u=>{
+    if(u.pin>max){ errors.push(`${u.role}: pin ${u.pin} doesn't exist on this board (highest is ${max})`); bad.add(keyOf(u)); }
+  });
+  if(board==='esp32') use.forEach(u=>{
+    if(u.pin>=6&&u.pin<=11){ warns.push(`${u.role}: GPIO${u.pin} is connected to the ESP32's flash chip - don't use it`); bad.add('w'+keyOf(u)); }
+    else if(u.pin>=34&&u.pin<=39&&/Screen|LED|TX/.test(u.role)){ warns.push(`${u.role}: GPIO${u.pin} is input-only on the ESP32`); bad.add('w'+keyOf(u)); }
+  });
+  // RP2040 hardware peripherals
+  if(board==='rp2040'){
+    const find=(role)=>use.find(u=>u.role===role);
+    if(!isI2CPanel()){
+      const sck=find('Screen SCK'), mosi=find('Screen MOSI');
+      if(sck&&!RP2040_SPI_SCK.includes(sck.pin)){ warns.push(`Screen SCK: GP${sck.pin} is not an SPI clock pin on the RP2040 (valid: ${RP2040_SPI_SCK.join(', ')})`); bad.add('w'+keyOf(sck)); }
+      if(mosi&&!RP2040_SPI_MOSI.includes(mosi.pin)){ warns.push(`Screen MOSI: GP${mosi.pin} is not an SPI TX pin on the RP2040 (valid: ${RP2040_SPI_MOSI.join(', ')})`); bad.add('w'+keyOf(mosi)); }
+      if(sck&&mosi&&RP2040_SPI_SCK.includes(sck.pin)&&RP2040_SPI_MOSI.includes(mosi.pin)){
+        const busOf=(pin)=>{ // SPI0: 2-3,6-7,18-19,22-23 ; SPI1: 10-11,14-15,26-27
+          return [2,3,6,7,18,19,22,23].includes(pin)?0:1; };
+        if(busOf(sck.pin)!==busOf(mosi.pin)){ warns.push(`Screen SCK (GP${sck.pin}) and MOSI (GP${mosi.pin}) belong to different SPI buses`); bad.add('w'+keyOf(sck)); bad.add('w'+keyOf(mosi)); }
+      }
+    }
+    const up=RP2040_UART_PINS[document.getElementById('hw_uart').value];
+    if(up){
+      const rx=find('Telemetry RX'), tx=find('Telemetry TX');
+      const u=document.getElementById('hw_uart').value;
+      if(rx&&!up.rx.includes(rx.pin)){ warns.push(`Telemetry RX: GP${rx.pin} can't be ${u} RX on the RP2040 (valid: ${up.rx.join(', ')})`); bad.add('w'+keyOf(rx)); }
+      if(tx&&!up.tx.includes(tx.pin)){ warns.push(`Telemetry TX: GP${tx.pin} can't be ${u} TX on the RP2040 (valid: ${up.tx.join(', ')})`); bad.add('w'+keyOf(tx)); }
+    }
+  }
+  // mark fields
+  document.querySelectorAll('.pin-conflict,.pin-warn').forEach(e=>e.classList.remove('pin-conflict','pin-warn'));
+  use.forEach(u=>{
+    const el=u.inputId?document.getElementById(u.inputId):document.querySelector(`#ledStripsList [data-strip-index="${u.stripIndex}"] [data-field="pin"]`);
+    if(!el) return;
+    if(bad.has(keyOf(u))) el.classList.add('pin-conflict'); else if(bad.has('w'+keyOf(u))) el.classList.add('pin-warn');
+  });
+  // report
+  box.className=''; 
+  if(errors.length||warns.length){
+    if(errors.length) box.classList.add('has-errors');
+    if(warns.length) box.classList.add('has-warns');
+    box.innerHTML=(errors.length?`<b><i class="fa fa-triangle-exclamation"></i> Pin conflicts</b><ul>${errors.map(e=>`<li>${escAttr(e)}</li>`).join('')}</ul>`:'')
+      +(warns.length?`<div style="margin-top:${errors.length?8:0}px"><b class="pc-warn"><i class="fa fa-circle-exclamation"></i> Check these pins</b><ul class="pc-warn">${warns.map(e=>`<li>${escAttr(e)}</li>`).join('')}</ul></div>`:'');
+  } else box.innerHTML='';
+  return {errors,warns};
+}
+document.querySelector('#setupModal .modal-body').addEventListener('input',checkPins);
+document.querySelector('#setupModal .modal-body').addEventListener('change',checkPins);
 
 // ── WS2812 LED Indicator Strips ─────────────────────────────────
 // Each STRIP has its own data pin, LED count, and independent list of
@@ -10474,7 +10834,9 @@ function renderLedStripsList(){
         <button class="btn strip-configure-btn" type="button">Configure...</button>
         <button class="btn btn-ghost strip-remove-btn" type="button">Remove</button>
       </div>
-    </div>`).join('');
+    </div>
+    <div class="led-prev" data-prev-strip="${s}" style="margin:-2px 0 14px"></div>`).join('');
+  if(typeof checkPins==='function') checkPins();
 }
 document.getElementById('ledStripsList').addEventListener('input', e=>{
   const field = e.target.closest('.strip-field');
